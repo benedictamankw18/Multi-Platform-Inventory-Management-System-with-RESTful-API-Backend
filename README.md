@@ -292,4 +292,5 @@ The Multi-Platform Inventory Management System will provide a centralized platfo
 
 # Repository
 
-GitHub Repository:   https://github.com/benedictamankw18/Multi-Platform-Inventory-Management-System-with-RESTful-API-Backend
+GitHub Repository:   
+https://github.com/benedictamankw18/Multi-Platform-Inventory-Management-System-with-RESTful-API-Backend
