@@ -1,0 +1,15 @@
+roles
+users
+branches
+categories
+products
+inventory
+inventory_transactions
+suppliers
+purchase_orders
+purchase_order_items
+sales
+sale_items
+stock_transfers
+notifications
+audit_logs
