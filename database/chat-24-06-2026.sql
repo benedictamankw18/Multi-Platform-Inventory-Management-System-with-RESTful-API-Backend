@@ -80,13 +80,13 @@ CREATE TABLE inventory_transactions (
 );
 
 -- Transaction Types:
--- STOCK_IN
--- STOCK_OUT
--- ADJUSTMENT
--- TRANSFER_IN
--- TRANSFER_OUT
--- SALE
--- PURCHASE
+    -- STOCK_IN
+    -- STOCK_OUT
+    -- ADJUSTMENT
+    -- TRANSFER_IN
+    -- TRANSFER_OUT
+    -- SALE
+    -- PURCHASE
 
 CREATE TABLE suppliers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -218,33 +218,31 @@ CREATE TABLE system_settings (
 );
 
 INSERT INTO system_settings
-(setting_key, setting_value, description)
+    (setting_key, setting_value, description)
 VALUES
-('company_name', 'My Inventory System', 'Business name'),
-('company_logo_url', 'https://example.com/logo.png', 'Business Logo URL'),
-('company_address', 'Accra, Ghana', 'Business address'),
-('company_phone', '+233000000000', 'Business phone'),
-('company_email', 'info@example.com', 'Business email'),
-('currency', 'GH₵', 'Default currency'),
-('vat_rate', '15', 'VAT percentage'),
-('receipt_footer', 'Thank you for shopping with us', 'Receipt footer message'),
-('low_stock_threshold', '10', 'Minimum stock level'),
-('jwt_expiry', '1d', 'JWT expiration period'),
-('receipt_header', 'My Inventory System', 'Receipt header message'),
-('default_payment_method', 'CASH', 'Default payment method for sales'),
-('enable_notifications', 'true', 'Enable or disable notifications'),
-('default_language', 'en', 'Default language for the system'),
-('enable_audit_logs', 'true', 'Enable or disable audit logging'),
-('enable_sync', 'true', 'Enable or disable data synchronization'),
-('sync_interval_minutes', '15', 'Interval in minutes for data synchronization'),
-('enable_multi_branch', 'true', 'Enable or disable multi-branch support'),
-('default_branch_id', NULL, 'Default branch for operations'),
-('enable_bulk_import_export', 'true', 'Enable or disable bulk import/export of data'),
-('enable_user_activity_tracking', 'true', 'Enable or disable user activity tracking'),
-('enable_email_notifications', 'true', 'Enable or disable email notifications'),
-('enable_sms_notifications', 'false', 'Enable or disable SMS notifications'),
-('sms_gateway_url', 'https://sms.example.com/api', 'SMS gateway URL for sending SMS'),
-('sms_gateway_api_key', 'your_api_key', 'API key for the SMS gateway'),
-('enable_backup', 'true', 'Enable or disable database backup'),
-('backup_schedule', '0 2 * * *', 'Cron schedule for database backup (default: daily at 2 AM)'),
-('backup_location', '/backups/', 'Directory path for storing backups');
+    ('company_name', 'My Inventory System', 'Business name'),
+    ('company_logo_url', 'https://example.com/logo.png', 'Business Logo URL'),
+    ('company_address', 'Accra, Ghana', 'Business address'),
+    ('company_phone', '+233000000000', 'Business phone'),
+    ('company_email', 'info@example.com', 'Business email'),
+    ('currency', 'GH₵', 'Default currency'),
+    ('vat_rate', '15', 'VAT percentage'),
+    ('receipt_footer', 'Thank you for shopping with us', 'Receipt footer message'),
+    ('low_stock_threshold', '10', 'Minimum stock level'),
+    ('jwt_expiry', '1d', 'JWT expiration period'),
+    ('receipt_header', 'My Inventory System', 'Receipt header message'),
+    ('default_payment_method', 'CASH', 'Default payment method for sales'),
+    ('enable_notifications', 'true', 'Enable or disable notifications'),
+    ('default_language', 'en', 'Default language for the system'),
+    ('enable_audit_logs', 'true', 'Enable or disable audit logging'),
+    ('enable_sync', 'true', 'Enable or disable data synchronization'),
+    ('sync_interval_minutes', '15', 'Interval in minutes for data synchronization'),
+    ('enable_multi_branch', 'true', 'Enable or disable multi-branch support'),
+    ('default_branch_id', NULL, 'Default branch for operations'),
+    ('enable_bulk_import_export', 'true', 'Enable or disable bulk import/export of data'),
+    ('enable_user_activity_tracking', 'true', 'Enable or disable user activity tracking'),
+    ('enable_email_notifications', 'true', 'Enable or disable email notifications'),
+    ('enable_sms_notifications', 'false', 'Enable or disable SMS notifications'),
+    ('enable_backup', 'true', 'Enable or disable database backup'),
+    ('backup_schedule', '0 2 * * *', 'Cron schedule for database backup (default: daily at 2 AM)'),
+    ('backup_location', '/backups/', 'Directory path for storing backups');
