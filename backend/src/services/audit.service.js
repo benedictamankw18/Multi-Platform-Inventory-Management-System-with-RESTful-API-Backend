@@ -1,3 +1,4 @@
+
 /**
  * audit.service.js
  *
@@ -35,7 +36,7 @@ function normalisePagination(page, limit) {
 // § Read
 // ---------------------------------------------------------------------------
 
-exports.getLogs = async (rawFilters = {}) => {
+async function getLogs (rawFilters = {})  {
   const { page, limit } = normalisePagination(rawFilters.page, rawFilters.limit);
   const filters = { ...rawFilters, page, limit };
 
@@ -45,9 +46,9 @@ exports.getLogs = async (rawFilters = {}) => {
   ]);
 
   return { logs, pagination: { page, limit, total } };
-};
+}
 
-exports.getLogById = async (auditId) => {
+async function getLogById(auditId) {
   const log = await auditRepo.findById(auditId);
   if (!log) {
     throw new AppError('Audit log entry not found.', { code: 'AUDIT_LOG_NOT_FOUND', status: 404 });
@@ -55,7 +56,7 @@ exports.getLogById = async (auditId) => {
   return log;
 };
 
-exports.getLogsByUser = async (userId, rawFilters = {}) => {
+async function getLogsByUser(userId, rawFilters = {}) {
   const { page, limit } = normalisePagination(rawFilters.page, rawFilters.limit);
   const filters = { ...rawFilters, userId, page, limit };
 
@@ -67,7 +68,7 @@ exports.getLogsByUser = async (userId, rawFilters = {}) => {
   return { logs, pagination: { page, limit, total } };
 };
 
-exports.getLogsByEntity = async (entityType, entityId, rawFilters = {}) => {
+async function getLogsByEntity(entityType, entityId, rawFilters = {}) {
   if (!entityType) {
     throw new AppError('entityType is required.', { code: 'VALIDATION_ERROR', status: 400 });
   }
@@ -81,4 +82,53 @@ exports.getLogsByEntity = async (entityType, entityId, rawFilters = {}) => {
   ]);
 
   return { logs, pagination: { page, limit, total } };
+};
+
+async function findById(auditId) {
+  return auditRepo.findById(auditId);
+}
+
+async function findAll(filters) {
+  return auditRepo.findAll(filters);
+}
+
+async function count(filters) {
+  return auditRepo.count(filters);
+}
+
+
+async function listAudits (filters = {}) {
+  const items = await auditRepo.findAll(filters);
+  const total = await auditRepo.count(filters);
+  return { items, total };
+}
+
+async function getAuditById(auditId) {
+  return auditRepo.findById(auditId);
+}
+
+// For export we delegate to repository and let controller stream the rows
+async function findForExport(filters = {}) {
+  // set a high limit for exports (caller may override)
+  filters.limit = Math.min(Number(filters.limit) || 10000, 100000);
+  filters.page = 1;
+  return auditRepo.findAll(filters);
+}
+
+module.exports = {
+  // high-level query API used by controllers
+  getLogs,
+  getLogById,
+  getLogsByUser,
+  getLogsByEntity,
+findForExport,
+  listAudits,
+  getAuditById,
+
+  // low-level query API used by other services
+  findForExport,
+  // lower-level helpers (kept for backwards compatibility)
+  findById,
+  findAll,
+  count,
 };

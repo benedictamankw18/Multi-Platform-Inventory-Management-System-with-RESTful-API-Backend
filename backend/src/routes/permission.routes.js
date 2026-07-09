@@ -17,11 +17,12 @@ const {
   createPermissionValidation,
   updatePermissionValidation,
   permissionIdValidation,
+  searchPermissionValidation,
 } = require('../validations/permission.validation');
 
 router.use(authenticate, authorize('Administrator'));
 
-router.get('/', permissionController.getAllPermissions);
+router.get('/', searchPermissionValidation, validate, permissionController.getAllPermissions);
 router.post('/', createPermissionValidation, validate, permissionController.createPermission);
 
 router.get('/:id', permissionIdValidation, validate, permissionController.getPermissionById);

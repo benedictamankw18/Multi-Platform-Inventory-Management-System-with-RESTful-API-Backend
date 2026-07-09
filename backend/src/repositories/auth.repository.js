@@ -70,6 +70,21 @@ exports.getSessionById = async (sessionId, client = db) => {
   return rows[0];
 };
 
+// ---------------------------------------------------------------------------
+// List sessions for a user
+// ---------------------------------------------------------------------------
+exports.listSessionsForUser = async (userId, { limit = 50, offset = 0 } = {}, client = db) => {
+  const query = `
+    SELECT s.session_id, s.user_id, s.token_identifier, s.issued_at, s.expires_at, s.last_activity_at, s.revoked
+    FROM user_sessions s
+    WHERE s.user_id = $1
+    ORDER BY s.issued_at DESC
+    LIMIT $2 OFFSET $3;
+  `;
+  const { rows } = await client.query(query, [userId, limit, offset]);
+  return rows;
+};
+
 exports.rotateSessionToken = async (sessionId, newTokenIdentifier, client = db) => {
   const query = `
     UPDATE user_sessions
@@ -104,4 +119,125 @@ exports.revokeAllSessionsForUser = async (userId, client = db) => {
   `;
   const { rows } = await client.query(query, [userId]);
   return rows.map(r => r.session_id);
+};
+
+// ---------------------------------------------------------------------------
+// Refresh tokens
+// ---------------------------------------------------------------------------
+
+exports.createRefreshToken = async ({ refreshTokenId, userId, tokenHash, expiresAt }, client = db) => {
+  const query = `
+    INSERT INTO refresh_tokens (refresh_token_id, user_id, token_hash, expires_at, revoked, created_at, updated_at)
+    VALUES ($1, $2, $3, $4, FALSE, now(), now())
+    RETURNING refresh_token_id, user_id, expires_at, revoked, created_at;
+  `;
+  const { rows } = await client.query(query, [refreshTokenId || null, userId, tokenHash, expiresAt]);
+  return rows[0];
+};
+
+exports.getRefreshTokenById = async (refreshTokenId, client = db) => {
+  const query = `SELECT * FROM refresh_tokens WHERE refresh_token_id = $1 LIMIT 1;`;
+  const { rows } = await client.query(query, [refreshTokenId]);
+  return rows[0];
+};
+
+exports.getRefreshTokenByHash = async (tokenHash, client = db) => {
+  const query = `SELECT * FROM refresh_tokens WHERE token_hash = $1 LIMIT 1;`;
+  const { rows } = await client.query(query, [tokenHash]);
+  return rows[0];
+};
+
+exports.revokeRefreshToken = async (refreshTokenId, client = db) => {
+  const query = `
+    UPDATE refresh_tokens
+    SET revoked = TRUE, updated_at = now()
+    WHERE refresh_token_id = $1
+    RETURNING refresh_token_id;
+  `;
+  const { rows } = await client.query(query, [refreshTokenId]);
+  return rows[0];
+};
+
+exports.replaceRefreshToken = async (oldId, newId, client = db) => {
+  const query = `
+    UPDATE refresh_tokens
+    SET revoked = TRUE, replaced_by = $2, updated_at = now()
+    WHERE refresh_token_id = $1
+    RETURNING refresh_token_id;
+  `;
+  const { rows } = await client.query(query, [oldId, newId]);
+  return rows[0];
+};
+
+// ---------------------------------------------------------------------------
+// Password reset tokens
+// ---------------------------------------------------------------------------
+
+exports.createPasswordResetToken = async ({ id, userId, token, expiresAt }, client = db) => {
+  const query = `
+    INSERT INTO password_reset_tokens (id, user_id, token, expires_at, used, created_at)
+    VALUES ($1, $2, $3, $4, FALSE, now())
+    RETURNING id, user_id, expires_at, used, created_at;
+  `;
+  const { rows } = await client.query(query, [id || null, userId, token, expiresAt]);
+  return rows[0];
+};
+
+exports.getPasswordResetTokenById = async (id, client = db) => {
+  const query = `SELECT * FROM password_reset_tokens WHERE id = $1 LIMIT 1;`;
+  const { rows } = await client.query(query, [id]);
+  return rows[0];
+};
+
+exports.getPasswordResetTokenByToken = async (token, client = db) => {
+  const query = `SELECT * FROM password_reset_tokens WHERE token = $1 LIMIT 1;`;
+  const { rows } = await client.query(query, [token]);
+  return rows[0];
+};
+
+exports.markPasswordResetUsed = async (id, client = db) => {
+  const query = `UPDATE password_reset_tokens SET used = TRUE WHERE id = $1 RETURNING id, used;`;
+  const { rows } = await client.query(query, [id]);
+  return rows[0];
+};
+
+// ---------------------------------------------------------------------------
+// Login history
+// ---------------------------------------------------------------------------
+
+exports.createLoginHistory = async ({ loginId, userId, username, sessionId, successful, ipAddress = null, userAgent = null, device = null, operatingSystem = null, browser = null, failureReason = null, location = null }, client = db) => {
+  const query = `
+    INSERT INTO login_history (login_id, user_id, username, session_id, login_time, logout_time, ip_address, user_agent, device, operating_system, browser, successful, failure_reason, location, created_at)
+    VALUES ($1,$2,$3,$4, now(), NULL, $5, $6, $7, $8, $9, $10, $11, $12, now())
+    RETURNING login_id, user_id, username, session_id, login_time, successful, created_at;
+  `;
+  const params = [loginId || null, userId || null, username || null, sessionId || null, ipAddress, userAgent, device, operatingSystem, browser, successful, failureReason, location];
+  const { rows } = await client.query(query, params);
+  return rows[0];
+};
+
+exports.listLoginHistoryForUser = async (userId, { limit = 50, offset = 0 } = {}, client = db) => {
+  const query = `SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT $2 OFFSET $3;`;
+  const { rows } = await client.query(query, [userId, limit, offset]);
+  return rows;
+};
+
+// ---------------------------------------------------------------------------
+// Activity logs
+// ---------------------------------------------------------------------------
+
+exports.createActivityLog = async ({ activityId, userId, activity, ipAddress = null }, client = db) => {
+  const query = `
+    INSERT INTO activity_logs (activity_id, user_id, activity, ip_address, created_at)
+    VALUES ($1,$2,$3,$4, now())
+    RETURNING activity_id, user_id, activity, ip_address, created_at;
+  `;
+  const { rows } = await client.query(query, [activityId || null, userId || null, activity, ipAddress]);
+  return rows[0];
+};
+
+exports.listActivityLogsForUser = async (userId, { limit = 50, offset = 0 } = {}, client = db) => {
+  const query = `SELECT * FROM activity_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3;`;
+  const { rows } = await client.query(query, [userId, limit, offset]);
+  return rows;
 };

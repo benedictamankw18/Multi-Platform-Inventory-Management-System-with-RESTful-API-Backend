@@ -40,13 +40,21 @@ const roleRepo  = require('../repositories/role.repository');
 const permRepo  = require('../repositories/permission.repository');
 const auditRepo = require('../repositories/audit.repository');
 const AppError  = require('../utils/AppError');
+const cache     = require('../utils/cache.utils');
+
+const ROLES_ALL_KEY = 'roles:all';
+const ROLES_DROPDOWN_KEY = 'roles:dropdown';
 
 // ---------------------------------------------------------------------------
-// Cache invalidation stub (§ Cache above)
+// Cache invalidation helper (§ Cache above)
 // ---------------------------------------------------------------------------
 
-function _invalidateRoleCache() {
-  // TODO: await redisClient.del('roles:dropdown', 'roles:all', ...);
+async function _invalidateRoleCache() {
+  await Promise.all([
+    cache.del(ROLES_ALL_KEY),
+    cache.del(ROLES_DROPDOWN_KEY),
+    cache.delByPattern('role-permissions:*'),
+  ]);
 }
 
 // ---------------------------------------------------------------------------
@@ -97,10 +105,15 @@ function _assertNotSystemRole(role, action = 'modified') {
 // § Role CRUD
 // ---------------------------------------------------------------------------
 
-exports.createRole = async ({ roleName, description = null } = {}, actorId = null) => {
+exports.createRole = async ({ name, roleName, description = null, permissions, permissionIds } = {}, actorId = null) => {
+  roleName = roleName || name;
+  const requestedPermissionIds = permissionIds || permissions || [];
+
   if (!roleName || !roleName.trim()) {
-    throw new AppError('roleName is required.', { code: 'VALIDATION_ERROR', status: 400 });
+    throw new AppError('name is required.', { code: 'VALIDATION_ERROR', status: 400 });
   }
+
+  await _requireAllPermissions(requestedPermissionIds);
 
   const existing = await roleRepo.getRoleByName(roleName);
   if (existing) {
@@ -110,12 +123,30 @@ exports.createRole = async ({ roleName, description = null } = {}, actorId = nul
     );
   }
 
-  const role = await roleRepo.createRole({ roleName: roleName.trim(), description });
+  const client = await db.connect();
+  let role;
+  try {
+    await client.query('BEGIN');
+    role = await roleRepo.createRole({ roleName: roleName.trim(), description }, client);
+    await roleRepo.assignMultiplePermissions(role.role_id, requestedPermissionIds, client);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 
-  await auditRepo.writeLog(actorId, 'CREATE_ROLE', 'ROLE', role.role_id, { roleName });
+  await auditRepo.writeLog(actorId, 'CREATE_ROLE', 'ROLE', role.role_id, {
+    roleName,
+    permissionIds: requestedPermissionIds,
+  });
   _invalidateRoleCache();
 
-  return role;
+  return {
+    ...role,
+    permissions: await roleRepo.getRolePermissions(role.role_id),
+  };
 };
 
 exports.getRoleById = async (roleId) => {
@@ -129,13 +160,30 @@ exports.getRoleByName = async (roleName) => {
 };
 
 // Thin delegation — no business rules on reads.
-exports.getAllRoles    = (filters)          => roleRepo.getAllRoles(filters);
+exports.getAllRoles    = async (filters) => {
+  if (!filters || Object.keys(filters).length === 0) {
+    const cached = await cache.get(ROLES_ALL_KEY);
+    if (cached) return cached;
+
+    const roles = await roleRepo.getAllRoles(filters);
+    await cache.set(ROLES_ALL_KEY, roles);
+    return roles;
+  }
+
+  return roleRepo.getAllRoles(filters);
+};
 exports.searchRoles   = (q)                => roleRepo.searchRoles(q);
 exports.paginateRoles = (paginationOpts)   => roleRepo.paginateRoles(paginationOpts);
 exports.countRoles    = (filters)          => roleRepo.countRoles(filters);
 
-exports.updateRole = async (roleId, { roleName, description } = {}, actorId = null) => {
+exports.updateRole = async (roleId, { name, roleName, description, permissions, permissionIds } = {}, actorId = null) => {
+  roleName = roleName || name;
   const role = await _requireRole(roleId);
+  const requestedPermissionIds = permissionIds || permissions;
+
+  if (requestedPermissionIds !== undefined) {
+    await _requireAllPermissions(requestedPermissionIds);
+  }
 
   // System roles can have their description edited, but not renamed — a name
   // change would silently break any authorize('Administrator') middleware
@@ -152,16 +200,34 @@ exports.updateRole = async (roleId, { roleName, description } = {}, actorId = nu
     }
   }
 
-  const updated = await roleRepo.updateRole(roleId, { roleName, description });
+  const client = await db.connect();
+  let updated;
+  try {
+    await client.query('BEGIN');
+    updated = await roleRepo.updateRole(roleId, { roleName, description }, client);
+    if (requestedPermissionIds !== undefined) {
+      await roleRepo.replacePermissions(roleId, requestedPermissionIds, client);
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 
   await auditRepo.writeLog(actorId, 'UPDATE_ROLE', 'ROLE', roleId, {
     previousName: role.role_name,
     roleName,
     description,
+    permissionIds: requestedPermissionIds,
   });
   _invalidateRoleCache();
 
-  return updated;
+  return {
+    ...updated,
+    permissions: await roleRepo.getRolePermissions(roleId),
+  };
 };
 
 exports.deleteRole = async (roleId, actorId = null) => {
@@ -198,6 +264,7 @@ exports.assignPermissionToRole = async (roleId, permissionId, actorId = null) =>
   const result = await roleRepo.assignPermission(roleId, permissionId);
 
   await auditRepo.writeLog(actorId, 'ASSIGN_PERMISSION_TO_ROLE', 'ROLE', roleId, { permissionId });
+  await _invalidateRoleCache();
 
   return result;
 };
@@ -212,6 +279,7 @@ exports.assignMultiplePermissionsToRole = async (roleId, permissionIds = [], act
     permissionIds,
     newlyAssignedCount: result.length,
   });
+  await _invalidateRoleCache();
 
   return result;
 };
@@ -223,6 +291,7 @@ exports.removePermissionFromRole = async (roleId, permissionId, actorId = null) 
   const result = await roleRepo.removePermission(roleId, permissionId);
 
   await auditRepo.writeLog(actorId, 'REMOVE_PERMISSION_FROM_ROLE', 'ROLE', roleId, { permissionId });
+  await _invalidateRoleCache();
 
   // removePermission returns undefined if the pair wasn't there — normalise
   // to a plain object so the controller always gets a consistent shape.
@@ -238,6 +307,7 @@ exports.removeAllPermissionsFromRole = async (roleId, actorId = null) => {
     removedCount: removedIds.length,
     removedIds,
   });
+  await _invalidateRoleCache();
 
   return removedIds;
 };
@@ -272,6 +342,7 @@ exports.replaceRolePermissions = async (roleId, permissionIds = [], actorId = nu
     added: validatedIds.filter(id => !previousIds.includes(id)),
     removed: previousIds.filter(id => !validatedIds.includes(id)),
   });
+  await _invalidateRoleCache();
 
   return roleRepo.getRolePermissions(roleId);
 };
@@ -292,6 +363,7 @@ exports.copyRolePermissions = async (sourceRoleId, targetRoleId, actorId = null)
     targetRoleId,
     copiedCount: copiedIds.length,
   });
+  await _invalidateRoleCache();
 
   return copiedIds;
 };
@@ -317,7 +389,14 @@ exports.getUsersByRole = async (roleId) => {
 
 exports.getRoleStatistics = () => roleRepo.getRoleStatistics();
 
-exports.getRolesDropdown = () => roleRepo.getRolesDropdown();
+exports.getRolesDropdown = async () => {
+  const cached = await cache.get(ROLES_DROPDOWN_KEY);
+  if (cached) return cached;
+
+  const dropdown = await roleRepo.getRolesDropdown();
+  await cache.set(ROLES_DROPDOWN_KEY, dropdown);
+  return dropdown;
+};
 
 exports.getRoleSummary = async (roleId) => {
   const summary = await roleRepo.getRoleSummary(roleId);

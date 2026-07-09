@@ -37,8 +37,10 @@
  */
 
 const db = require('../config/db');
+const cache = require('../utils/cache.utils');
 
 const BYPASS_ROLES = ['Business Owner', 'Administrator'];
+const ROLE_PERMISSIONS_KEY = (roleId) => `role-permissions:${roleId}`;
 
 module.exports = (...requiredPermissions) => {
   return async (req, res, next) => {
@@ -56,18 +58,24 @@ module.exports = (...requiredPermissions) => {
     }
 
     try {
-      // Fetch the permission_names assigned to this role via role_permissions.
-      // roleId comes from the JWT payload set by auth.middleware.js.
-      const { rows } = await db.query(
-        `SELECT p.permission_name
-         FROM role_permissions rp
-         JOIN permissions p ON p.permission_id = rp.permission_id
-         WHERE rp.role_id = $1`,
-        [req.user.roleId]
-      );
+      const cacheKey = ROLE_PERMISSIONS_KEY(req.user.roleId);
+      const cached = await cache.get(cacheKey);
+      let permissionNames = cached;
 
-      const grantedPermissions = new Set(rows.map(r => r.permission_name));
+      if (!permissionNames) {
+        const { rows } = await db.query(
+          `SELECT p.permission_name
+           FROM role_permissions rp
+           JOIN permissions p ON p.permission_id = rp.permission_id
+           WHERE rp.role_id = $1`,
+          [req.user.roleId]
+        );
 
+        permissionNames = rows.map(r => r.permission_name);
+        await cache.set(cacheKey, permissionNames, 300);
+      }
+
+      const grantedPermissions = new Set(permissionNames);
       const allGranted = requiredPermissions.every(p => grantedPermissions.has(p));
 
       if (!allGranted) {

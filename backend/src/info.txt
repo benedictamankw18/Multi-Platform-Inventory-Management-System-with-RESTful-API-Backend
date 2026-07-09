@@ -1,0 +1,169 @@
+Summary: below is the service/controller/route matrix to implement for each repository.
+
+
+
+Add email sending for forgotPassword (enqueue/send reset link).
+Add unit/integration tests for auth flows.
+Optionally add role restrictions on logout-all if desired (currently requires authentication).
+Do you want me to:
+
+
+
+Implement email sending (simple SMTP or mock), or
+Add tests for the new endpoints, or
+Move on to products or sales scaffolding next?
+
+I can install and configure nodemailer usage and test email sending locally (requires permission to modify package.json and run npm).
+I can add a simple DB-backed queue worker to retry failed sends.
+
+
+
+const response = await fetch('https://api.agoosms.com/v1/sms/send', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'agoo_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    to: '+233201234567',
+    message: 'Your verification code is 4829.',
+    senderId: 'AgooAlert',
+  }),
+});
+
+const data = await response.json();
+console.log(data);
+
+const response = await fetch('https://api.agoosms.com/v1/sms/send-bulk', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'agoo_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    recipients: [
+      '+233201234567',
+      '+233209876543',
+      '+233241234567',
+    ],
+    message: 'Flash sale! 50% off all items today only.',
+    senderId: 'MyStore',
+  }),
+});
+
+const data = await response.json();
+console.log(data);
+
+const messageId = '507f1f77bcf86cd799439011';
+
+const response = await fetch(`https://api.agoosms.com/v1/sms/${messageId}`, {
+  headers: {
+    'X-API-Key': 'agoo_live_xxx',
+  },
+});
+
+const data = await response.json();
+console.log(data);
+
+const messageId = '507f1f77bcf86cd799439011';
+
+const response = await fetch(`https://api.agoosms.com/v1/sms/${messageId}/status`, {
+  headers: {
+    'X-API-Key': 'agoo_live_xxx',
+  },
+});
+
+const data = await response.json();
+console.log(data);
+
+const response = await fetch('https://api.agoosms.com/v1/balance', {
+  headers: {
+    'X-API-Key': 'agoo_live_xxx',
+  },
+});
+
+const data = await response.json();
+console.log(data);
+// { success: true, data: { balance: 150.50, currency: "GHS" } }
+
+
+Endpoint	Limit	Window
+POST /v1/sms/send	60 requests	per minute
+POST /v1/sms/send-bulk	10 requests	per minute
+GET /v1/sms/:id	120 requests	per minute
+GET /v1/sms/:id/status	120 requests	per minute
+GET /v1/balance	120 requests	per minute
+
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1705312260
+
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again later."
+  }
+}
+
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message"
+  },
+  "meta": {
+    "requestId": "req_abc123",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+
+Error Codes Reference
+Code	HTTP	Description
+MISSING_API_KEY	401	X-API-Key header is missing
+INVALID_API_KEY	401	API key is invalid, inactive, or revoked
+APPLICATION_NOT_APPROVED	403	Your application is not approved yet
+IP_NOT_ALLOWED	403	Request IP is not in the whitelist
+RATE_LIMIT_EXCEEDED	429	Too many requests, retry after reset
+VALIDATION_ERROR	400	Invalid request parameters
+INVALID_PHONE_NUMBER	400	Phone number format is invalid
+INSUFFICIENT_BALANCE	402	Account balance too low for this request
+SENDER_ID_NOT_APPROVED	400	Sender ID not found or not approved
+MESSAGE_NOT_FOUND	404	Message ID does not exist
+INTERNAL_ERROR	500	Server error, contact support
+
+
+Base URL
+https://api.agoosms.com
+
+
+Get Message Details
+Retrieve full details of a sent message including content, cost, and per-recipient delivery status.
+
+Path Parameters
+Parameter	Type	Required	Description
+id	string	Required	Message ID returned from send or send-bulk endpoint
+
+
+Send Bulk SMS
+Send the same message to multiple recipients (up to 1,000) in a single API call. Duplicate phone numbers are automatically removed. senderId is required (same rules as single send).
+
+Request Parameters
+Parameter	Type	Required	Description
+recipients	string[]	Required	Array of phone numbers (max 1,000). Duplicates are removed automatically
+message	string	Required	Message content (max 480 characters / 3 segments)
+senderId	string	Required	Required. Platform test sender ID (fixed "Hello from Agoo" message) or an approved custom Sender ID name.
+
+
+Send SMS
+Send a single SMS to one recipient. You must include senderId — the approved Sender ID name from your dashboard (not your API key). With a live key, your balance is charged; with a test key, sending is simulated and cost is 0.
+
+Request Parameters
+Parameter	Type	Required	Description
+to	string	Required	Phone number in E.164 format (+233XXXXXXXXX) or local format (0XXXXXXXXX)
+message	string	Required	Message content (max 480 characters / 3 segments)
+senderId	string	Required	Required. Either your platform test sender ID (SMS_GATEWAY_USER_SENDER_ID — message must be "Hello from Agoo") or an approved custom Sender ID name from your dashboard (any message).
+
+
+
+

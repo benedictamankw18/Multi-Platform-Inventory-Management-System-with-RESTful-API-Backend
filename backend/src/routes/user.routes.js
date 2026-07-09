@@ -32,12 +32,213 @@ const {
 
 const ADMIN_ROLES = ['Administrator', 'Business Owner'];
 
+/**
+ * @openapi
+ * /users:
+ *   post:
+ *     tags:
+ *       - Users
+ *     summary: Create a new user
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *             required: [username, email, password]
+ *     responses:
+ *       '201':
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       '400':
+ *         description: Validation error
+ */
 router.post('/', authenticate, authorize(...ADMIN_ROLES), createUserValidation, validate, userController.createUser);
+/**
+ * @openapi
+ * /users:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: List users (paginated)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: A list of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ */
 router.get('/', authenticate, authorize(...ADMIN_ROLES), listUsersValidation, validate, userController.listUsers);
-router.get('/:userId', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.getUserById);
-router.patch('/:userId', authenticate, authorize(...ADMIN_ROLES), updateUserValidation, validate, userController.updateUser);
-router.patch('/:userId/role', authenticate, authorize(...ADMIN_ROLES), assignRoleValidation, validate, userController.assignRole);
-router.patch('/:userId/deactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.deactivateUser);
-router.patch('/:userId/reactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.reactivateUser);
+/**
+ * @openapi
+ * /users/{id}:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get user by ID
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: User object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       '404':
+ *         description: Not found
+ */
+router.get('/:id/sessions', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.listUserSessions);
+router.get('/:id/branches', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.listUserBranches);
+router.get('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.getUserById);
+/**
+ * @openapi
+ * /users/{id}:
+ *   put:
+ *     tags:
+ *       - Users
+ *     summary: Update user fields
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
+router.put('/:id', authenticate, authorize(...ADMIN_ROLES), updateUserValidation, validate, userController.updateUser);
+router.patch('/:id', authenticate, authorize(...ADMIN_ROLES), updateUserValidation, validate, userController.updateUser);
+router.delete('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.deleteUser);
+/**
+ * @openapi
+ * /users/{id}/role:
+ *   patch:
+ *     tags:
+ *       - Users
+ *     summary: Assign role(s) to a user
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       '200':
+ *         description: Roles assigned
+ */
+router.patch('/:id/role', authenticate, authorize(...ADMIN_ROLES), assignRoleValidation, validate, userController.assignRole);
+/**
+ * @openapi
+ * /users/{id}/deactivate:
+ *   patch:
+ *     tags:
+ *       - Users
+ *     summary: Deactivate a user
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: User deactivated
+ */
+router.patch('/:id/deactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.deactivateUser);
+/**
+ * @openapi
+ * /users/{id}/reactivate:
+ *   patch:
+ *     tags:
+ *       - Users
+ *     summary: Reactivate a user
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: User reactivated
+ */
+router.patch('/:id/reactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.reactivateUser);
 
 module.exports = router;

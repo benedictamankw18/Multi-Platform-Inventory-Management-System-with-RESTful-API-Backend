@@ -45,13 +45,34 @@
 const permRepo  = require('../repositories/permission.repository');
 const auditRepo = require('../repositories/audit.repository');
 const AppError  = require('../utils/AppError');
+const cache     = require('../utils/cache.utils');
+
+const PERMISSIONS_ALL_KEY = 'permissions:all';
+const PERMISSIONS_DROPDOWN_KEY = 'permissions:dropdown';
 
 // ---------------------------------------------------------------------------
-// Cache invalidation stub (§ Cache above)
+// Cache invalidation helper (§ Cache above)
 // ---------------------------------------------------------------------------
 
-function _invalidatePermissionCache() {
-  // TODO: await redisClient.del('permissions:all', 'permissions:dropdown', ...);
+async function _invalidatePermissionCache() {
+  await Promise.all([
+    cache.del(PERMISSIONS_ALL_KEY),
+    cache.del(PERMISSIONS_DROPDOWN_KEY),
+    cache.delByPattern('role-permissions:*'),
+  ]);
+}
+
+function normalizePermissionCode(value) {
+  return value && value.trim().toUpperCase();
+}
+
+function toApiPermission(permission) {
+  if (!permission) return permission;
+  return {
+    ...permission,
+    name: permission.name || permission.permission_name,
+    code: permission.code || permission.permission_name,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -70,17 +91,19 @@ async function _requirePermission(permissionId) {
 // § CRUD
 // ---------------------------------------------------------------------------
 
-exports.createPermission = async ({ permissionName, description = null } = {}, actorId = null) => {
+exports.createPermission = async ({ name, code, permissionName, description = null } = {}, actorId = null) => {
+  permissionName = permissionName || code || name;
+
   if (!permissionName || !permissionName.trim()) {
-    throw new AppError('permissionName is required.', { code: 'VALIDATION_ERROR', status: 400 });
+    throw new AppError('name and code are required.', { code: 'VALIDATION_ERROR', status: 400 });
   }
 
-  const trimmed = permissionName.trim().toUpperCase();
+  const trimmed = normalizePermissionCode(permissionName);
 
   const existing = await permRepo.getPermissionByName(trimmed);
   if (existing) {
     throw new AppError(
-      `A permission named "${trimmed}" already exists.`,
+      `A permission with code "${trimmed}" already exists.`,
       { code: 'DUPLICATE_PERMISSION_NAME', status: 409 }
     );
   }
@@ -90,13 +113,13 @@ exports.createPermission = async ({ permissionName, description = null } = {}, a
   await auditRepo.writeLog(actorId, 'CREATE_PERMISSION', 'PERMISSION', permission.permission_id, {
     permissionName: trimmed,
   });
-  _invalidatePermissionCache();
+  await _invalidatePermissionCache();
 
-  return permission;
+  return toApiPermission(permission);
 };
 
 exports.getPermissionById = async (permissionId) => {
-  return _requirePermission(permissionId);
+  return toApiPermission(await _requirePermission(permissionId));
 };
 
 exports.getPermissionByName = async (permissionName) => {
@@ -104,30 +127,43 @@ exports.getPermissionByName = async (permissionName) => {
   if (!perm) {
     throw new AppError('Permission not found.', { code: 'PERMISSION_NOT_FOUND', status: 404 });
   }
-  return perm;
+  return toApiPermission(perm);
 };
 
 // Thin delegation — no business rules on reads.
-exports.getAllPermissions    = (filters) => permRepo.getAllPermissions(filters);
-exports.searchPermissions   = (q)       => permRepo.searchPermissions(q);
-exports.paginatePermissions = (opts)    => permRepo.paginatePermissions(opts);
+exports.getAllPermissions = async (filters) => {
+  if (!filters || Object.keys(filters).length === 0) {
+    const cacheKey = PERMISSIONS_ALL_KEY;
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const permissions = (await permRepo.getAllPermissions(filters)).map(toApiPermission);
+    await cache.set(cacheKey, permissions);
+    return permissions;
+  }
+
+  return (await permRepo.getAllPermissions(filters)).map(toApiPermission);
+};
+exports.searchPermissions   = async (q)       => (await permRepo.searchPermissions(q)).map(toApiPermission);
+exports.paginatePermissions = async (opts)    => (await permRepo.paginatePermissions(opts)).map(toApiPermission);
 exports.countPermissions    = (filters) => permRepo.countPermissions(filters);
 
-exports.updatePermission = async (permissionId, { permissionName, description } = {}, actorId = null) => {
+exports.updatePermission = async (permissionId, { name, code, permissionName, description } = {}, actorId = null) => {
   const existing = await _requirePermission(permissionId);
+  permissionName = permissionName || code || name;
 
   if (permissionName !== undefined) {
     if (!permissionName.trim()) {
-      throw new AppError('permissionName cannot be blank.', { code: 'VALIDATION_ERROR', status: 400 });
+      throw new AppError('code cannot be blank.', { code: 'VALIDATION_ERROR', status: 400 });
     }
 
-    const trimmed = permissionName.trim().toUpperCase();
+    const trimmed = normalizePermissionCode(permissionName);
 
     if (trimmed !== existing.permission_name) {
       const conflict = await permRepo.getPermissionByName(trimmed);
       if (conflict) {
         throw new AppError(
-          `A permission named "${trimmed}" already exists.`,
+          `A permission with code "${trimmed}" already exists.`,
           { code: 'DUPLICATE_PERMISSION_NAME', status: 409 }
         );
       }
@@ -140,7 +176,7 @@ exports.updatePermission = async (permissionId, { permissionName, description } 
   }
 
   if (permissionName === undefined && description === undefined) {
-    return existing;
+    return toApiPermission(existing);
   }
 
   const updated = await permRepo.updatePermission(permissionId, { permissionName, description });
@@ -150,9 +186,9 @@ exports.updatePermission = async (permissionId, { permissionName, description } 
     permissionName,
     description,
   });
-  _invalidatePermissionCache();
+  await _invalidatePermissionCache();
 
-  return updated;
+  return toApiPermission(updated);
 };
 
 // See § Deletion above. Never blocks on in-use — cascade is intentional.
@@ -171,7 +207,7 @@ exports.deletePermission = async (permissionId, actorId = null) => {
     affectedRoleCount: affectedRoles.length,
     affectedRoles: affectedRoles.map(r => ({ role_id: r.role_id, role_name: r.role_name })),
   });
-  _invalidatePermissionCache();
+  await _invalidatePermissionCache();
 
   return { ...deleted, affectedRoles };
 };

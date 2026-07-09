@@ -32,13 +32,41 @@ const cors       = require('cors');
 const helmet     = require('helmet');
 const morgan     = require('morgan');
 const swaggerUI  = require('swagger-ui-express');
+const cookieParser = require('cookie-parser');
 
 const swaggerSpec   = require('./config/swagger');
 const authRoutes    = require('./routes/auth.routes');
 const userRoutes    = require('./routes/user.routes');
 const roleRoutes    = require('./routes/role.routes');
 const permissionRoutes = require('./routes/permission.routes');
+const productRoutes = require('./routes/product.routes');
+const productImageRoutes = require('./routes/productImage.routes');
+const categoryRoutes = require('./routes/category.routes');
+const uomRoutes = require('./routes/uom.routes');
+const supplierRoutes = require('./routes/supplier.routes');
+const supplierPaymentRoutes = require('./routes/supplierPayment.routes');
+const customerRoutes = require('./routes/customer.routes');
+const customerPaymentRoutes = require('./routes/customerPayment.routes');
+const inventoryRoutes = require('./routes/inventory.routes');
+const inventoryTransferRoutes = require('./routes/inventoryTransfer.routes');
+const inventoryTransactionRoutes = require('./routes/inventoryTransaction.routes');
+const purchaseRoutes = require('./routes/purchase.routes');
+const salesRoutes = require('./routes/sales.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const reportRoutes = require('./routes/report.routes');
+const priceHistoryRoutes = require('./routes/priceHistory.routes');
+const syncRoutes = require('./routes/sync.routes');
+const branchRoutes = require('./routes/branch.routes');
+const businessRoutes = require('./routes/business.routes');
+const expenseCategoryRoutes = require('./routes/expenseCategory.routes');
+const expenseRoutes = require('./routes/expense.routes');
+const systemRoutes = require('./routes/system.routes');
 const auditRoutes = require('./routes/audit.routes');
+const userBranchRoutes = require('./routes/userBranch.routes');
+const sessionsRoutes = require('./routes/sessions.routes');
+const productBranchInventoryRoutes = require('./routes/productBranchInventory.routes');
+const adminQueueRoutes = require('./routes/adminQueue.routes');
+const adminSmsRoutes = require('./routes/adminSms.routes');
 
 const logger        = require('./middleware/logger.middleware');
 const rateLimiter   = require('./middleware/rateLimiter.middleware');
@@ -58,6 +86,10 @@ app.use(cors());
 // ---------------------------------------------------------------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use('/uploads', express.static('uploads'));
+
+// parse cookies (needed for refresh-token cookie handling)
+app.use(cookieParser());
 
 // ---------------------------------------------------------------------------
 // 3. Request logging
@@ -87,6 +119,37 @@ app.use('/api/v1/users',       userRoutes);
 app.use('/api/v1/roles',       roleRoutes);
 app.use('/api/v1/permissions', permissionRoutes);
 app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/product-images', productImageRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/units-of-measure', uomRoutes);
+app.use('/api/v1/uoms', uomRoutes);
+app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/supplier-payments', supplierPaymentRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/customer-payments', customerPaymentRoutes);
+app.use('/api/v1/inventories', inventoryRoutes);
+app.use('/api/v1/inventory-transfers', inventoryTransferRoutes);
+app.use('/api/v1/inventory/transactions', inventoryTransactionRoutes);
+app.use('/api/v1/purchases', purchaseRoutes);
+app.use('/api/v1/sales', salesRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/sync', syncRoutes);
+app.use('/api/v1/branches', branchRoutes);
+app.use('/api/v1/price-history', priceHistoryRoutes);
+app.use('/api/v1/business', businessRoutes);
+app.use('/api/v1/business-settings', businessRoutes);
+app.use('/api/v1/expense-categories', expenseCategoryRoutes);
+app.use('/api/v1/expenses', expenseRoutes);
+app.use('/api/v1/system-settings', systemRoutes);
+app.use('/api/v1/system', systemRoutes);
+// app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/sessions', sessionsRoutes);
+app.use('/api/v1/user-branches', userBranchRoutes);
+app.use('/api/v1/product-branch-inventory', productBranchInventoryRoutes);
+app.use('/api/v1/admin/queue', adminQueueRoutes);
+app.use('/api/v1/admin/sms', adminSmsRoutes);
 
 // ---------------------------------------------------------------------------
 // 7. 404 catch-all — must come AFTER all routes

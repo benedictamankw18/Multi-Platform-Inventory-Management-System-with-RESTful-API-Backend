@@ -97,3 +97,20 @@ exports.entityAuditValidation = [
 
   ...paginationAndDateFilters,
 ];
+
+
+exports.listAuditsValidation = [
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('from').optional().isISO8601(),
+  query('to').optional().isISO8601(),
+  query('user_id').optional().isUUID(),
+];
+
+exports.exportAuditsValidation = [
+  query('from').optional().isISO8601(),
+  query('to').optional().isISO8601(),
+  query('user_id').optional().isUUID(),
+  query('format').optional().isIn(['csv', 'xlsx']),
+  query('fields').optional(),
+];

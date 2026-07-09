@@ -31,10 +31,7 @@ const forgotPasswordValidation = [
     body("email")
         .trim()
         .notEmpty()
-        .withMessage("Email is required.")
-        .isEmail()
-        .withMessage("Invalid email address.")
-        .normalizeEmail()
+        .withMessage("Email Or Username is required.")
 ];
 
 /**

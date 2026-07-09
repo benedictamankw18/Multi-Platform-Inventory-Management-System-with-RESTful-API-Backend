@@ -201,7 +201,7 @@ exports.replaceRolePermissions = async (req, res) => {
   try {
     const permissions = await roleService.replaceRolePermissions(
       req.params.id,
-      req.body.permissionIds || [],
+      req.body.permissionIds || req.body.permissions || [],
       actorId(req)
     );
     return res.status(200).json({ permissions });
@@ -218,15 +218,18 @@ exports.replaceRolePermissions = async (req, res) => {
 
 exports.assignPermissionToRole = async (req, res) => {
   try {
-    if (Array.isArray(req.body.permissionIds)) {
+    const permissionIds = req.body.permissionIds || req.body.permissions;
+    const permissionId = req.body.permissionId || req.body.permission;
+
+    if (Array.isArray(permissionIds)) {
       const result = await roleService.assignMultiplePermissionsToRole(
         req.params.id,
-        req.body.permissionIds,
+        permissionIds,
         actorId(req)
       );
       return res.status(200).json({ assigned: result });
     }
-    const result = await roleService.assignPermissionToRole(req.params.id, req.body.permissionId, actorId(req));
+    const result = await roleService.assignPermissionToRole(req.params.id, permissionId, actorId(req));
     return res.status(200).json({ assigned: result });
   } catch (err) {
     return handleError(res, err);

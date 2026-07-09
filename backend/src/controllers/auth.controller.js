@@ -31,7 +31,7 @@ function setRefreshCookie(res, token) {
   res.cookie(REFRESH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: authService.REFRESH_TOKEN_TTL_MS,
     path: '/api/auth',
   });
@@ -44,7 +44,9 @@ function clearRefreshCookie(res) {
 // The desktop (Electron) app may not always carry cookies between requests,
 // so accept the refresh token from either an httpOnly cookie or the body.
 function extractRefreshToken(req) {
-  return (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) || req.body.refreshToken || null;
+  // Accept either the primary cookie name or a common alternative used by clients.
+  const cookieToken = req.cookies && (req.cookies[REFRESH_COOKIE_NAME] || req.cookies['refresh_token']);
+  return cookieToken || req.body.refreshToken || req.body.refresh_token || null;
 }
 
 function handleError(res, err) {
@@ -114,6 +116,48 @@ exports.logout = async (req, res) => {
     const result = await authService.logout({ sessionId, userId });
 
     clearRefreshCookie(res);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/logout-all
+// ---------------------------------------------------------------------------
+exports.logoutAll = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    const result = await authService.logoutAll(userId);
+    clearRefreshCookie(res);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/forgot-password
+// Body: { email }
+// ---------------------------------------------------------------------------
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/reset-password
+// Body: { token, password }
+// ---------------------------------------------------------------------------
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const result = await authService.resetPassword(token, password);
     return res.status(200).json(result);
   } catch (err) {
     return handleError(res, err);

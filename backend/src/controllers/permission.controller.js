@@ -63,7 +63,7 @@ exports.getPermissionById = async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /permissions
-// Body: { permissionName, description? }
+// Body: { name, code, description? }
 // ---------------------------------------------------------------------------
 
 exports.createPermission = async (req, res) => {
@@ -77,7 +77,7 @@ exports.createPermission = async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // PUT /permissions/:id
-// Body: any of { permissionName, description }
+// Body: any of { name, code, description }
 // ---------------------------------------------------------------------------
 
 exports.updatePermission = async (req, res) => {

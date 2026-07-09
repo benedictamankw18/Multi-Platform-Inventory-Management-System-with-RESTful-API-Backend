@@ -1,3 +1,5 @@
+// Restrict audit endpoints to administrators
+
 /**
  * audit.routes.js  (NFR-018, NFR-019)
  *
@@ -12,8 +14,8 @@
 const express = require('express');
 const router  = express.Router();
 
-const auditController = require('../controllers/audit.controller');
 const authenticate    = require('../middleware/auth.middleware');
+const auditController = require('../controllers/audit.controller');
 const authorize       = require('../middleware/role.middleware');
 const validate        = require('../middleware/validation.middleware');
 
@@ -22,6 +24,8 @@ const {
   auditIdValidation,
   userAuditValidation,
   entityAuditValidation,
+  exportAuditsValidation,
+  listAuditsValidation,
 } = require('../validations/audit.validation');
 
 // All audit routes: must be authenticated + admin-level role (NFR-018)
@@ -29,12 +33,20 @@ router.use(authenticate, authorize('Administrator', 'Business Owner'));
 
 // --- Static paths BEFORE /:auditId ---
 router.get('/users/:userId',  userAuditValidation,   validate, auditController.getLogsByUser);
-router.get('/entity/:entityType/:entityId',entityAuditValidation, validate, auditController.getLogsByEntity);
+router.get('/entity/:entityType/:entityId',  entityAuditValidation, validate, auditController.getLogsByEntity);
 
 // --- Collection ---
 router.get('/', listLogsValidation, validate, auditController.getLogs);
+router.get('/count', authenticate, validate, auditController.count);
 
 // --- Single entry — registered last so "users" / "entity" aren't captured here ---
 router.get('/:auditId', auditIdValidation, validate, auditController.getLogById);
+router.get('/export', exportAuditsValidation, validate, auditController.exportAudits);
+
+// router.get('/getAudits', listAuditsValidation, validate, auditController.getAudits);
+// router.get('/:id', auditIdValidation, validate, auditController.getAuditById);
+// router.get('/', authenticate, validate, auditController.list);
+// router.get('/:auditId', authenticate, validate, auditController.getById);
+
 
 module.exports = router;

@@ -21,6 +21,7 @@ const {
   createRoleValidation,
   updateRoleValidation,
   roleIdValidation,
+  listRolesQueryValidation,
   assignPermissionValidation,
   replacePermissionsValidation,
   removePermissionValidation,
@@ -34,7 +35,7 @@ router.get('/dropdown', roleController.getRolesDropdown);
 router.get('/statistics', roleController.getRoleStatistics);
 
 // --- Collection ---
-router.get('/', roleController.getAllRoles);
+router.get('/', listRolesQueryValidation, validate, roleController.getAllRoles);
 router.post('/', createRoleValidation, validate, roleController.createRole);
 
 // --- Single role ---

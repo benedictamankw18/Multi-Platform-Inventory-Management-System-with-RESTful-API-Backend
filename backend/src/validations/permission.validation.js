@@ -1,89 +1,92 @@
-const { body, query, param } = require("express-validator");
+const { body, query, param } = require('express-validator');
 
-/**
- * Create Permission Validation
- */
-exports.createPermissionValidation = [
-  body("permissionName")
-    .trim()
-    .notEmpty()
-    .withMessage("Permission name is required.")
-    .isLength({ min: 3, max: 100 })
-    .withMessage("Permission name must be between 3 and 100 characters.")
-    .matches(/^[a-zA-Z0-9._-]+$/)
-    .withMessage(
-      "Permission name may only contain letters, numbers, dots (.), underscores (_) and hyphens (-)."
-    ),
+const permissionCodePattern = /^[a-zA-Z0-9._:-]+$/;
 
-  body("description")
-    .optional({ nullable: true })
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage("Description cannot exceed 500 characters."),
+const permissionIdValidation = [
+  param('id').isUUID().withMessage('Invalid permission ID.'),
 ];
 
-/**
- * Update Permission Validation
- */
-exports.updatePermissionValidation = [
-  param("id")
-    .isUUID()
-    .withMessage("Invalid permission ID."),
-
-  body("permissionName")
+const createPermissionValidation = [
+  body('name')
+    .if(body('permissionName').not().exists())
+    .trim()
+    .notEmpty()
+    .withMessage('name is required.')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('name must be between 2 and 100 characters.'),
+  body('code')
+    .if(body('permissionName').not().exists())
+    .trim()
+    .notEmpty()
+    .withMessage('code is required.')
+    .isLength({ min: 3, max: 100 })
+    .withMessage('code must be between 3 and 100 characters.')
+    .matches(permissionCodePattern)
+    .withMessage('code may only contain letters, numbers, dots, underscores, colons and hyphens.'),
+  body('permissionName')
     .optional()
     .trim()
     .notEmpty()
-    .withMessage("Permission name cannot be empty.")
+    .withMessage('permissionName cannot be empty.')
     .isLength({ min: 3, max: 100 })
-    .withMessage("Permission name must be between 3 and 100 characters.")
-    .matches(/^[a-zA-Z0-9._-]+$/)
-    .withMessage(
-      "Permission name may only contain letters, numbers, dots (.), underscores (_) and hyphens (-)."
-    ),
-
-  body("description")
+    .withMessage('permissionName must be between 3 and 100 characters.')
+    .matches(permissionCodePattern)
+    .withMessage('permissionName may only contain letters, numbers, dots, underscores, colons and hyphens.'),
+  body('description')
     .optional({ nullable: true })
     .trim()
     .isLength({ max: 500 })
-    .withMessage("Description cannot exceed 500 characters."),
+    .withMessage('description cannot exceed 500 characters.'),
 ];
 
-/**
- * Search Permission Validation
- */
-exports.searchPermissionValidation = [
-  query("q")
+const updatePermissionValidation = [
+  ...permissionIdValidation,
+  body('name')
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Search query cannot exceed 100 characters."),
-
-  query("page")
+    .notEmpty()
+    .withMessage('name cannot be empty.')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('name must be between 2 and 100 characters.'),
+  body('code')
     .optional()
-    .isInt({ min: 1 })
-    .withMessage("Page must be a positive integer."),
-
-  query("limit")
+    .trim()
+    .notEmpty()
+    .withMessage('code cannot be empty.')
+    .isLength({ min: 3, max: 100 })
+    .withMessage('code must be between 3 and 100 characters.')
+    .matches(permissionCodePattern)
+    .withMessage('code may only contain letters, numbers, dots, underscores, colons and hyphens.'),
+  body('permissionName')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100."),
+    .trim()
+    .notEmpty()
+    .withMessage('permissionName cannot be empty.')
+    .isLength({ min: 3, max: 100 })
+    .withMessage('permissionName must be between 3 and 100 characters.')
+    .matches(permissionCodePattern)
+    .withMessage('permissionName may only contain letters, numbers, dots, underscores, colons and hyphens.'),
+  body('description')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('description cannot exceed 500 characters.'),
 ];
 
-/**
- * Permission ID Validation
- */
-exports.permissionIdValidation = [
-  param("id")
-    .isUUID()
-    .withMessage("Invalid permission ID."),
+const searchPermissionValidation = [
+  query('q').optional().trim().isLength({ max: 100 }).withMessage('Search query cannot exceed 100 characters.'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer.'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.'),
 ];
 
-/**
- * Role ID Validation
- */
-exports.roleIdValidation = [
-  param("roleId")
-    .isUUID()
-    .withMessage("Invalid role ID."),
+const roleIdValidation = [
+  param('roleId').isUUID().withMessage('Invalid role ID.'),
 ];
+
+module.exports = {
+  createPermissionValidation,
+  updatePermissionValidation,
+  searchPermissionValidation,
+  permissionIdValidation,
+  roleIdValidation,
+};

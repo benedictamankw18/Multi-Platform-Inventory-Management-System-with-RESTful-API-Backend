@@ -33,6 +33,8 @@ const jwt      = require('jsonwebtoken');
 const crypto   = require('crypto');
 const authRepo = require('../repositories/auth.repository');
 const auditRepo = require('../repositories/audit.repository');
+const userRepo = require('../repositories/user.repository');
+const jwtUtils = require('../utils/jwt.utils');
 const AppError = require('../utils/AppError');
 const { env } = require('process');
 
@@ -147,8 +149,10 @@ exports.login = async (usernameOrEmail, password) => {
 // ---------------------------------------------------------------------------
 
 exports.refreshToken = async (token) => {
+
   if (!token) {
     throw new AppError('No refresh token provided.', { code: 'TOKEN_REQUIRED', status: 401 });
+    return;
   }
 
   let payload;
@@ -217,6 +221,76 @@ exports.logout = async ({ sessionId, userId } = {}) => {
     await auditRepo.writeLog(userId, 'LOGOUT', 'USER', userId);
   }
   return { message: 'Logged out successfully.' };
+};
+
+// ---------------------------------------------------------------------------
+// Logout All (revoke all sessions for a user)
+// ---------------------------------------------------------------------------
+exports.logoutAll = async (userId) => {
+  if (!userId) throw new AppError('userId is required.', { status: 400 });
+  await authRepo.revokeAllSessionsForUser(userId);
+  await auditRepo.writeLog(userId, 'LOGOUT_ALL', 'USER', userId);
+  return { message: 'All sessions revoked.' };
+};
+
+// ---------------------------------------------------------------------------
+// Forgot password: create a reset token and persist it
+// ---------------------------------------------------------------------------
+exports.forgotPassword = async (email) => {
+  if (!email) throw new AppError('Email is required.', { status: 400 });
+
+  const user = await authRepo.findUserForLogin(email);
+  // Do not reveal whether an account exists
+  if (!user) return { message: 'If an account exists, a reset email will be sent.' };
+
+  const token = jwtUtils.generatePasswordResetToken();
+  const id = crypto.randomUUID();
+  const expiresAt = jwtUtils.getPasswordResetExpiry();
+
+  await authRepo.createPasswordResetToken({ id, userId: user.user_id, token, expiresAt });
+  // enqueue/send email and SMS (best-effort, do not fail the request)
+  try {
+    const queueService = require('./queue.service');
+    // enqueue send operations; do not block
+    queueService.enqueuePasswordReset(user, token).catch((e) => console.error('enqueuePasswordReset error', e && e.message));
+  } catch (e) {
+    console.error('enqueue send error', e && e.message);
+  }
+  return { message: 'If an account exists, a reset email will be sent.' };
+};
+
+// ---------------------------------------------------------------------------
+// Reset password using token
+// ---------------------------------------------------------------------------
+exports.resetPassword = async (token, newPassword) => {
+  if (!token || !newPassword) throw new AppError('Token and new password are required.', { status: 400 });
+
+  const record = await authRepo.getPasswordResetTokenByToken(token);
+  if (!record || record.used) throw new AppError('Invalid or expired reset token.', { status: 400 });
+  if (new Date(record.expires_at) < new Date()) throw new AppError('Reset token has expired.', { status: 400 });
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await userRepo.updatePassword(record.user_id, passwordHash);
+  await authRepo.markPasswordResetUsed(record.id);
+
+  // Revoke any existing sessions for this user
+  await authRepo.revokeAllSessionsForUser(record.user_id);
+  await auditRepo.writeLog(record.user_id, 'PASSWORD_RESET', 'USER', record.user_id);
+
+  return { message: 'Password has been reset.' };
+};
+
+// ---------------------------------------------------------------------------
+// Expose session listing and session revoke helpers for controllers
+// ---------------------------------------------------------------------------
+exports.listSessionsForUser = async (userId, opts = {}) => {
+  return authRepo.listSessionsForUser(userId, opts);
+};
+
+exports.revokeSessionById = async (sessionId, actorId = null) => {
+  await authRepo.revokeSession(sessionId);
+  await auditRepo.writeLog(actorId, 'REVOKE_SESSION', 'SESSION', sessionId);
+  return { sessionId };
 };
 
 // ---------------------------------------------------------------------------
