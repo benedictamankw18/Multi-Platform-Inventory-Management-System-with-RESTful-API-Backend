@@ -83,10 +83,24 @@ async function deletePurchaseOrder(po_id) {
   return rows[0];
 }
 
+async function deactivatePurchaseOrder(po_id) {
+  const q = `UPDATE ${TABLE} SET is_active = false WHERE po_id = $1 RETURNING *`;
+  const { rows } = await client.query(q, [po_id]);
+  return rows[0];
+}
+
+async function reactivatePurchaseOrder(po_id) {
+  const q = `UPDATE ${TABLE} SET is_active = true WHERE po_id = $1 RETURNING *`;
+  const { rows } = await client.query(q, [po_id]);
+  return rows[0];
+}
+
 module.exports = {
   createPurchaseOrder,
   getPurchaseOrderById,
   listPurchaseOrders,
   updatePurchaseOrder,
   deletePurchaseOrder,
+  deactivatePurchaseOrder,
+  reactivatePurchaseOrder,
 };

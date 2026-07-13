@@ -55,10 +55,21 @@ async function deactivateSupplier(req, res, next) {
   }
 }
 
+async function reactivateSupplier(req, res, next) {
+  try {
+    const id = req.params.supplierId;
+    const reactivated = await supplierService.reactivateSupplier(id, req.user ? req.user.id : null);
+    res.json({ data: reactivated });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createSupplier,
   listSuppliers,
   getSupplierById,
   updateSupplier,
   deactivateSupplier,
+  reactivateSupplier,
 };

@@ -57,6 +57,17 @@ async function deactivatePurchase(req, res, next) {
   }
 }
 
+
+async function reactivatePurchase(req, res, next) {
+  try {
+    const id = req.params.purchaseId;
+    const reactivated = await purchaseService.reactivatePurchase(id, req.user ? req.user.id : null);
+    res.json({ data: reactivated });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function submitPurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
@@ -96,4 +107,5 @@ module.exports = {
   submitPurchase,
   approvePurchase,
   receivePurchase,
+  reactivatePurchase,
 };

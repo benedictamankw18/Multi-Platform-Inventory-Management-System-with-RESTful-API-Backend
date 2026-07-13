@@ -63,10 +63,17 @@ async function deactivateSupplier(supplier_id) {
   return rows[0];
 }
 
+async function reactivateSupplier(supplier_id) {
+  const q = `UPDATE ${TABLE} SET is_active = true, updated_at = now() WHERE supplier_id = $1 RETURNING *`;
+  const { rows } = await client.query(q, [supplier_id]);
+  return rows[0];
+}
+
 module.exports = {
   createSupplier,
   getSupplierById,
   listSuppliers,
   updateSupplier,
   deactivateSupplier,
+  reactivateSupplier,
 };

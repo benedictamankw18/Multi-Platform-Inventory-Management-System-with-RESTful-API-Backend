@@ -17,6 +17,7 @@ router.post('/search', authenticate, listPurchasesValidation, validate, purchase
 router.get('/:purchaseId', authenticate, purchaseIdValidation, validate, purchaseController.getPurchaseById);
 router.patch('/:purchaseId', authenticate, purchaseIdValidation, updatePurchaseValidation, validate, purchaseController.updatePurchase);
 router.post('/:purchaseId/deactivate', authenticate, purchaseIdValidation, validate, purchaseController.deactivatePurchase);
+router.post('/:purchaseId/reactivate', authenticate, purchaseIdValidation, validate, purchaseController.reactivatePurchase);
 
 // actions
 router.post('/:purchaseId/submit', authenticate, purchaseIdValidation, validate, purchaseController.submitPurchase);

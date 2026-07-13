@@ -49,10 +49,23 @@ async function deactivateSupplier(id, performedBy) {
   return deactivated;
 }
 
+async function reactivateSupplier(id, performedBy) {
+  const reactivated = await supplierRepo.reactivateSupplier(id);
+  try {
+    if (auditRepo && typeof auditRepo.create === 'function') {
+      auditRepo.create({ action: 'reactivate_supplier', resource_id: id, performed_by: performedBy });
+    }
+  } catch (e) {
+    console.error('audit error', e.message);
+  }
+  return reactivated;
+}
+
 module.exports = {
   createSupplier,
   getSupplierById,
   listSuppliers,
   updateSupplier,
   deactivateSupplier,
+  reactivateSupplier,
 };

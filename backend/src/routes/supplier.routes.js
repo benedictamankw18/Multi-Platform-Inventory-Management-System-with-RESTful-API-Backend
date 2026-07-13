@@ -12,6 +12,7 @@ router.post('/search', authenticate, listSuppliersValidation, validate, supplier
 router.get('/:supplierId', authenticate, supplierIdValidation, validate, supplierController.getSupplierById);
 router.patch('/:supplierId', authenticate, supplierIdValidation, updateSupplierValidation, validate, supplierController.updateSupplier);
 router.post('/:supplierId/deactivate', authenticate, supplierIdValidation, validate, supplierController.deactivateSupplier);
+router.post('/:supplierId/reactivate', authenticate, supplierIdValidation, validate, supplierController.reactivateSupplier);
 
 // payments for a supplier
 router.get('/:supplierId/payments', authenticate, supplierIdValidation, validate, supplierPaymentController.listPaymentsBySupplier);

@@ -49,6 +49,18 @@ async function deactivatePurchase(id, performedBy) {
   return deactivated;
 }
 
+async function reactivatePurchase(id, performedBy) {
+  const reactivated = await purchaseRepo.reactivatePurchase(id);
+  try {
+    if (auditRepo && typeof auditRepo.create === 'function') {
+      auditRepo.create({ action: 'reactivate_purchase', resource_id: id, performed_by: performedBy });
+    }
+  } catch (e) {
+    console.error('audit error', e.message);
+  }
+  return reactivated;
+}
+
 async function submitPurchase(id, performedBy) {
   const updated = await purchaseRepo.updatePurchaseOrder(id, { status: 'SUBMITTED' });
   try {
