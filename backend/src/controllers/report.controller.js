@@ -56,134 +56,400 @@ async function sendExport(res, data, nameBase = 'report', format = 'csv') {
 }
 
 async function dailySales(req, res, next) {
-  try {
-    const date = req.query.date || req.body.date;
-    const data = await reportService.dailySales(date);
-    if (req.query.format) return sendExport(res, data, 'daily-sales', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const { date, format } = {
+            ...req.query,
+            ...req.body
+        };
+
+        let targetDate = new Date();
+
+        if (date) {
+            targetDate = new Date(date);
+
+            if (isNaN(targetDate.getTime())) {
+                return res.status(400).json({
+                    message: "Invalid date format."
+                });
+            }
+        }
+
+        const data = await reportService.dailySales(targetDate);
+
+        if (format) {
+            return sendExport(
+                res,
+                data,
+                "daily-sales",
+                format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function monthlySales(req, res, next) {
-  try {
-    const { year, month } = req.query;
-    const data = await reportService.monthlySales(Number(year), Number(month));
-    if (req.query.format) return sendExport(res, data, 'monthly-sales', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const today = new Date();
+
+        const year = req.query.year
+            ? Number(req.query.year)
+            : today.getFullYear();
+
+        const month = req.query.month
+            ? Number(req.query.month)
+            : today.getMonth() + 1;
+
+        if (
+            Number.isNaN(year) ||
+            Number.isNaN(month) ||
+            month < 1 ||
+            month > 12
+        ) {
+            return res.status(400).json({
+                message: "Invalid year or month."
+            });
+        }
+
+        const data = await reportService.monthlySales(year, month);
+
+        if (req.query.format) {
+            return sendExport(
+                res,
+                data,
+                "monthly-sales",
+                req.query.format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function annualSales(req, res, next) {
-  try {
-    const { year } = req.query;
-    const data = await reportService.annualSales(Number(year));
-    if (req.query.format) return sendExport(res, data, 'annual-sales', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const currentYear = new Date().getFullYear();
+
+        const year = req.query.year
+            ? Number(req.query.year)
+            : currentYear;
+
+        if (Number.isNaN(year) || year < 2000) {
+            return res.status(400).json({
+                message: "Invalid year."
+            });
+        }
+
+        const data = await reportService.annualSales(year);
+
+        if (req.query.format) {
+            return sendExport(
+                res,
+                data,
+                "annual-sales",
+                req.query.format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function profitReport(req, res, next) {
-  try {
-    const { startDate, endDate } = req.query;
-    const data = await reportService.profitReport(startDate, endDate);
-    if (req.query.format) return sendExport(res, data, 'profit-report', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const { startDate, endDate, format } = req.query;
+
+        let start = null;
+        let end = null;
+
+        if (startDate) {
+            start = new Date(startDate);
+
+            if (isNaN(start.getTime())) {
+                return res.status(400).json({
+                    message: "Invalid startDate."
+                });
+            }
+        }
+
+        if (endDate) {
+            end = new Date(endDate);
+
+            if (isNaN(end.getTime())) {
+                return res.status(400).json({
+                    message: "Invalid endDate."
+                });
+            }
+        }
+
+        if (start && end && start > end) {
+            return res.status(400).json({
+                message: "startDate cannot be greater than endDate."
+            });
+        }
+
+        const data = await reportService.profitReport(start, end);
+
+        if (format) {
+            return sendExport(
+                res,
+                data,
+                "profit-report",
+                format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function inventoryReport(req, res, next) {
-  try {
-    const data = await reportService.inventoryReport();
-    if (req.query.format) return sendExport(res, data, 'inventory-report', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const { format } = req.query;
+
+        const data = await reportService.inventoryReport();
+
+        if (format) {
+            return sendExport(
+                res,
+                data,
+                "inventory-report",
+                format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function lowStock(req, res, next) {
-  try {
-    const threshold = req.query.threshold || req.body.threshold || 10;
-    const data = await reportService.lowStock(Number(threshold));
-    if (req.query.format) return sendExport(res, data, 'low-stock', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+
+        // if (Number.isNaN(threshold) || threshold < 0) {
+        //     return res.status(400).json({
+        //         message: "Invalid threshold."
+        //     });
+        // }
+
+        const data = await reportService.lowStock();
+
+        if (req.query.format) {
+            return sendExport(res, data, "low-stock", req.query.format);
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function purchasesReport(req, res, next) {
-  try {
-    const { startDate, endDate } = req.query;
-    const data = await reportService.purchasesReport(startDate, endDate);
-    if (req.query.format) return sendExport(res, data, 'purchases-report', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const { startDate, endDate, format } = req.query;
+
+        const data = await reportService.purchasesReport(
+            startDate || null,
+            endDate || null
+        );
+
+        if (format) {
+            return sendExport(res, data, "purchases-report", format);
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function bestSellingProducts(req, res, next) {
-  try {
-    const limit = req.query.limit || 10;
-    const { startDate, endDate } = req.query;
-    const data = await reportService.bestSellingProducts(Number(limit), startDate, endDate);
-    if (req.query.format) return sendExport(res, data, 'best-selling', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const {
+            startDate,
+            endDate,
+            format
+        } = req.query;
+
+        const limit = Number(req.query.limit ?? 10);
+
+        if (Number.isNaN(limit) || limit <= 0) {
+            return res.status(400).json({
+                message: "Invalid limit."
+            });
+        }
+
+        const data = await reportService.bestSellingProducts(
+            limit,
+            startDate || null,
+            endDate || null
+        );
+
+        if (format) {
+            return sendExport(res, data, "best-selling-products", format);
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function branchPerformance(req, res, next) {
-  try {
-    const { startDate, endDate } = req.query;
-    const data = await reportService.branchPerformance(startDate, endDate);
-    if (req.query.format) return sendExport(res, data, 'branch-performance', req.query.format);
-    res.json({ data });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const {
+            startDate,
+            endDate,
+            format
+        } = req.query;
+
+        const data = await reportService.branchPerformance(
+            startDate || null,
+            endDate || null
+        );
+
+        if (format) {
+            return sendExport(res, data, "branch-performance", format);
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 
 async function listReports(req, res, next) {
-  try {
-    const { report_type, from, to, page = 1, limit = 100 } = req.query;
-    const filters = req.query.filters || {};
-    const result = await reportService.generateReport({ report_type, from, to, filters, page, limit });
-    res.json({ data: result });
-  } catch (err) {
-    next(err);
-  }
+    try {
+
+        const {
+            report_type,
+            from,
+            to,
+            page = 1,
+            limit = 100,
+            format
+        } = req.query;
+
+        const filters = req.query.filters || {};
+
+        const data = await reportService.generateReport({
+            report_type,
+            from,
+            to,
+            filters,
+            page: Number(page),
+            limit: Number(limit)
+        });
+
+        if (format) {
+            return sendExport(
+                res,
+                data,
+                report_type || "reports",
+                format
+            );
+        }
+
+        return res.json({ data });
+
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function exportReport(req, res, next) {
-  try {
-    const { report_type, from, to, format = 'csv', page = 1, limit = 100 } = req.query;
-    const filters = req.query.filters || {};
-    const result = await reportService.generateReport({ report_type, from, to, filters, page, limit });
+    try {
 
-    if (format === 'csv') {
-      const csv = reportService.objectArrayToCsv(result.rows || []);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="${report_type || 'report'}.csv"`);
-      return res.send(csv);
+        const {
+            report_type,
+            from,
+            to,
+            format = "csv",
+            page = 1,
+            limit = 100
+        } = req.query;
+
+        const filters = req.query.filters || {};
+
+        const result = await reportService.generateReport({
+            report_type,
+            from,
+            to,
+            filters,
+            page: Number(page),
+            limit: Number(limit)
+        });
+
+        switch (format.toLowerCase()) {
+
+            case "csv": {
+
+                const csv = reportService.objectArrayToCsv(
+                    result.rows || result
+                );
+
+                res.setHeader("Content-Type", "text/csv");
+                res.setHeader(
+                    "Content-Disposition",
+                    `attachment; filename="${report_type || "report"}.csv"`
+                );
+
+                return res.send(csv);
+            }
+
+            case "json":
+                return res.json({
+                    data: result
+                });
+
+            case "xlsx":
+                return res.status(501).json({
+                    message: "XLSX export not implemented."
+                });
+
+            case "pdf":
+                return res.status(501).json({
+                    message: "PDF export not implemented."
+                });
+
+            default:
+                return res.status(400).json({
+                    message: "Unsupported export format."
+                });
+        }
+
+    } catch (err) {
+        next(err);
     }
-
-    // XLSX streaming not implemented yet
-    res.status(501).json({ message: 'XLSX export not implemented yet' });
-  } catch (err) {
-    next(err);
-  }
 }
 
 

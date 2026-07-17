@@ -4,8 +4,8 @@ async function createTransfer(req, res, next) {
   try {
     const created = await transferService.createTransfer({
       product_id: req.body.product_id,
-      from_inventory_id: req.body.from_inventory_id,
-      to_inventory_id: req.body.to_inventory_id,
+      from_branch_id: req.body.from_branch_id,
+      to_branch_id: req.body.to_branch_id,
       quantity: req.body.quantity,
       transfer_date: req.body.transfer_date,
       notes: req.body.notes,

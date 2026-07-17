@@ -86,13 +86,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/users/159b1b70-4d88-4d7f-836f-4ad1d963ad4e",
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/users/:userID",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
               ],
               "path": [
                 "users",
-                "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                ":userID"
+              ],
+              "variable": [
+                {
+                  "key": "userID",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
               ]
             }
           },
@@ -110,14 +116,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/entity/USER/605fa2e2-097a-43dd-91cb-f96a2e1e1825",
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/entity/USER/:UserID",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
               ],
               "path": [
                 "entity",
                 "USER",
-                "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                ":UserID"
+              ],
+              "variable": [
+                {
+                  "key": "UserID",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
               ]
             }
           },
@@ -168,6 +180,9 @@
         },
         {
           "name": "count",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
             "method": "GET",
             "header": [
@@ -177,36 +192,55 @@
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"action\":\"REMOVE_PERMISSION_FROM_ROLE\",\r\n    \"entityType\":\"ROLE\"\r\n    // \"entityId\":\"\",\r\n    // \"startDate\":\"\",\r\n    // \"endDate\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/count",
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/count?userId=159b1b70-4d88-4d7f-836f-4ad1d963ad4e",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
               ],
               "path": [
                 "count"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "getLogById",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{Bearer}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/a2ce427d-0fc3-45a3-896c-65cee41733ec",
-              "host": [
-                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
               ],
-              "path": [
-                "a2ce427d-0fc3-45a3-896c-65cee41733ec"
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                },
+                {
+                  "key": "action",
+                  "value": "REMOVE_PERMISSION_FROM_ROLE",
+                  "disabled": true
+                },
+                {
+                  "key": "entityType",
+                  "value": "ROLE",
+                  "disabled": true
+                },
+                {
+                  "key": "entityId",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -230,6 +264,84 @@
               ],
               "path": [
                 "export"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "fields",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "auditId",
+                  "value": "a2ce427d-0fc3-45a3-896c-65cee41733ec",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getLogById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/:auditId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                ":auditId"
+              ],
+              "variable": [
+                {
+                  "key": "auditId",
+                  "value": "a2ce427d-0fc3-45a3-896c-65cee41733ec"
+                }
               ]
             }
           },
@@ -437,7 +549,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"branch_name\":\"Tema Branch\",\r\n    \"address\":\"\",\r\n    \"is_active\": true,\r\n    \"phone\":\"\",\r\n    \"email\":\"email@gmaim.cim\"\r\n    // \"manager_id\":\"\",\r\n    // \"city\":\"\",\r\n    // \"country\":\"\",\r\n    // \"postal_code\":\"\",\r\n    // \"latitude\":\"\",\r\n    // \"longitude\":\"\"\r\n}",
+              "raw": "{\r\n    \"branch_name\":\"Tema com 12 Branch\",\r\n    \"address\":\"\",\r\n    \"is_active\": true,\r\n    \"phone\":\"\",\r\n    \"email\":\"email@gmaim.com\"\r\n    // \"manager_id\":\"\",\r\n    // \"city\":\"\",\r\n    // \"country\":\"\",\r\n    // \"postal_code\":\"\",\r\n    // \"latitude\":\"\",\r\n    // \"longitude\":\"\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -491,13 +603,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/19e4ff71-b9dd-419a-9035-dcec27534255/activate",
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id/activate",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
               ],
               "path": [
-                "19e4ff71-b9dd-419a-9035-dcec27534255",
+                ":id",
                 "activate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
               ]
             }
           },
@@ -515,13 +633,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/19e4ff71-b9dd-419a-9035-dcec27534255/deactivate",
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id/deactivate",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
               ],
               "path": [
-                "19e4ff71-b9dd-419a-9035-dcec27534255",
+                ":id",
                 "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
               ]
             }
           },
@@ -539,12 +663,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/19e4ff71-b9dd-419a-9035-dcec27534255",
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
               ],
               "path": [
-                "19e4ff71-b9dd-419a-9035-dcec27534255"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
               ]
             }
           },
@@ -571,12 +701,18 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/19e4ff71-b9dd-419a-9035-dcec27534255",
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
               ],
               "path": [
-                "19e4ff71-b9dd-419a-9035-dcec27534255"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
               ]
             }
           },
@@ -594,12 +730,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/19e4ff71-b9dd-419a-9035-dcec27534255",
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
               ],
               "path": [
-                "19e4ff71-b9dd-419a-9035-dcec27534255"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
               ]
             }
           },
@@ -732,12 +874,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/b73b92af-c1a8-44e6-9739-8ed65b018d2f",
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
               ],
               "path": [
-                "b73b92af-c1a8-44e6-9739-8ed65b018d2f"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
               ]
             }
           },
@@ -801,7 +949,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    // \"q\":\"\",\r\n    // \"isActive\":\"true\"\r\n    // \"page\":\"1\",\r\n    // \"limit\":\"20\"\r\n}",
+              "raw": "{\r\n    // \"q\":\"\",\r\n    \"isActive\":\"false\"\r\n    // \"page\":\"1\",\r\n    // \"limit\":\"20\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -836,12 +984,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/1de712ac-8f57-45bc-9c3b-49c42dd1ae1c",
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
               ],
               "path": [
-                "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
               ]
             }
           },
@@ -864,7 +1018,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    // \"name\":\"Food and Drink\",\r\n    \"category_name\":\"Food and Drink 101\",\r\n    \"parent_id\":\"b2a8d1f3-4b55-4224-a738-1353b3f997d9\",\r\n    \"description\":\"BG-color\",\r\n    \"is_active\":\"false\"\r\n}",
+              "raw": "{\r\n    // \"name\":\"Food and Drink\",\r\n    \"category_name\":\"Food and Drink 11\",\r\n    \"parent_id\":\"b2a8d1f3-4b55-4224-a738-1353b3f997d9\",\r\n    \"description\":\"BG-color\",\r\n    \"is_active\":\"false\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -899,20 +1053,26 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/1de712ac-8f57-45bc-9c3b-49c42dd1ae1c/deactivate",
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id/deactivate",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
               ],
               "path": [
-                "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c",
+                ":id",
                 "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
               ]
             }
           },
           "response": []
         },
         {
-          "name": "activateCategory",
+          "name": "reactivateCategory",
           "request": {
             "auth": {
               "type": "bearer",
@@ -927,13 +1087,19 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/1de712ac-8f57-45bc-9c3b-49c42dd1ae1c/activate",
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id/activate",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
               ],
               "path": [
-                "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c",
+                ":id",
                 "activate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
               ]
             }
           },
@@ -947,8 +1113,27 @@
         {
           "name": "createCustomer",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_name\":\"fish\",\r\n    \"contact_email\":\"email@gmail.com\",\r\n    \"phone\":\"034323223\",\r\n    \"address\":\"ADDD\",\r\n    \"contact_person\":\"adsdsd\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/",
               "host": [
@@ -994,7 +1179,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1004,8 +1189,27 @@
         {
           "name": "updateCustomer",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_name\":\"fish\",\r\n    \"contact_email\":\"emaildaa@gmail.com\",\r\n    \"phone\":\"222223339\",\r\n    \"address\":\"ADDD\",\r\n    \"contact_person\":\"adsdsd\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId",
               "host": [
@@ -1017,7 +1221,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1041,7 +1245,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1049,7 +1253,7 @@
           "response": []
         },
         {
-          "name": "activateCustomer",
+          "name": "reactivateCustomer",
           "request": {
             "method": "POST",
             "header": [],
@@ -1065,7 +1269,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1089,7 +1293,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1113,7 +1317,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1137,7 +1341,7 @@
               "variable": [
                 {
                   "key": "customerId",
-                  "value": ""
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
                 }
               ]
             }
@@ -1154,6 +1358,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_id\":\"2e5a3eae-ecad-4ce3-a50d-26078cdee857\",\r\n    \"amount\":\"120.50\",\r\n    // \"payment_date\":\"\",\r\n    \"method\":\"CASH\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{customerPaymentRoutes}}/",
               "host": [
@@ -1210,6 +1423,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"category_id\":\"4e44a912-3376-4f3e-8a86-486310f892ef\",\r\n    \"amount\":\"23\"\r\n    // \"date\":\"\",\r\n    // \"notes\":\"\",\r\n    // \"branch_id\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/",
               "host": [
@@ -1255,7 +1477,7 @@
               "variable": [
                 {
                   "key": "expenseId",
-                  "value": ""
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
                 }
               ]
             }
@@ -1267,6 +1489,15 @@
           "request": {
             "method": "PUT",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"category_id\":\"4e44a912-3376-4f3e-8a86-486310f892ef\",\r\n    \"notes\":\"now () *** () \",\r\n    \"amount\":\"2333\"\r\n    // \"date\":\"\",\r\n    // \"branch_id\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/:expenseId",
               "host": [
@@ -1278,7 +1509,7 @@
               "variable": [
                 {
                   "key": "expenseId",
-                  "value": ""
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
                 }
               ]
             }
@@ -1301,7 +1532,7 @@
               "variable": [
                 {
                   "key": "expenseId",
-                  "value": ""
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
                 }
               ]
             }
@@ -1333,8 +1564,27 @@
         {
           "name": "createExpenseCategory",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"DOG-FOOD\",\r\n    \"description\":\"DOG FOOD descrrition\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/",
               "host": [
@@ -1363,7 +1613,7 @@
               "variable": [
                 {
                   "key": "categoryId",
-                  "value": ""
+                  "value": "2129e963-3d20-4259-9cf0-12cf4680b090"
                 }
               ]
             }
@@ -1375,6 +1625,15 @@
           "request": {
             "method": "PUT",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"DOG2 FOOD\",\r\n    \"description\":\"DOG FOOD descrrition\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/:categoryId",
               "host": [
@@ -1386,7 +1645,7 @@
               "variable": [
                 {
                   "key": "categoryId",
-                  "value": ""
+                  "value": "2129e963-3d20-4259-9cf0-12cf4680b090"
                 }
               ]
             }
@@ -1409,7 +1668,7 @@
               "variable": [
                 {
                   "key": "categoryId",
-                  "value": ""
+                  "value": "1af2c437-7708-44f1-a78e-005b6d8ed3fa"
                 }
               ]
             }
@@ -1424,8 +1683,27 @@
         {
           "name": "createInventory",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"supplier_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"uom_id\":\"\",\r\n    \"quantity_on_hand\":\"200\",\r\n    // \"cost_price\":\"\",\r\n    // \"selling_price\":\"\",\r\n    \"location\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/",
               "host": [
@@ -1450,6 +1728,14 @@
               ],
               "path": [
                 "search"
+              ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -1471,7 +1757,7 @@
               "variable": [
                 {
                   "key": "inventoryId",
-                  "value": ""
+                  "value": "e2ec5efe-73c9-4aa3-b25e-a2538861f82e"
                 }
               ]
             }
@@ -1483,6 +1769,15 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"supplier_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"uom_id\":\"\",\r\n    \"quantity_on_hand\":\"2000\"\r\n    // \"available_quantity\":\"20000\"\r\n    // \"cost_price\":\"\",\r\n    // \"selling_price\":\"\",\r\n    // \"location\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/:inventoryId",
               "host": [
@@ -1494,7 +1789,7 @@
               "variable": [
                 {
                   "key": "inventoryId",
-                  "value": ""
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
                 }
               ]
             }
@@ -1518,7 +1813,7 @@
               "variable": [
                 {
                   "key": "inventoryId",
-                  "value": ""
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
                 }
               ]
             }
@@ -1542,7 +1837,7 @@
               "variable": [
                 {
                   "key": "inventoryId",
-                  "value": ""
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
                 }
               ]
             }
@@ -1655,7 +1950,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n     \"roleName\":\"Technical\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}",
+              "raw": "{\r\n     \"roleName\":\"Technicalff\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1686,12 +1981,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                ":role_id"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1709,13 +2010,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/summary",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/summary",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "summary"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1733,13 +2040,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4/can-delete",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/can-delete",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4",
+                ":role_id",
                 "can-delete"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4"
+                }
               ]
             }
           },
@@ -1758,7 +2071,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\":\"ADmin Boss\",\r\n    \"description\":\"Bossu baako pii\"\r\n}",
+              "raw": "{\r\n    \"name\":\"A-Dmin Boss\",\r\n    \"description\":\"Bossu baako pii\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1766,13 +2079,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4/",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4",
+                ":role_id",
                 ""
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "5cfadf5a-4bfa-410a-89d6-897588613b58"
+                }
               ]
             }
           },
@@ -1790,13 +2109,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4/",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4",
+                ":role_id",
                 ""
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "5cfadf5a-4bfa-410a-89d6-897588613b58"
+                }
               ]
             }
           },
@@ -1814,13 +2139,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/permissions",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1839,7 +2170,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ],\r\n    \"permissionIds.\":[]\r\n}",
+              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        // \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ],\r\n    \"permissionIds.\":[]\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1847,13 +2178,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/permissions",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1872,7 +2209,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ]\r\n}",
+              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        // \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ]\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1880,13 +2217,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/permissions",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1908,14 +2251,24 @@
               "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ]\r\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/permissions/6d01b111-ee8d-4afb-be77-4f9d51be920a",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions/:permission_id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "permissions",
-                "6d01b111-ee8d-4afb-be77-4f9d51be920a"
+                ":permission_id"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                },
+                {
+                  "key": "permission_id",
+                  "value": "6d01b111-ee8d-4afb-be77-4f9d51be920a"
+                }
               ]
             }
           },
@@ -1933,15 +2286,25 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/4445525a-af69-479c-97db-93b456c39025/permissions/copy-from/fa25c72f-4501-4ef0-b885-2cc9621401bc",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:to_role_id/permissions/copy-from/:from_role_id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "4445525a-af69-479c-97db-93b456c39025",
+                ":to_role_id",
                 "permissions",
                 "copy-from",
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                ":from_role_id"
+              ],
+              "variable": [
+                {
+                  "key": "to_role_id",
+                  "value": "4445525a-af69-479c-97db-93b456c39025"
+                },
+                {
+                  "key": "from_role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -1959,13 +2322,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/fa25c72f-4501-4ef0-b885-2cc9621401bc/users",
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/users",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
               ],
               "path": [
-                "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                ":role_id",
                 "users"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
               ]
             }
           },
@@ -2025,13 +2394,19 @@
               "raw": "{\r\n     \"roleName\":\"Technical\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/a2c763ba-c404-41ea-a0d7-b4b178c536db/",
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
               ],
               "path": [
-                "a2c763ba-c404-41ea-a0d7-b4b178c536db",
+                ":id",
                 ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
               ]
             }
           },
@@ -2090,13 +2465,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/a2c763ba-c404-41ea-a0d7-b4b178c536db/",
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
               ],
               "path": [
-                "a2c763ba-c404-41ea-a0d7-b4b178c536db",
+                ":id",
                 ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
               ]
             }
           },
@@ -2114,13 +2495,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/d0211b80-1605-4f25-8e31-6360eb9fd4ab/",
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
               ],
               "path": [
-                "d0211b80-1605-4f25-8e31-6360eb9fd4ab",
-                ""
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
               ]
             }
           },
@@ -2138,13 +2524,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/a2c763ba-c404-41ea-a0d7-b4b178c536db/roles",
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/roles",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
               ],
               "path": [
-                "a2c763ba-c404-41ea-a0d7-b4b178c536db",
+                ":id",
                 "roles"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "04e9a9c6-bdbf-4d90-82c6-04670dadfdd3"
+                }
               ]
             }
           },
@@ -2162,13 +2554,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/a2c763ba-c404-41ea-a0d7-b4b178c536db/can-delete",
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/can-delete",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
               ],
               "path": [
-                "a2c763ba-c404-41ea-a0d7-b4b178c536db",
+                ":id",
                 "can-delete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "04e9a9c6-bdbf-4d90-82c6-04670dadfdd3"
+                }
               ]
             }
           },
@@ -2184,6 +2582,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"quantity\":\"10\",\r\n    \"type\":\"out\",\r\n    \"reference_type\":\"\",\r\n    // \"reference_id\":\"\",\r\n    \"notes\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}/",
               "host": [
@@ -2229,7 +2636,7 @@
               "variable": [
                 {
                   "key": "transactionId",
-                  "value": ""
+                  "value": "0bc726b6-8581-490b-b9fd-28e6d1f71dc4"
                 }
               ]
             }
@@ -2246,6 +2653,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"from_branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"to_branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"1020\",\r\n    // \"transfer_date\":\"\",\r\n    \"notes\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/",
               "host": [
@@ -2291,7 +2707,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2303,6 +2719,15 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"from_branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"to_branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"1000000\",\r\n    // \"transfer_date\":\"\",\r\n    \"notes\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId",
               "host": [
@@ -2314,7 +2739,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2338,7 +2763,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2362,7 +2787,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2386,7 +2811,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2410,7 +2835,7 @@
               "variable": [
                 {
                   "key": "transferId",
-                  "value": ""
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
                 }
               ]
             }
@@ -2461,6 +2886,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Me\",\r\n  \"branch_id\": \"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n  \"message\": \"ME DONE\",\r\n  \"type\": \"SUCCESS\",\r\n  \"priority\": \"URGENT\",\r\n  \"recipients\": [\r\n    \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n    \"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\"\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/",
               "host": [
@@ -2490,7 +2924,7 @@
               "variable": [
                 {
                   "key": "notificationId",
-                  "value": ""
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
                 }
               ]
             }
@@ -2513,7 +2947,7 @@
               "variable": [
                 {
                   "key": "notificationId",
-                  "value": ""
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
                 }
               ]
             }
@@ -2536,7 +2970,7 @@
               "variable": [
                 {
                   "key": "notificationId",
-                  "value": ""
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
                 }
               ]
             }
@@ -2548,6 +2982,15 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Me\",\r\n  \"branch_id\": \"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n  \"message\": \"ME PORT DONE\",\r\n  \"type\": \"SUCCESS\",\r\n  \"priority\": \"URGENT\",\r\n  \"recipients\": [\r\n    \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n    \"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\"\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/:notificationId",
               "host": [
@@ -2559,7 +3002,7 @@
               "variable": [
                 {
                   "key": "notificationId",
-                  "value": ""
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
                 }
               ]
             }
@@ -2574,8 +3017,27 @@
         {
           "name": "createProduct",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sku\":\"s sdsvibg sd sd s\",\r\n    \"product_name\":\"Coconut oil\",\r\n    \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\",\r\n    \"reorder_level\":\"1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/",
               "host": [
@@ -2593,6 +3055,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"q\":\"\"\r\n    // \"categoryId\":\"\"\r\n    // \"page\":\"\"\r\n    // \"isActive\":\"true\"\r\n    // \"limit\":\"\"\r\n    // \"\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/search",
               "host": [
@@ -2610,6 +3081,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"is_primary\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:id/images",
               "host": [
@@ -2622,7 +3102,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2646,7 +3126,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2669,7 +3149,7 @@
               "variable": [
                 {
                   "key": "productId",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2679,8 +3159,17 @@
         {
           "name": "updateProduct",
           "request": {
-            "method": "GET",
+            "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"sku\":\"s sdsvibg sd sd s\",\r\n    \"product_name\":\"Coconut oil\",\r\n    \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"23\",\r\n    \"wholesale_price\":\"32\",\r\n    \"retail_price\":\"37\",\r\n    \"reorder_level\":\"8\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId",
               "host": [
@@ -2692,7 +3181,7 @@
               "variable": [
                 {
                   "key": "productId",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2702,7 +3191,7 @@
         {
           "name": "deactivateProduct",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId/deactivate",
@@ -2716,7 +3205,7 @@
               "variable": [
                 {
                   "key": "productId",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2726,7 +3215,7 @@
         {
           "name": "activateProduct",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId/reactivate",
@@ -2740,7 +3229,31 @@
               "variable": [
                 {
                   "key": "productId",
-                  "value": ""
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateProductImage",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:id/images",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "images"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
                 }
               ]
             }
@@ -2754,9 +3267,21 @@
       "item": [
         {
           "name": "listPriceHistory",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
             "method": "GET",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}/",
               "host": [
@@ -2774,6 +3299,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"price\":\"2\"\r\n    // \"effective_date\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}/",
               "host": [
@@ -2793,9 +3327,21 @@
       "item": [
         {
           "name": "listInventoryRecords",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
             "method": "GET",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\"\r\n    // \"page\":\"\",\r\n    // \"limit\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/",
               "host": [
@@ -2813,6 +3359,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"202\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/",
               "host": [
@@ -2820,6 +3375,135 @@
               ],
               "path": [
                 ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateInventoryRecord",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"20222\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getInventoryById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "query": [
+                {
+                  "key": "inventory_id",
+                  "value": "21212",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getInventoryByProductAndBranch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/product/:product_id/branch/:branch_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                "product",
+                ":product_id",
+                "branch",
+                ":branch_id"
+              ],
+              "query": [
+                {
+                  "key": "product_id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "branch_id",
+                  "value": "a9558848-02bb-4c31-b30c-d9dab94f6028",
+                  "type": "text",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "product_id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "a9558848-02bb-4c31-b30c-d9dab94f6028"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteInventoryRecord",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
               ]
             }
           },
@@ -2863,6 +3547,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"1862dec2-7b9d-4cef-9e2b-c0dd2df57c56\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"po_number\":\"12193\",\r\n    // \"order_date\":\"\",\r\n    // \"expected_date\":\"\",\r\n    // \"status\":\"\",\r\n    \"total_amount\":\"122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/",
               "host": [
@@ -2908,7 +3601,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -2920,6 +3613,15 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"1862dec2-7b9d-4cef-9e2b-c0dd2df57c56\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"po_number\":\"9223\",\r\n    // \"order_date\":\"\",\r\n    // \"expected_date\":\"\",\r\n    // \"status\":\"\",\r\n    \"total_amount\":\"122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId",
               "host": [
@@ -2931,7 +3633,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -2955,7 +3657,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -2979,7 +3681,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3003,7 +3705,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3027,7 +3729,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3051,7 +3753,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3063,6 +3765,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    \"quantity\":\"10\",\r\n    \"unit_price\":\"20\",\r\n    \"discount\":\"2\",\r\n    // \"expiry_date\":\"\",\r\n    \"batch_number\":\"12331\",\r\n    \"serial_number\":\"3990\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items",
               "host": [
@@ -3075,7 +3786,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3099,7 +3810,7 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 }
               ]
             }
@@ -3111,6 +3822,15 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    \"quantity\":\"10\",\r\n    \"unit_price\":\"20\",\r\n    \"discount\":\"22\",\r\n    // \"expiry_date\":\"\",\r\n    \"batch_number\":\"12331\",\r\n    \"serial_number\":\"3990\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items/:itemId",
               "host": [
@@ -3124,11 +3844,11 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 },
                 {
                   "key": "itemId",
-                  "value": ""
+                  "value": "590e12b5-0f67-45ed-bcac-3535d6c2abda"
                 }
               ]
             }
@@ -3153,11 +3873,11 @@
               "variable": [
                 {
                   "key": "purchaseId",
-                  "value": ""
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
                 },
                 {
                   "key": "itemId",
-                  "value": ""
+                  "value": "590e12b5-0f67-45ed-bcac-3535d6c2abda"
                 }
               ]
             }
@@ -3328,12 +4048,49 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/",
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/?report_type=suppliers",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
               ],
               "path": [
                 ""
+              ],
+              "query": [
+                {
+                  "key": "report_type",
+                  "value": "sales",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "purchases",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "inventory",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "expenses",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "customers",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "suppliers",
+                  "type": "text"
+                }
               ]
             }
           },
@@ -3345,12 +4102,48 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/export",
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/export?report_type=expenses",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
               ],
               "path": [
                 "export"
+              ],
+              "query": [
+                {
+                  "key": "report_type",
+                  "value": null,
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "suppliers",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "customers",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "expenses"
+                },
+                {
+                  "key": "report_type",
+                  "value": "inventory",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "purchases",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "sales",
+                  "disabled": true
+                }
               ]
             }
           },
@@ -3383,6 +4176,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"branch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n  \"customer_id\": \"2e5a3eae-ecad-4ce3-a50d-26078cdee857\",\r\n  \"cashier_id\": \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n  \"sale_type\": \"RETAIL\",\r\n  \"sale_date\": \"2026-07-17T20:00:00Z\",\r\n  \"discount_amount\": 10.00,\r\n  \"tax_amount\": 18.00,\r\n  \"total_amount\": 198.00,\r\n  \"amount_paid\": 198.00,\r\n  \"status\": \"COMPLETED\",\r\n  \"invoice_number\": \"INV-20260717-0002\",\r\n  \"cashier_name\": \"John Doe\",\r\n  \"customer_name\": \"Walk-in Customer\",\r\n  \"remarks\": \"Paid in full\",\r\n  \"device_id\": \"POS-001\",\r\n//   \"due_date\": null,\r\n\r\n  \"items\": [\r\n    {\r\n      \"product_id\": \"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n      \"uom_id\": \"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n      \"quantity\": 2,\r\n      \"unit_price\": 90.00,\r\n      \"line_discount\": 10.00,\r\n      \"tax_amount\": 18.00,\r\n      \"cost_price\": 60.00,\r\n      \"batch_number\": \"BATCH-001\",\r\n      \"expiry_date\": \"2027-12-31\"\r\n    }\r\n  ],\r\n\r\n  \"payment\": {\r\n    \"amount\": 198.00,\r\n    \"payment_method\": \"CASH\",\r\n    \"reference_number\": \"CASH-001\"\r\n  },\r\n\r\n  \"payments\": [\r\n    {\r\n      \"amount\": 198.00,\r\n      \"payment_method\": \"CASH\",\r\n      \"reference_number\": \"CASH-001\"\r\n    }\r\n  ],\r\n\r\n  \"payment_amount\": 198.00,\r\n  \"payment_method\": \"CASH\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/",
               "host": [
@@ -3429,7 +4231,7 @@
               "variable": [
                 {
                   "key": "saleId",
-                  "value": ""
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
                 }
               ]
             }
@@ -3453,7 +4255,7 @@
               "variable": [
                 {
                   "key": "saleId",
-                  "value": ""
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
                 }
               ]
             }
@@ -3477,7 +4279,7 @@
               "variable": [
                 {
                   "key": "saleId",
-                  "value": ""
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
                 }
               ]
             }
@@ -3501,7 +4303,7 @@
               "variable": [
                 {
                   "key": "saleId",
-                  "value": ""
+                  "value": "5fee00c9-6744-40cb-9ed7-1dd3c8eae0dd"
                 }
               ]
             }
@@ -3524,7 +4326,7 @@
               "variable": [
                 {
                   "key": "saleId",
-                  "value": ""
+                  "value": "5fee00c9-6744-40cb-9ed7-1dd3c8eae0dd"
                 }
               ]
             }
@@ -3569,30 +4371,8 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "3a936df4-f6f5-46a5-b942-d51352ee4d26"
                 }
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Suppliers",
-      "item": [
-        {
-          "name": "createSupplierPayment",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/",
-              "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
-              ],
-              "path": [
-                ""
               ]
             }
           },
@@ -3604,14 +4384,147 @@
       "name": "SupplierPayment",
       "item": [
         {
-          "name": "createSupplier",
+          "name": "createSupplierPayment",
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"cf9c691a-e54c-4375-b105-a6890a5734ae\",\r\n    \"amount\":\"20\",\r\n    // \"payment_date\": \"\",\r\n    \"payment_method\":\"MOMO\",\r\n    \"po_id\":\"\",\r\n    \"reference_number\":\"23233\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getPaymentById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updatePayment",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deletePayment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPaymentsBySupplier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/supplier/:supplierId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                "supplier",
+                ":supplierId"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Supplier",
+      "item": [
+        {
+          "name": "createSupplier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_name\":\"Accra\",\r\n    \"contact_email\":\"accra@gmail.com\",\r\n    \"phone\":\"054456564\",\r\n    \"address\":\"Accra\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ""
@@ -3626,9 +4539,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/search",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/search",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 "search"
@@ -3643,9 +4556,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:supplierId",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ":supplierId"
@@ -3653,7 +4566,7 @@
               "variable": [
                 {
                   "key": "supplierId",
-                  "value": ""
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
                 }
               ]
             }
@@ -3665,10 +4578,19 @@
           "request": {
             "method": "PATCH",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"supplier_name\":\"Accra\",\r\n    \"email\":\"accra1@gmail.com\",\r\n    \"phone\":\"054456564\",\r\n    \"address\":\"Accra22\",\r\n    \"is_active\":\"true\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:supplierId",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ":supplierId"
@@ -3676,7 +4598,7 @@
               "variable": [
                 {
                   "key": "supplierId",
-                  "value": ""
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
                 }
               ]
             }
@@ -3689,9 +4611,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:supplierId/deactivate",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/deactivate",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ":supplierId",
@@ -3700,7 +4622,7 @@
               "variable": [
                 {
                   "key": "supplierId",
-                  "value": ""
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
                 }
               ]
             }
@@ -3713,9 +4635,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:supplierId/reactivate",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/reactivate",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ":supplierId",
@@ -3724,7 +4646,7 @@
               "variable": [
                 {
                   "key": "supplierId",
-                  "value": ""
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
                 }
               ]
             }
@@ -3737,9 +4659,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:supplierId/payments",
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/payments",
               "host": [
-                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
               ],
               "path": [
                 ":supplierId",
@@ -3748,7 +4670,7 @@
               "variable": [
                 {
                   "key": "supplierId",
-                  "value": ""
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
                 }
               ]
             }
@@ -3777,7 +4699,7 @@
               "variable": [
                 {
                   "key": "entity",
-                  "value": ""
+                  "value": "products"
                 }
               ]
             }
@@ -3801,7 +4723,7 @@
               "variable": [
                 {
                   "key": "entity",
-                  "value": ""
+                  "value": "inventries"
                 }
               ]
             }
@@ -3813,6 +4735,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"items\": [\r\n    {\r\n    \"product_id\":\"da3ca8a5-c157-4063-92f5-5af5e5be62ae\",\r\n    \"sku\":\"cfcgcyikvkj\",\r\n    \"product_name\":\"Coconut oil\",\r\n    // \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\"\r\n    // \"reorder_level\":\"1\"\r\n},\r\n\r\n{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"sku\":\"hvpoihugyyvy\",\r\n    \"product_name\":\"Coconut oil\",\r\n    // \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\"\r\n    // \"reorder_level\":\"1\"\r\n}\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/:entity/push",
               "host": [
@@ -3825,7 +4756,7 @@
               "variable": [
                 {
                   "key": "entity",
-                  "value": ""
+                  "value": "products"
                 }
               ]
             }
@@ -3837,6 +4768,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"sync_payload\": [\r\n    {\r\n      \"entity\": \"sales\",\r\n      \"data\": {\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"branch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n        \"invoice_number\": \"INV-20260717-0001\",\r\n        \"total_amount\": 198.00,\r\n        \"status\": \"COMPLETED\"\r\n      }\r\n    },\r\n    {\r\n      \"entity\": \"sale_items\",\r\n      \"data\": {\r\n        \"sale_item_id\": \"d4e6f3b1-7d59-4e0f-b0e8-8f4b6b1d9d44\",\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"product_id\": \"c6d8f1e2-4d3b-4b5d-a7c8-1f2e3d4c5b6a\",\r\n        \"quantity\": 2,\r\n        \"unit_price\": 90.00\r\n      }\r\n    },\r\n    {\r\n      \"entity\": \"payments\",\r\n      \"data\": {\r\n        \"payment_id\": \"b5a7c3d2-9f4a-4d7c-a1b2-c3d4e5f6a7b8\",\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"amount\": 198.00,\r\n        \"payment_method\": \"CASH\",\r\n        \"reference_number\": \"CASH-001\"\r\n      }\r\n    }\r\n  ],\r\n  \"source\": \"POS-001\",\r\n  \"target\": \"CENTRAL_SERVER\",\r\n  \"batch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/push",
               "host": [
@@ -3854,6 +4794,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"entity\":\"products\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/pull",
               "host": [
@@ -3888,6 +4837,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sync_id\":\"213dcb69-5ce5-46b2-87bb-81a4c42fb72b\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/retry",
               "host": [
@@ -3927,6 +4885,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"key\": \"company_name\",\r\n  \"value\": \"ABC Supermarket\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/",
               "host": [
@@ -3955,7 +4922,7 @@
               "variable": [
                 {
                   "key": "key",
-                  "value": ""
+                  "value": "company_name"
                 }
               ]
             }
@@ -3967,6 +4934,15 @@
           "request": {
             "method": "PUT",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"key\": \"company_name\",\r\n  \"value\": \"ABC Supermarket\",\r\n  \"description\":\"My Company Name\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/:key",
               "host": [
@@ -3978,7 +4954,7 @@
               "variable": [
                 {
                   "key": "key",
-                  "value": ""
+                  "value": "company_name"
                 }
               ]
             }
@@ -4001,7 +4977,7 @@
               "variable": [
                 {
                   "key": "key",
-                  "value": ""
+                  "value": "tax_rate"
                 }
               ]
             }
@@ -4205,7 +5181,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 }
               ]
             }
@@ -4229,7 +5205,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 }
               ]
             }
@@ -4248,12 +5224,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/605fa2e2-097a-43dd-91cb-f96a2e1e1825",
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id",
               "host": [
                 "{{baseUrl}}{{apiV1}}{{userRoutes}}"
               ],
               "path": [
-                "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
               ]
             }
           },
@@ -4290,7 +5272,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
                 }
               ]
             }
@@ -4328,7 +5310,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
                 }
               ]
             }
@@ -4357,7 +5339,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
                 }
               ]
             }
@@ -4396,7 +5378,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 }
               ]
             }
@@ -4426,7 +5408,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 }
               ]
             }
@@ -4456,7 +5438,7 @@
               "variable": [
                 {
                   "key": "id",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 }
               ]
             }
@@ -4473,6 +5455,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\"\r\n    \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}/",
               "host": [
@@ -4502,11 +5493,11 @@
               "variable": [
                 {
                   "key": "userId",
-                  "value": ""
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
                 },
                 {
                   "key": "branchId",
-                  "value": ""
+                  "value": "5332784d-9b37-4b31-a513-f5134f958fe3"
                 }
               ]
             }
@@ -4518,6 +5509,15 @@
           "request": {
             "method": "DELETE",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\"\r\n    \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}/",
               "host": [
@@ -4533,6 +5533,16 @@
       ]
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{supabase_service_role_api_key_0t72}}",
+        "type": "string"
+      }
+    ]
+  },
   "event": [
     {
       "listen": "prerequest",
@@ -4716,6 +5726,10 @@
     },
     {
       "key": "token",
+      "secret": true
+    },
+    {
+      "key": "supabase_service_role_api_key_0t72",
       "secret": true
     }
   ]

@@ -6,7 +6,8 @@ const purchaseIdValidation = [
 
 const createPurchaseValidation = [
   body('supplier_id').isUUID().withMessage('supplier_id is required and must be a UUID.'),
-  body('order_number').trim().notEmpty().withMessage('order_number is required.').isLength({ max: 100 }),
+  body('branch_id').isUUID().withMessage('branch_id is required and must be a UUID.'),
+  body('po_number').trim().notEmpty().withMessage('po_number is required.').isLength({ max: 100 }),
   body('order_date').optional().isISO8601().toDate(),
   body('expected_date').optional().isISO8601().toDate(),
   body('status').optional().isString().isLength({ max: 50 }),
@@ -16,7 +17,8 @@ const createPurchaseValidation = [
 const updatePurchaseValidation = [
   ...purchaseIdValidation,
   body('supplier_id').optional().isUUID(),
-  body('order_number').optional().trim().isLength({ max: 100 }),
+  body('branch_id').optional().isUUID(),
+  body('po_number').optional().trim().isLength({ max: 100 }),
   body('order_date').optional().isISO8601().toDate(),
   body('expected_date').optional().isISO8601().toDate(),
   body('status').optional().isString().isLength({ max: 50 }),

@@ -4,7 +4,9 @@ const auditRepo = require('../repositories/audit.repository');
 
 async function createCustomer({ customer_name, contact_email, phone, address, contact_person, createdBy }) {
   const id = uuidv4();
-  const created = await customerRepo.createCustomer({ id, customer_name, contact_email, phone, address, contact_person, created_by: createdBy });
+  console.log('Creating customer with ID:', id);
+  const created = await customerRepo.createCustomer({ customer_id: id, customer_name, contact_email, phone, address, contact_person, created_by: createdBy });
+  console.log('Creating customer with ID:', id);
   try {
     if (auditRepo && typeof auditRepo.create === 'function') {
       auditRepo.create({ action: 'create_customer', resource_id: id, meta: { customer_name }, performed_by: createdBy });

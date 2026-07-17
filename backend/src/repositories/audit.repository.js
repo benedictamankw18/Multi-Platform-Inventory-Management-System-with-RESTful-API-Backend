@@ -128,7 +128,6 @@ exports.findAll = async (filters = {}, client = db) => {
   const safeLimit  = Math.min(Number(filters.limit)  || 25, 100);
   const safePage   = Math.max(Number(filters.page)   ||  1,   1);
   const safeOffset = (safePage - 1) * safeLimit;
-
   const query = `
     SELECT a.audit_id, a.user_id, a.action, a.entity_type, a.entity_id,
            a.details, a.ip_address, a.created_at,

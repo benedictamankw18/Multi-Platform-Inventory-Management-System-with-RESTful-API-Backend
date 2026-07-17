@@ -24,7 +24,24 @@ async function listPaymentsBySupplier(supplierId, { limit = 50, offset = 0 } = {
   return supplierPaymentRepo.listSupplierPayments({ supplierId, limit, offset });
 }
 
+async function getPaymentById(payment_id) {
+  return supplierPaymentRepo.getSupplierPaymentById(payment_id);
+}
+
+async function updatePayment(payment_id, patch) {
+  const updated = await supplierPaymentRepo.updateSupplierPayment(payment_id, patch);
+  return updated;
+}
+
+async function deletePayment(payment_id) {
+  const deleted = await supplierPaymentRepo.deleteSupplierPayment(payment_id);
+  return deleted;
+}
+
 module.exports = {
   createPayment,
   listPaymentsBySupplier,
+  getPaymentById,
+  updatePayment,
+  deletePayment,
 };

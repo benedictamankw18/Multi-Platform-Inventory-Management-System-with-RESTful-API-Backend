@@ -27,10 +27,16 @@ const retryValidation = [
   body('sync_id').isUUID().withMessage('sync_id is required and must be a UUID'),
 ];
 
+const pushEntityValidation = [
+  body('items').isArray().withMessage('items array is required'),
+];
+
+
 
 module.exports = {
   pushValidation,
   pullValidation,
   logsValidation,
   retryValidation,
+  pushEntityValidation
 };

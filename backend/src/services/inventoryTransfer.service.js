@@ -2,12 +2,12 @@ const { v4: uuidv4 } = require('uuid');
 const transferRepo = require('../repositories/inventoryTransfer.repository');
 const auditRepo = require('../repositories/audit.repository');
 
-async function createTransfer({ product_id, from_inventory_id, to_inventory_id, quantity, transfer_date, notes, createdBy }) {
+async function createTransfer({ product_id, from_branch_id, to_branch_id, quantity, transfer_date, notes, createdBy }) {
   const id = uuidv4();
-  const created = await transferRepo.createTransfer({ id, product_id, from_inventory_id, to_inventory_id, quantity, transfer_date, notes, created_by: createdBy });
+  const created = await transferRepo.createTransfer({ transfer_id: id, product_id, from_branch_id: from_branch_id, to_branch_id: to_branch_id, quantity, requested_at: transfer_date, notes, requested_by: createdBy });
   try {
     if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_inventory_transfer', resource_id: id, meta: { product_id, from_inventory_id, to_inventory_id, quantity }, performed_by: createdBy });
+      auditRepo.create({ action: 'create_inventory_transfer', resource_id: id, meta: { product_id, from_branch_id, to_branch_id, quantity }, performed_by: createdBy });
     }
   } catch (e) {
     console.error('audit error', e.message);
@@ -20,9 +20,9 @@ async function getTransferById(id) {
 }
 
 async function listTransfers(query) {
-  const { q, productId, fromInventoryId, toInventoryId, isActive, page = 1, limit = 25 } = query || {};
+  const { q, productId, fromBranchId, toBranchId, isActive, page = 1, limit = 25 } = query || {};
   const offset = (page - 1) * limit;
-  return transferRepo.listTransfers({ q, productId, fromInventoryId, toInventoryId, isActive, limit, offset });
+  return transferRepo.listTransfers({ q, productId, fromBranchId, toBranchId, isActive, limit, offset });
 }
 
 async function updateTransfer(id, patch, performedBy) {

@@ -2,6 +2,7 @@ const productBranchInventoryRepo = require('../repositories/productBranchInvento
 const auditRepo = require('../repositories/audit.repository');
 const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
+const e = require('express');
 
 exports.createInventoryRecord = async (payload = {}, actorId = null) => {
   const { product_id: productId, branch_id: branchId, quantity } = payload;
@@ -50,4 +51,66 @@ exports.listInventoryRecords = async (filters = {}) => {
 
   const items = await productBranchInventoryRepo.listInventoriesByBranch(branchId, { limit: safeLimit, offset });
   return { items, pagination: { page: safePage, limit: safeLimit } };
+};
+
+exports.updateInventoryRecord = async (inventoryId, payload ={}, actorId = null) => {
+const { product_id: productId, branch_id: branchId, quantity } = payload;
+
+const existing = await productBranchInventoryRepo.getInventoryById(inventoryId);
+
+if (!existing) {
+  throw new AppError('Inventory record not found.', { status: 404 });
+}
+
+  if (Number.isNaN(Number(quantity))) {
+    throw new AppError('quantity must be a number.', { status: 400 });
+  }
+
+  const updated = await productBranchInventoryRepo.updateInventory(inventoryId, {
+    product_id: productId,
+    branch_id: branchId,
+    quantity_on_hand: Number(quantity),
+    available_quantity: Number(quantity),
+  });
+
+  await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT_BRANCH_INVENTORY', 'PRODUCT_BRANCH_INVENTORY', updated.inventory_id, {
+    product_id: productId,
+    branch_id: branchId,
+    quantity: Number(quantity),
+  });
+
+  return updated;
+};
+
+exports.getInventoryById = async (inventoryId) => {
+  if (!inventoryId) {
+    throw new AppError('inventory_id is required to fetch inventory record.', { status: 400 });
+  }
+  const inventory = await productBranchInventoryRepo.getInventoryById(inventoryId);
+  if (!inventory) {
+    throw new AppError('Inventory record not found.', { status: 404 });
+  }
+  return inventory;
+};
+
+exports.getInventoryByProductAndBranch = async (productId, branchId) => {
+  if (!productId || !branchId) {
+    throw new AppError('product_id and branch_id are required to fetch inventory record.', { status: 400 });
+  }
+  const inventory = await productBranchInventoryRepo.getInventoryByProductAndBranch(productId, branchId);
+  if (!inventory) {
+    throw new AppError('Inventory record not found.', { status: 404 });
+  }
+  return inventory;
+};
+
+exports.deleteInventoryRecord = async (inventoryId, actorId = null) => {
+  if (!inventoryId) {
+    throw new AppError('inventory_id is required to delete inventory record.', { status: 400 });
+  }
+  const deleted = await productBranchInventoryRepo.deleteInventory(inventoryId);
+  if (!deleted) {
+    throw new AppError('Inventory record not found.', { status: 404 });
+  }
+  return deleted;
 };

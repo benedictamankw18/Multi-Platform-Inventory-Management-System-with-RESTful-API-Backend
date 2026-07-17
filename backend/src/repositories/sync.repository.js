@@ -88,28 +88,108 @@ async function pullChanges(entity, since) {
 }
 
 async function pushChanges(entity, items) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    for (const it of items) {
-      const idKey = Object.keys(it).find(k => /id$/.test(k)) || 'id';
-      const id = it[idKey];
-      const keys = Object.keys(it).filter(k => k !== idKey);
-      const values = keys.map(k => it[k]);
-      const cols = keys.join(', ');
-      const params = keys.map((_, idx) => `$${idx + 2}`).join(', ');
-      const upsert = `INSERT INTO ${entity} (${idKey}, ${cols}) VALUES ($1, ${params}) ON CONFLICT (${idKey}) DO UPDATE SET ${keys.map(k => `${k}=EXCLUDED.${k}`).join(', ')}`;
-      await client.query(upsert, [id, ...values]);
+    const client = await pool.connect();
+
+    try {
+        // Validate entity name to prevent SQL injection
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(entity)) {
+            throw new Error(`Invalid entity name: ${entity}`);
+        }
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return {
+                success: true,
+                processed: 0
+            };
+        }
+
+        await client.query("BEGIN");
+
+        for (const item of items) {
+            if (!item || typeof item !== "object") {
+                continue;
+            }
+
+            // Find primary key
+            const idKey =
+                Object.keys(item).find(k => k.endsWith("_id")) ||
+                Object.keys(item).find(k => k === "id");
+
+            if (!idKey) {
+                throw new Error(`No primary key found for entity '${entity}'.`);
+            }
+
+            const id = item[idKey];
+
+            if (id == null) {
+                throw new Error(`'${idKey}' cannot be null.`);
+            }
+
+            const keys = Object.keys(item).filter(k => k !== idKey);
+
+            const insertColumns = [idKey, ...keys];
+            const insertValues = [id, ...keys.map(k => item[k])];
+            const placeholders = insertColumns.map((_, i) => `$${i + 1}`);
+
+            let sql;
+
+            if (keys.length > 0) {
+                const updateClause = keys
+                    .map(k => `"${k}" = EXCLUDED."${k}"`)
+                    .join(", ");
+
+                sql = `
+                    INSERT INTO "${entity}"
+                    (${insertColumns.map(c => `"${c}"`).join(", ")})
+                    VALUES (${placeholders.join(", ")})
+                    ON CONFLICT ("${idKey}")
+                    DO UPDATE SET ${updateClause};
+                `;
+            } else {
+                sql = `
+                    INSERT INTO "${entity}"
+                    ("${idKey}")
+                    VALUES ($1)
+                    ON CONFLICT ("${idKey}")
+                    DO NOTHING;
+                `;
+            }
+
+            // Uncomment for debugging
+            // console.log(sql);
+            // console.log(insertValues);
+
+            await client.query(sql, insertValues);
+        }
+
+        await client.query("COMMIT");
+
+        return {
+            success: true,
+            processed: items.length
+        };
+
+    } catch (err) {
+        await client.query("ROLLBACK");
+
+        console.error("pushChanges Error:", {
+            entity,
+            message: err.message
+        });
+
+        throw err;
+
+    } finally {
+        client.release();
     }
-    await client.query('COMMIT');
-    return { success: true };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
 }
+
+async function getLastSync(entity) {
+  const q = `SELECT * FROM ${TABLE} WHERE entity_type = $1 ORDER BY synced_at DESC LIMIT 1`;
+  const { rows } = await pool.query(q, [entity]);
+  return rows[0] || null;
+}
+
 
 module.exports = {
   createSyncLog,
@@ -121,5 +201,6 @@ module.exports = {
   updateSyncLog,
   getPendingSyncs,
   pullChanges,
+  getLastSync,
   pushChanges,
 };

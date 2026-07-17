@@ -6,9 +6,10 @@ const inventoryIdValidation = [
 
 const createInventoryValidation = [
   body('product_id').isUUID().withMessage('product_id is required and must be a UUID.'),
+  body('branch_id').isUUID().withMessage('branch_id is required and must be a UUID.'),
   body('supplier_id').optional().isUUID().withMessage('supplier_id must be a UUID.'),
   body('uom_id').optional().isUUID().withMessage('uom_id must be a UUID.'),
-  body('quantity').isNumeric().withMessage('quantity is required and must be numeric.'),
+  body('quantity_on_hand').isNumeric().withMessage('quantity is required and must be numeric.'),
   body('cost_price').optional().isFloat().withMessage('cost_price must be numeric.'),
   body('selling_price').optional().isFloat().withMessage('selling_price must be numeric.'),
   body('location').optional().isLength({ max: 200 }),
@@ -17,9 +18,10 @@ const createInventoryValidation = [
 const updateInventoryValidation = [
   ...inventoryIdValidation,
   body('product_id').optional().isUUID(),
+  body('branch_id').optional().isUUID(),
   body('supplier_id').optional().isUUID(),
   body('uom_id').optional().isUUID(),
-  body('quantity').optional().isNumeric(),
+  body('quantity_on_hand').optional().isNumeric(),
   body('cost_price').optional().isFloat(),
   body('selling_price').optional().isFloat(),
   body('location').optional().isLength({ max: 200 }),

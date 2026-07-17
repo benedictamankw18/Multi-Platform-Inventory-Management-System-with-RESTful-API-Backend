@@ -26,6 +26,27 @@ exports.addProductImage = async (req, res) => {
   }
 };
 
+exports.updateProductImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Product image file is required.' });
+    }
+
+    const image = await productImageService.updateProductImage(
+      {
+        productId: req.params.id,
+        imageUrl: `/uploads/${req.file.filename}`,
+        isPrimary: req.body.is_primary === true || req.body.is_primary === 'true',
+      },
+      req.user && req.user.sub
+    );
+
+    return res.status(201).json({ image });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
 exports.getProductImages = async (req, res) => {
   try {
     const images = await productImageService.getProductImages(req.params.id);

@@ -29,7 +29,43 @@ async function listPaymentsBySupplier(req, res, next) {
   }
 }
 
+async function getPaymentById(req, res, next) {
+  try {
+    const paymentId = req.params.paymentId;
+    const payment = await supplierPaymentService.getPaymentById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found.' });
+    }
+    res.json({ data: payment });
+  } catch (err) {
+    next(err);
+  } 
+};
+
+async function updatePayment(req, res, next) {
+  try {
+    const paymentId = req.params.paymentId;
+    const updated = await supplierPaymentService.updatePayment(paymentId, req.body);
+    res.json({ data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+async function deletePayment(req, res, next) {
+  try {
+    const paymentId = req.params.paymentId;
+    const deleted = await supplierPaymentService.deletePayment(paymentId);
+    res.json({ data: deleted });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createSupplierPayment,
   listPaymentsBySupplier,
+  getPaymentById,
+  updatePayment,
+  deletePayment,
 };

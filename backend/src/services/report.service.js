@@ -37,10 +37,7 @@ function objectArrayToCsv(rows) {
   return [header, ...lines].join('\n');
 }
 
-module.exports = {
-  generateReport,
-  objectArrayToCsv,
-};
+
 const reportRepo = require('../repositories/report.repository');
 const cache = require('../utils/cache.utils');
 
@@ -82,9 +79,9 @@ async function inventoryReport() {
   return cacheWrap(key, () => reportRepo.inventoryReport(), 300);
 }
 
-async function lowStock(threshold = 10) {
-  const key = `reports:lowStock:${threshold}`;
-  return cacheWrap(key, () => reportRepo.lowStock(threshold), 300);
+async function lowStock() {
+  const key = `reports:lowStock`;
+  return cacheWrap(key, () => reportRepo.lowStock(), 300);
 }
 
 async function purchasesReport(startDate, endDate) {
@@ -105,10 +102,13 @@ async function branchPerformance(startDate, endDate) {
 module.exports = {
   dailySales,
   monthlySales,
+  annualSales,
   profitReport,
   inventoryReport,
   lowStock,
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  generateReport,
+  objectArrayToCsv,
 };

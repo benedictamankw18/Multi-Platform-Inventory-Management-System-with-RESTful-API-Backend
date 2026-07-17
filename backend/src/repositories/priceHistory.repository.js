@@ -22,8 +22,30 @@ exports.getPriceHistoryById = async (history_id, client = db) => {
   return rows[0];
 };
 
-exports.listPriceHistoryByProduct = async (product_id, { limit = 50, offset = 0 } = {}, client = db) => {
-  const q = `SELECT * FROM ${TABLE} WHERE product_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`;
-  const { rows } = await client.query(q, [product_id, limit, offset]);
-  return rows;
+exports.listPriceHistoryByProduct = async (
+    product_id,
+    { limit = 50, offset = 0 } = {},
+    client = db
+) => {
+
+    let q = `SELECT * FROM ${TABLE}`;
+    const params = [];
+
+    if (product_id) {
+        params.push(product_id);
+        q += ` WHERE product_id = $${params.length}`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+
+    q += `
+        ORDER BY created_at DESC
+        LIMIT $${params.length - 1}
+        OFFSET $${params.length}
+    `;
+
+    const { rows } = await client.query(q, params);
+
+    return rows;
 };

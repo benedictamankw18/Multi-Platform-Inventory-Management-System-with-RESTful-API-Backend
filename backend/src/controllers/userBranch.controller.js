@@ -18,9 +18,33 @@ exports.createUserBranch = async (req, res) => {
 
 exports.deleteUserBranch = async (req, res) => {
   try {
+    
+    if (!req.params.userId || !req.params.branchId) {
+      return res.status(400).json({ message: 'userId and branchId are required in URL parameters.' });
+    }
+
     const actorId = req.user && req.user.sub;
-    const user_id = req.params.userId || req.body.user_id;
-    const branch_id = req.params.branchId || req.body.branch_id;
+    const user_id = req.params.userId;
+    const branch_id = req.params.branchId;
+
+    const row = await userBranchService.removeUserBranch(user_id, branch_id, actorId);
+    if (!row) return res.status(404).json({ message: 'Assignment not found.' });
+    return res.status(200).json({ removed: row });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+exports.deleteUserBranchBody = async (req, res) => {
+  try {
+
+    if (!req.body.user_id || !req.body.branch_id) {
+      return res.status(400).json({ message: 'user_id and branch_id are required in request body.' });
+    }
+
+    const actorId = req.user && req.user.sub;
+    const user_id =  req.body.user_id;
+    const branch_id =  req.body.branch_id;
     const row = await userBranchService.removeUserBranch(user_id, branch_id, actorId);
     if (!row) return res.status(404).json({ message: 'Assignment not found.' });
     return res.status(200).json({ removed: row });

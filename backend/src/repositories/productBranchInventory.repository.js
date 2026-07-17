@@ -42,3 +42,9 @@ exports.updateInventory = async (inventory_id, patch, client = db) => {
   const { rows } = await client.query(q, params);
   return rows[0];
 };
+
+exports.deleteInventory = async (inventory_id, client = db) => {
+  const q = `DELETE FROM ${TABLE} WHERE inventory_id = $1 RETURNING *`;
+  const { rows } = await client.query(q, [inventory_id]);
+  return rows[0];
+}

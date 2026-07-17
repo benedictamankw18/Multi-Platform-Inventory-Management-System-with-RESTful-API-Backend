@@ -2,7 +2,7 @@ const client = require('../config/db');
 
 const TABLE = 'suppliers';
 
-async function createSupplier({ supplier_id, supplier_name, contact_name = null, phone = null, email = null, address = null, company_registration_no = null, tax_number = null, website = null, bank_name = null, account_name = null, account_number = null, payment_terms = null, is_active = true } = {}) {
+async function createSupplier({ supplier_id, supplier_name, contact_name = null, phone = null, email = null, address = null, company_registration_no = null, tax_number = null, website = null, bank_name = null, account_name = null, account_number = null, payment_terms = null, is_active = true, created_by } = {}) {
   const q = `
     INSERT INTO ${TABLE} (supplier_id, supplier_name, contact_name, phone, email, address, is_active, company_registration_no, tax_number, website, bank_name, account_name, account_number, payment_terms)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)

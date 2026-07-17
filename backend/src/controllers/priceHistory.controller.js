@@ -6,7 +6,7 @@ async function createPriceHistory(req, res, next) {
       product_id: req.body.product_id,
       price: req.body.price,
       effective_date: req.body.effective_date,
-      changed_by: req.user ? req.user.id : null,
+      changed_by: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {
@@ -16,8 +16,8 @@ async function createPriceHistory(req, res, next) {
 
 async function listPriceHistory(req, res, next) {
   try {
-    const { product_id, page = 1, limit = 50 } = req.query || {};
-    const results = await priceHistoryService.listPriceHistory({ product_id, page: Number(page), limit: Number(limit) });
+    const { product_id, page = 1, limit = 50 } = req.body || {};
+    const results = await priceHistoryService.listPriceHistory({ product_id : product_id, page: Number(page), limit: Number(limit) });
     res.json({ data: results });
   } catch (err) {
     next(err);

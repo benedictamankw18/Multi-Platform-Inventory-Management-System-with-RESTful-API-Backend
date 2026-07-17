@@ -2,9 +2,11 @@ const { body,  param, query } = require('express-validator');
 
 const createNotificationValidation = [
   body('title').isString().notEmpty().withMessage('title is required'),
+  body('branch_id').isUUID().withMessage('branch_id is required'),
   body('message').isString().notEmpty().withMessage('message is required'),
-  body('type').optional().isIn(['info','warning','error','success']),
-  body('recipients').optional().isArray(),
+  body('type').optional().isIn(['INFO','WARNING','ERROR','SUCCESS','OTHER','TRANSFER_REQUEST','BRANCH_SHORTAGE','SYNC_FAILURE','LOW_STOCK']),
+  body('priority').optional().isIn(['LOW','NORMAL', 'HIGH', 'URGENT']),
+  body('recipients').isArray().isUUID(),
 ];
 
 const notificationIdValidation = [

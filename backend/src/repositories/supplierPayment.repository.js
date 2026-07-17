@@ -38,7 +38,7 @@ async function updateSupplierPayment(payment_id, patch) {
   }
   if (!fields.length) return getSupplierPaymentById(payment_id);
   params.push(payment_id);
-  const q = `UPDATE ${TABLE} SET ${fields.join(', ')}, updated_at = now() WHERE payment_id = $${idx} RETURNING *`;
+  const q = `UPDATE ${TABLE} SET ${fields.join(', ')} WHERE payment_id = $${idx} RETURNING *`;
   const { rows } = await client.query(q, params);
   return rows[0];
 }

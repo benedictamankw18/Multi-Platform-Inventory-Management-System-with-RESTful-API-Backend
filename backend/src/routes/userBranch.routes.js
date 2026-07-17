@@ -16,6 +16,6 @@ router.post('/', createUserBranchValidation, validate, userBranchController.crea
 router.delete('/:userId/:branchId', deleteUserBranchValidation, validate, userBranchController.deleteUserBranch);
 
 // Delete by body: { user_id, branch_id }
-router.delete('/', deleteUserBranchValidation, validate, userBranchController.deleteUserBranch);
+router.delete('/', deleteUserBranchValidation, validate, userBranchController.deleteUserBranchBody);
 
 module.exports = router;

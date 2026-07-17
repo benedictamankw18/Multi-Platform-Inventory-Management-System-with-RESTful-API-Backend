@@ -1,4 +1,5 @@
 const syncRepo = require('../repositories/sync.repository');
+const { v4: uuidv4 } = require('uuid');
 
 async function getLastSync(entity) {
   return syncRepo.getLastSync(entity);
@@ -8,22 +9,22 @@ async function pull(entity, since) {
   // validate inputs minimally
   const sinceTs = since || '1970-01-01T00:00:00Z';
   const rows = await syncRepo.pullChanges(entity, sinceTs);
-  await syncRepo.createSyncLog({ sync_id: null, device_id: null, local_transaction_id: null, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
+  const syncId = uuidv4();
+  const localTransactionId = uuidv4(); // Could be passed in if needed
+  const deviceId = uuidv4(); // In a real scenario, this could be passed in or determined from context
+  await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
   return rows;
 }
 
 async function push(entity, items) {
   if (!Array.isArray(items)) throw new Error('items must be an array');
   const result = await syncRepo.pushChanges(entity, items);
-  await syncRepo.createSyncLog({ sync_id: null, device_id: null, local_transaction_id: null, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pushed ${items.length} items` });
+  const syncId = uuidv4();
+  const deviceId = uuidv4(); // In a real scenario, this could be passed in or determined from context
+  const localTransactionId = uuidv4(); // Could be passed in if needed
+  await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pushed ${items.length} items` });
   return result;
 }
-
-module.exports = {
-  getLastSync,
-  pull,
-  push,
-};
 
 // ---- Global sync helpers -------------------------------------------------
 async function pushGlobal({ source = null, target = null, batch_id = null, sync_payload = [] } = {}) {
@@ -32,10 +33,12 @@ async function pushGlobal({ source = null, target = null, batch_id = null, sync_
   const logs = [];
   for (const it of sync_payload) {
     const sync_id = it.sync_id || it.batch_id || batch_id || null;
-    const device_id = source || null;
+    const device_id = source || uuidv4();
     const local_transaction_id = it.local_transaction_id || null;
     const entity_type = it.entity || it.entity_type || null;
-    const created = await syncRepo.createSyncLog({ sync_id, device_id, local_transaction_id, entity_type, sync_status: 'PENDING' });
+    const syncId = uuidv4();
+    const localTransactionId = uuidv4(); // Could be passed in if needed
+    const created = await syncRepo.createSyncLog({ sync_id: syncId, device_id, local_transaction_id: localTransactionId, entity_type, sync_status: 'PENDING' });
     logs.push(created);
     // optionally push changes immediately for supported entities
     if (entity_type && it.items && Array.isArray(it.items)) {
@@ -53,7 +56,10 @@ async function pushGlobal({ source = null, target = null, batch_id = null, sync_
 async function pullGlobal({ source = null, target = null, entity = null, since = null } = {}) {
   if (!entity) throw new Error('entity is required');
   const rows = await syncRepo.pullChanges(entity, since || '1970-01-01T00:00:00Z');
-  await syncRepo.createSyncLog({ sync_id: null, device_id: source || null, local_transaction_id: null, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
+  const syncId = uuidv4();
+  const deviceId = source || uuidv4();
+  const localTransactionId = uuidv4(); // Could be passed in if needed
+  await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
   return rows;
 }
 
@@ -70,9 +76,15 @@ async function retrySync(sync_id) {
   return updated;
 }
 
+
 // Export new helpers
-module.exports.pushGlobal = pushGlobal;
-module.exports.pullGlobal = pullGlobal;
-module.exports.listSyncLogs = listSyncLogs;
-module.exports.retrySync = retrySync;
+module.exports = {
+  getLastSync,
+  pull,
+  push,
+  pushGlobal,
+  pullGlobal,
+  listSyncLogs,
+  retrySync,
+};
 

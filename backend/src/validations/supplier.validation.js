@@ -6,7 +6,7 @@ const supplierIdValidation = [
 
 const createSupplierValidation = [
   body('supplier_name').trim().notEmpty().withMessage('supplier_name is required.').isLength({ max: 150 }),
-  body('contact_email').optional().isEmail().withMessage('Invalid email.'),
+  body('email').optional().isEmail().withMessage('Invalid email.'),
   body('phone').optional().isLength({ max: 50 }),
   body('address').optional().isLength({ max: 500 }),
 ];
@@ -14,7 +14,7 @@ const createSupplierValidation = [
 const updateSupplierValidation = [
   ...supplierIdValidation,
   body('supplier_name').optional().trim().isLength({ max: 150 }),
-  body('contact_email').optional().isEmail(),
+  body('email').optional().isEmail(),
   body('phone').optional().isLength({ max: 50 }),
   body('address').optional().isLength({ max: 500 }),
   body('is_active').optional().isBoolean(),

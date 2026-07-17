@@ -3,12 +3,12 @@ const inventoryRepo = require('../repositories/inventory.repository');
 const auditRepo = require('../repositories/audit.repository');
 const productBranchInventoryRepo = require('../repositories/productBranchInventory.repository');
 
-async function createInventory({ product_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, createdBy }) {
+async function createInventory({ product_id, branch_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, createdBy }) {
   const id = uuidv4();
-  const created = await inventoryRepo.createInventory({ id, product_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, created_by: createdBy });
+  const created = await inventoryRepo.createInventory({ id, product_id, branch_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, created_by: createdBy });
   try {
     if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_inventory', resource_id: id, meta: { product_id, quantity }, performed_by: createdBy });
+      auditRepo.create({ action: 'create_inventory', resource_id: id, meta: { product_id, branch_id, quantity }, performed_by: createdBy });
     }
   } catch (e) {
     console.error('audit error', e.message);
@@ -27,7 +27,11 @@ async function listInventories(query) {
 }
 
 async function updateInventory(id, patch, performedBy) {
-  const updated = await inventoryRepo.updateInventory(id, patch);
+  const existing = await inventoryRepo.getInventoryById(id);
+  if (!existing) throw new Error('Inventory record not found');
+  const updatedFields = { ...existing, ...patch, available_quantity: patch.quantity_on_hand !== undefined ? patch.quantity_on_hand : existing.available_quantity };
+  if (updatedFields.quantity_on_hand < 0) throw new Error('Quantity on hand cannot be negative');
+  const updated = await inventoryRepo.updateInventory(id, updatedFields);
   try {
     if (auditRepo && typeof auditRepo.create === 'function') {
       auditRepo.create({ action: 'update_inventory', resource_id: id, meta: patch, performed_by: performedBy });
@@ -71,6 +75,11 @@ async function createTransaction({ product_id, branch_id, quantity, type, refere
   // get or create product_branch_inventory record
   let pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, branch_id);
   const previous_quantity = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
+
+  //check quantity for stock out
+  if (type === 'out' && previous_quantity < Number(quantity)) {
+    throw new Error('Insufficient stock for the transaction');
+  }
 
   let new_quantity;
   if (type === 'in') new_quantity = previous_quantity + Number(quantity);
@@ -120,6 +129,7 @@ module.exports = {
   listInventories,
   updateInventory,
   deactivateInventory,
+  activateInventory,
   createTransaction,
   getTransactionById,
   listTransactions,

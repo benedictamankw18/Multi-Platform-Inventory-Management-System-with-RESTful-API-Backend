@@ -26,6 +26,8 @@ async function pull(req, res, next) {
 async function push(req, res, next) {
   try {
     const { entity } = req.params;
+    if (!entity) throw new Error('entity is required');
+    if (!req.body || !req.body.items) throw new Error('items array is required in request body');
     const items = req.body.items || req.body;
     const result = await syncService.push(entity, items);
     res.json({ data: result });

@@ -25,6 +25,26 @@ exports.addProductImage = async ({ productId, imageUrl, isPrimary = false }, act
   return image;
 };
 
+exports.updateProductImage = async ({ productId, imageUrl, isPrimary = false }, actorId = null) => {
+  const product = await productRepo.getProductById(productId);
+  if (!product) throw new AppError('Product not found.', { status: 404 });
+
+  const existingPrimary = await productImageRepo.getPrimaryImage(productId);
+  const image = await productImageRepo.updateProductImage({
+    image_id: uuidv4(),
+    product_id: productId,
+    image_url: imageUrl,
+    is_primary: Boolean(isPrimary) || !existingPrimary,
+  });
+
+  await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', image.image_id, {
+    product_id: productId,
+    image_url: imageUrl,
+  });
+
+  return image;
+};
+
 exports.getProductImages = async (productId) => {
   const product = await productRepo.getProductById(productId);
   if (!product) throw new AppError('Product not found.', { status: 404 });

@@ -3,8 +3,12 @@ const client = require('../config/db');
 const TABLE = 'inventory_transfers';
 
 async function createTransfer({ transfer_id, product_id, from_branch_id, to_branch_id, quantity, status = 'PENDING', requested_by = null, approved_by = null, requested_at = null, approved_at = null, notes = null, transfer_number = null, shipped_at = null, received_at = null, received_by = null }) {
+  if(!transfer_id){
+    throw new Error('transfer_id is required');
+  }
   const q = `INSERT INTO ${TABLE} (transfer_id, product_id, from_branch_id, to_branch_id, quantity, status, requested_by, approved_by, requested_at, approved_at, notes, transfer_number, shipped_at, received_at, received_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`;
-  const values = [transfer_id, product_id, from_branch_id, to_branch_id, quantity, status, requested_by, approved_by, requested_at || null, approved_at || null, notes || null, transfer_number || null, shipped_at || null, received_at || null, received_by || null];
+  const now = new Date();
+  const values = [transfer_id, product_id, from_branch_id, to_branch_id, quantity, status, requested_by, approved_by, requested_at ?? new Date(), approved_at || null, notes || null, transfer_number || null, shipped_at || null, received_at || null, received_by || null];
   const { rows } = await client.query(q, values);
   return rows[0] || null;
 }
@@ -68,8 +72,8 @@ async function activateTransfer(id) {
 }
 
 async function approveTransfer(id, approved_by) {
-  const q = `UPDATE ${TABLE} SET status = 'APPROVED', approved_by = $1, approved_at = NOW()   WHERE transfer_id = $2 RETURNING *`;
-  const { rows } = await client.query(q, [id, approved_by]);
+  const q = `UPDATE ${TABLE} SET status = 'APPROVED', approved_by = $1, received_by = $1, approved_at = NOW(), received_at = NOW()   WHERE transfer_id = $2 RETURNING *`;
+  const { rows } = await client.query(q, [ approved_by, id]);
   return rows[0] || null;
 }
 

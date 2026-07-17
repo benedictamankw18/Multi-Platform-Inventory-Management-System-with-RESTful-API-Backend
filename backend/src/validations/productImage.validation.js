@@ -12,6 +12,9 @@ const createProductImageValidation = [
   ...productIdValidation,
 ];
 
+const updateProductImageValidation = [
+  ...productIdValidation,
+];
 const productImageBodyValidation = [
   body('is_primary').optional().isBoolean().withMessage('is_primary must be true or false.'),
 ];
@@ -21,4 +24,5 @@ module.exports = {
   productImageIdValidation,
   createProductImageValidation,
   productImageBodyValidation,
+  updateProductImageValidation,
 };

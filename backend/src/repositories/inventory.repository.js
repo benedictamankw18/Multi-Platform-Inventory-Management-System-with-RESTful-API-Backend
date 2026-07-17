@@ -61,16 +61,15 @@ async function updateTransaction(id, patch) {
   return rows[0] || null;
 }
 
-async function createInventory({ id, product_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, created_by = null }) {
+async function createInventory({ id, product_id, branch_id, uom_id, quantity, created_by = null }) {
   const q = `
     INSERT INTO product_branch_inventory (
-      inventory_id, product_id, branch_id, quantity_on_hand, available_quantity, reorder_level,
-      cost_price, selling_price, location, created_by
+      inventory_id, product_id, branch_id, quantity_on_hand, available_quantity, reorder_level, created_by
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *
   `;
-  const values = [id, product_id, supplier_id, quantity, quantity, 0, cost_price, selling_price, location, created_by];
+  const values = [id, product_id, branch_id, quantity, quantity, 0, created_by];
   const { rows } = await client.query(q, values);
   return rows[0] || null;
 }
@@ -102,7 +101,7 @@ async function updateInventory(id, patch = {}) {
 }
 
 async function deactivateInventory(id) {
-  return updateInventory(id, { is_active: false, available_quantity: 0 });
+  return updateInventory(id, { is_active: false });
 }
 
 async function activateInventory(id) {

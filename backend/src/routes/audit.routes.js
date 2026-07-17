@@ -38,10 +38,10 @@ router.get('/entity/:entityType/:entityId',  entityAuditValidation, validate, au
 // --- Collection ---
 router.get('/', listLogsValidation, validate, auditController.getLogs);
 router.get('/count', authenticate, validate, auditController.count);
+router.get('/export', exportAuditsValidation, validate, auditController.exportAudits);
 
 // --- Single entry — registered last so "users" / "entity" aren't captured here ---
 router.get('/:auditId', auditIdValidation, validate, auditController.getLogById);
-router.get('/export', exportAuditsValidation, validate, auditController.exportAudits);
 
 // router.get('/getAudits', listAuditsValidation, validate, auditController.getAudits);
 // router.get('/:id', auditIdValidation, validate, auditController.getAuditById);

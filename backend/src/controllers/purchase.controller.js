@@ -4,12 +4,13 @@ async function createPurchase(req, res, next) {
   try {
     const created = await purchaseService.createPurchase({
       supplier_id: req.body.supplier_id,
-      order_number: req.body.order_number,
+      order_number: req.body.po_number,
       order_date: req.body.order_date,
+      branch_id: req.body.branch_id,
       expected_date: req.body.expected_date,
       status: req.body.status,
       total_amount: req.body.total_amount,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {

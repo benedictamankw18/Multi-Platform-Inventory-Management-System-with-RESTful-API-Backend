@@ -4,9 +4,10 @@ async function createInventory(req, res, next) {
   try {
     const created = await inventoryService.createInventory({
       product_id: req.body.product_id,
+      branch_id: req.body.branch_id,
       supplier_id: req.body.supplier_id,
       uom_id: req.body.uom_id,
-      quantity: req.body.quantity,
+      quantity: req.body.quantity_on_hand,
       cost_price: req.body.cost_price,
       selling_price: req.body.selling_price,
       location: req.body.location,

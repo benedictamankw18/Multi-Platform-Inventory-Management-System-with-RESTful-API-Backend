@@ -4,10 +4,10 @@ async function createSupplier(req, res, next) {
   try {
     const created = await supplierService.createSupplier({
       supplier_name: req.body.supplier_name,
-      contact_email: req.body.contact_email,
+      contact_email: req.body.email,
       phone: req.body.phone,
       address: req.body.address,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {
@@ -38,7 +38,7 @@ async function updateSupplier(req, res, next) {
   try {
     const id = req.params.supplierId;
     const patch = req.body;
-    const updated = await supplierService.updateSupplier(id, patch, req.user ? req.user.id : null);
+    const updated = await supplierService.updateSupplier(id, patch, req.user ? req.user.sub : null);
     res.json({ data: updated });
   } catch (err) {
     next(err);
@@ -48,7 +48,7 @@ async function updateSupplier(req, res, next) {
 async function deactivateSupplier(req, res, next) {
   try {
     const id = req.params.supplierId;
-    const deactivated = await supplierService.deactivateSupplier(id, req.user ? req.user.id : null);
+    const deactivated = await supplierService.deactivateSupplier(id, req.user ? req.user.sub : null);
     res.json({ data: deactivated });
   } catch (err) {
     next(err);
@@ -58,7 +58,7 @@ async function deactivateSupplier(req, res, next) {
 async function reactivateSupplier(req, res, next) {
   try {
     const id = req.params.supplierId;
-    const reactivated = await supplierService.reactivateSupplier(id, req.user ? req.user.id : null);
+    const reactivated = await supplierService.reactivateSupplier(id, req.user ? req.user.sub : null);
     res.json({ data: reactivated });
   } catch (err) {
     next(err);

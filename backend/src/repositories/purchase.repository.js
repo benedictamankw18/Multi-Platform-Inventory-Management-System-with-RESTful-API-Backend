@@ -3,7 +3,7 @@ const client = require('../config/db');
 const TABLE = 'purchase_orders';
 
 async function createPurchaseOrder({ po_id, supplier_id, branch_id, created_by = null, order_date = null, expected_delivery_date = null, status = 'DRAFT', total_amount = 0, notes = null, po_number = null, approved_date = null, approved_by = null, received_date = null, payment_status = 'UNPAID', shipping_cost = 0, tax_amount = 0, discount_amount = 0 }) {
-  const q = `INSERT INTO ${TABLE} (po_id, supplier_id, branch_id, created_by, order_date, expected_delivery_date, status, total_amount, notes, po_number, approved_date, approved_by, received_date, payment_status, shipping_cost, tax_amount, discount_amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`;
+  const q = `INSERT INTO ${TABLE} (po_id, supplier_id, branch_id, created_by, order_date, expected_delivery_date, status, total_amount, notes, po_number, approved_date, approved_by, received_date, payment_status, shipping_cost, tax_amount, discount_amount) VALUES ($1,$2,$3,$4,COALESCE($5,now()),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`;
   const values = [
     po_id,
     supplier_id || null,
