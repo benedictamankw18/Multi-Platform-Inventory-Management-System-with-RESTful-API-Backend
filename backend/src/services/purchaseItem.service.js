@@ -27,9 +27,7 @@ async function addItemToPurchase({ po_id, product_id, uom_id, quantity, unit_pri
     serial_number,
   });
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_purchase_item', resource_id: po_item_id, meta: { po_id, product_id, uom_id, quantity_ordered, unit_cost, discount: discountAmount }, performed_by: createdBy });
-    }
+    await auditRepo.writeLog(createdBy, 'create_purchase_item', 'PURCHASE_ITEM', po_item_id, { po_id, product_id, uom_id, quantity_ordered, unit_cost, discount: discountAmount });
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -43,9 +41,7 @@ async function listItems(po_id, { limit = 100, offset = 0 } = {}) {
 async function updateItem(item_id, patch, performedBy) {
   const updated = await purchaseItemRepo.updatePurchaseItem(item_id, patch);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'update_purchase_item', resource_id: item_id, meta: patch, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'update_purchase_item', 'PURCHASE_ITEM', item_id, patch);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -55,9 +51,7 @@ async function updateItem(item_id, patch, performedBy) {
 async function removeItem(item_id, performedBy) {
   const deleted = await purchaseItemRepo.deletePurchaseItem(item_id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'delete_purchase_item', resource_id: item_id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'delete_purchase_item', 'PURCHASE_ITEM', item_id);
   } catch (e) {
     console.error('audit error', e.message);
   }

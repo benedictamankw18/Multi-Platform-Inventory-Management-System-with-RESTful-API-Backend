@@ -17,6 +17,7 @@ const router  = express.Router();
 const authenticate    = require('../middleware/auth.middleware');
 const auditController = require('../controllers/audit.controller');
 const authorize       = require('../middleware/role.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate        = require('../middleware/validation.middleware');
 
 const {
@@ -29,7 +30,7 @@ const {
 } = require('../validations/audit.validation');
 
 // All audit routes: must be authenticated + admin-level role (NFR-018)
-router.use(authenticate, authorize('Administrator', 'Business Owner'));
+router.use(authenticate, checkPermission('VIEW_AUDIT_LOGS'));
 
 // --- Static paths BEFORE /:auditId ---
 router.get('/users/:userId',  userAuditValidation,   validate, auditController.getLogsByUser);

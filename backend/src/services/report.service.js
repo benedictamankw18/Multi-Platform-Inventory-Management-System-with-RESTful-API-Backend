@@ -56,42 +56,42 @@ async function cacheWrap(key, fn, ttl = DEFAULT_TTL) {
   }
 }
 
-async function dailySales(date) {
-  const key = `reports:dailySales:${date || 'all'}`;
-  return cacheWrap(key, () => reportRepo.dailySales(date), 60);
+async function dailySales(date, branchId) {
+  const key = `reports:dailySales:${branchId || 'all'}:${date || 'all'}`;
+  return cacheWrap(key, () => reportRepo.dailySales(date, branchId), 60);
 }
 
-async function monthlySales(year, month) {
-  const key = `reports:monthlySales:${year || 'all'}:${month || 'all'}`;
-  return cacheWrap(key, () => reportRepo.monthlySales(year, month), 120);
+async function monthlySales(year, month, branchId) {
+  const key = `reports:monthlySales:${branchId || 'all'}:${year || 'all'}:${month || 'all'}`;
+  return cacheWrap(key, () => reportRepo.monthlySales(year, month, branchId), 120);
 }
-async function annualSales(year) {
-  const key = `reports:annualSales:${year || 'all'}`;
-  return cacheWrap(key, () => reportRepo.annualSales(year), 300);
+async function annualSales(year, branchId) {
+  const key = `reports:annualSales:${branchId || 'all'}:${year || 'all'}`;
+  return cacheWrap(key, () => reportRepo.annualSales(year, branchId), 300);
 }
-async function profitReport(startDate, endDate) {
-  const key = `reports:profit:${startDate || 'any'}:${endDate || 'any'}`;
-  return cacheWrap(key, () => reportRepo.profitReport(startDate, endDate));
-}
-
-async function inventoryReport() {
-  const key = `reports:inventory`;
-  return cacheWrap(key, () => reportRepo.inventoryReport(), 300);
+async function profitReport(startDate, endDate, branchId) {
+  const key = `reports:profit:${branchId || 'all'}:${startDate || 'any'}:${endDate || 'any'}`;
+  return cacheWrap(key, () => reportRepo.profitReport(startDate, endDate, branchId));
 }
 
-async function lowStock() {
-  const key = `reports:lowStock`;
-  return cacheWrap(key, () => reportRepo.lowStock(), 300);
+async function inventoryReport(branchId) {
+  const key = `reports:inventory:${branchId || 'all'}`;
+  return cacheWrap(key, () => reportRepo.inventoryReport(branchId), 300);
 }
 
-async function purchasesReport(startDate, endDate) {
-  const key = `reports:purchases:${startDate || 'any'}:${endDate || 'any'}`;
-  return cacheWrap(key, () => reportRepo.purchasesReport(startDate, endDate));
+async function lowStock(branchId) {
+  const key = `reports:lowStock:${branchId || 'all'}`;
+  return cacheWrap(key, () => reportRepo.lowStock(branchId), 300);
 }
 
-async function bestSellingProducts(limit = 10, startDate, endDate) {
-  const key = `reports:bestSelling:${limit}:${startDate || 'any'}:${endDate || 'any'}`;
-  return cacheWrap(key, () => reportRepo.bestSellingProducts(limit, startDate, endDate), 300);
+async function purchasesReport(startDate, endDate, branchId) {
+  const key = `reports:purchases:${branchId || 'all'}:${startDate || 'any'}:${endDate || 'any'}`;
+  return cacheWrap(key, () => reportRepo.purchasesReport(startDate, endDate, branchId));
+}
+
+async function bestSellingProducts(limit = 10, startDate, endDate, branchId) {
+  const key = `reports:bestSelling:${branchId || 'all'}:${limit}:${startDate || 'any'}:${endDate || 'any'}`;
+  return cacheWrap(key, () => reportRepo.bestSellingProducts(limit, startDate, endDate, branchId), 300);
 }
 
 async function branchPerformance(startDate, endDate) {

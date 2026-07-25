@@ -4,11 +4,9 @@ const auditRepo = require('../repositories/audit.repository');
 
 async function createSupplier({ supplier_name, contact_email, contact_name, phone, email, address, company_registration_no, tax_number, website, bank_name, account_name, account_number, payment_terms, is_active, createdBy }) {
   const id = uuidv4();
-  const created = await supplierRepo.createSupplier({ supplier_id: id, supplier_name, email: contact_email, contact_name: contact_name || null, phone, email: email || null, address, company_registration_no: company_registration_no || null, tax_number: tax_number || null, website: website || null, bank_name: bank_name || null, account_name: account_name || null, account_number: account_number || null, payment_terms: payment_terms || null, is_active: is_active || true, created_by: createdBy });
+  const created = await supplierRepo.createSupplier({ supplier_id: id, supplier_name, email: contact_email || email || null, contact_name: contact_name || null, phone, address, company_registration_no: company_registration_no || null, tax_number: tax_number || null, website: website || null, bank_name: bank_name || null, account_name: account_name || null, account_number: account_number || null, payment_terms: payment_terms || null, is_active: is_active || true, created_by: createdBy });
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_supplier', resource_id: id, meta: { supplier_name }, performed_by: createdBy });
-    }
+    await auditRepo.writeLog(createdBy, 'create_supplier', 'SUPPLIER', id, { supplier_name });
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -28,9 +26,7 @@ async function listSuppliers(query) {
 async function updateSupplier(id, patch, performedBy) {
   const updated = await supplierRepo.updateSupplier(id, patch);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'update_supplier', resource_id: id, meta: patch, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'update_supplier', 'SUPPLIER', id, patch);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -40,9 +36,7 @@ async function updateSupplier(id, patch, performedBy) {
 async function deactivateSupplier(id, performedBy) {
   const deactivated = await supplierRepo.deactivateSupplier(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'deactivate_supplier', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'deactivate_supplier', 'SUPPLIER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -52,9 +46,7 @@ async function deactivateSupplier(id, performedBy) {
 async function reactivateSupplier(id, performedBy) {
   const reactivated = await supplierRepo.reactivateSupplier(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'reactivate_supplier', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'reactivate_supplier', 'SUPPLIER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }

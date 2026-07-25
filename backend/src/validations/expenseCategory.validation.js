@@ -24,7 +24,7 @@ const categoryIdValidation = [
 const listExpenseCategoriesValidation = [
   query('q').optional().trim().isLength({ max: 100 }),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 module.exports = {

@@ -122,6 +122,7 @@ exports.createUser = async (payload = {}, actorId = null) => {
       fullName,
       username,
       email: payload.email,
+      phone: payload.phone,
       passwordHash,
     });
 
@@ -144,6 +145,7 @@ exports.createUser = async (payload = {}, actorId = null) => {
 
 exports.listUsers = async (filters = {}) => {
   const normalized = {
+    q: filters.q,
     branchId: filters.branch_id ?? filters.branchId,
     roleId: filters.role_id ?? filters.roleId,
     isActive: filters.is_active ?? filters.isActive,
@@ -182,7 +184,7 @@ exports.updateUser = async (userId, payload = {}, actorId = null) => {
   const roleId = payload.role_id || payload.roleId || (roles ? roles[0] : undefined);
   const hasProfilePatch = payload.email !== undefined || payload.first_name !== undefined ||
     payload.last_name !== undefined || payload.fullName !== undefined || payload.full_name !== undefined ||
-    branchId !== undefined;
+    branchId !== undefined || payload.phone !== undefined;
 
   if (!hasProfilePatch && roleId === undefined) {
     throw new AppError('No updatable fields were provided.', { code: 'VALIDATION_ERROR', status: 400 });
@@ -209,6 +211,7 @@ exports.updateUser = async (userId, payload = {}, actorId = null) => {
         fullName,
         email: payload.email,
         branchId,
+        phone: payload.phone,
       });
     } catch (err) {
       if (err.code === UNIQUE_VIOLATION) {

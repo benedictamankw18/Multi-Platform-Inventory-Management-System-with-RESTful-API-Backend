@@ -82,7 +82,7 @@ const updateSystemValidation = [
 
 const listSystemValidation = [
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 module.exports = {

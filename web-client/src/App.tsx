@@ -1,121 +1,147 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import Layout from './components/Layout'
+import AuthScreen from './components/AuthScreen'
+import SplashScreen from './components/SplashScreen'
+import { ToastProvider } from './contexts/ToastContext'
+import DashboardPage from './pages/DashboardPage'
+import ProductsPage from './pages/ProductsPage'
+import CategoriesPage from './pages/CategoriesPage'
+import InventoryPage from './pages/InventoryPage'
+import SalesPage from './pages/SalesPage'
+import PosPage from './pages/PosPage'
+import PurchasesPage from './pages/PurchasesPage'
+import SuppliersPage from './pages/SuppliersPage'
+import CustomersPage from './pages/CustomersPage'
+import BranchesPage from './pages/BranchesPage'
+import ExpensesPage from './pages/ExpensesPage'
+import ReportsPage from './pages/ReportsPage'
+import UsersPage from './pages/UsersPage'
+import RolesPage from './pages/RolesPage'
+import NotificationsPage from './pages/NotificationsPage'
+import SettingsPage from './pages/SettingsPage'
+import AuditLogsPage from './pages/AuditLogsPage'
+import BranchSelectionPage from './pages/BranchSelectionPage'
+import NotFoundPage from './pages/NotFoundPage'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, needsBranchSelection } = useAuth()
 
+  if (isLoading) {
+    return <SplashScreen />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Redirect to branch selection if user hasn't picked a branch yet
+  if (needsBranchSelection) {
+    return <Navigate to="/select-branch" replace />
+  }
+
+  return <>{children}</>
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <SplashScreen />
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
+function BranchSelectionRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, needsBranchSelection } = useAuth()
+
+  if (isLoading) {
+    return <SplashScreen />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  // If branch is already selected, go to dashboard
+  if (!needsBranchSelection) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
+function PermissionRoute({ permission, children }: { permission: string; children: React.ReactNode }) {
+  const { hasPermission, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <SplashScreen />
+  }
+
+  if (!hasPermission(permission)) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
+function AppRoutes() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      <Route path="/login" element={<PublicRoute><AuthScreen /></PublicRoute>} />
+      <Route path="/auth/reset-password" element={<PublicRoute><AuthScreen /></PublicRoute>} />
 
-      <div className="ticks"></div>
+      <Route
+        path="/select-branch"
+        element={<BranchSelectionRoute><BranchSelectionPage /></BranchSelectionRoute>}
+      />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DashboardPage />} />
+        <Route path="products" element={<PermissionRoute permission="VIEW_PRODUCTS"><ProductsPage /></PermissionRoute>} />
+        <Route path="categories" element={<PermissionRoute permission="VIEW_CATEGORIES"><CategoriesPage /></PermissionRoute>} />
+        <Route path="inventory" element={<PermissionRoute permission="VIEW_INVENTORY"><InventoryPage /></PermissionRoute>} />
+        <Route path="sales" element={<PermissionRoute permission="VIEW_SALES"><SalesPage /></PermissionRoute>} />
+        <Route path="pos" element={<PermissionRoute permission="CREATE_SALE"><PosPage /></PermissionRoute>} />
+        <Route path="purchases" element={<PermissionRoute permission="VIEW_PURCHASES"><PurchasesPage /></PermissionRoute>} />
+        <Route path="suppliers" element={<PermissionRoute permission="VIEW_SUPPLIERS"><SuppliersPage /></PermissionRoute>} />
+        <Route path="customers" element={<PermissionRoute permission="VIEW_CUSTOMERS"><CustomersPage /></PermissionRoute>} />
+        <Route path="branches" element={<PermissionRoute permission="MANAGE_BRANCHES"><BranchesPage /></PermissionRoute>} />
+        <Route path="expenses" element={<PermissionRoute permission="VIEW_EXPENSES"><ExpensesPage /></PermissionRoute>} />
+        <Route path="reports" element={<PermissionRoute permission="VIEW_REPORTS"><ReportsPage /></PermissionRoute>} />
+        <Route path="users" element={<PermissionRoute permission="MANAGE_USERS"><UsersPage /></PermissionRoute>} />
+        <Route path="roles" element={<PermissionRoute permission="MANAGE_USERS"><RolesPage /></PermissionRoute>} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="settings" element={<PermissionRoute permission="MANAGE_SETTINGS"><SettingsPage /></PermissionRoute>} />
+        <Route path="audit" element={<PermissionRoute permission="VIEW_AUDIT_LOGS"><AuditLogsPage /></PermissionRoute>} />
+      </Route>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 

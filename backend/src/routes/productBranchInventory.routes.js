@@ -3,6 +3,7 @@ const router = express.Router();
 
 const productBranchInventoryController = require('../controllers/productBranchInventory.controller');
 const authenticate = require('../middleware/auth.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
 const {
   createInventoryRecordValidation,

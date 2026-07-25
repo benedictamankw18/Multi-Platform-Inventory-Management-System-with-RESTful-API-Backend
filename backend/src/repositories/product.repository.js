@@ -24,6 +24,22 @@ exports.createProduct = async (
     wholesale_price = null,
     wholesaleMinQty = null,
     isActive = true,
+    description = null,
+    image_url = null,
+    brand = null,
+    model = null,
+    manufacturer = null,
+    weight = null,
+    length = null,
+    width = null,
+    height = null,
+    tax_rate = 0,
+    discount_percentage = 0,
+    minimum_stock = 0,
+    maximum_stock = null,
+    serial_number_required = false,
+    expiry_required = false,
+    track_inventory = true,
   },
   client = db
 ) => {
@@ -31,8 +47,11 @@ exports.createProduct = async (
     INSERT INTO products (
       product_id, sku, barcode, product_name, category_id, supplier_id,
       base_uom_id, cost_price, retail_price, wholesale_uom_id,
-      wholesale_conversion_factor, wholesale_price, wholesale_min_qty, is_active
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      wholesale_conversion_factor, wholesale_price, wholesale_min_qty, is_active,
+      description, image_url, brand, model, manufacturer,
+      weight, length, width, height, tax_rate, discount_percentage,
+      minimum_stock, maximum_stock, serial_number_required, expiry_required, track_inventory
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
     RETURNING *;
   `;
   const params = [
@@ -50,6 +69,22 @@ exports.createProduct = async (
     wholesale_price,
     wholesaleMinQty,
     isActive,
+    description,
+    image_url,
+    brand,
+    model,
+    manufacturer,
+    weight,
+    length,
+    width,
+    height,
+    tax_rate,
+    discount_percentage,
+    minimum_stock,
+    maximum_stock,
+    serial_number_required,
+    expiry_required,
+    track_inventory,
   ];
 
   const { rows } = await client.query(query, params);
@@ -74,31 +109,39 @@ exports.getProductByBarcode = async (barcode, client = db) => {
   return rows[0];
 };
 
-function buildFilters({ q, categoryId, supplierId, isActive } = {}) {
+function buildFilters({ q, categoryId, supplierId, isActive, branchId } = {}) {
   const conditions = [];
   const values = [];
 
   if (q) {
     values.push(`%${q}%`);
-    conditions.push(`(product_name ILIKE $${values.length} OR sku ILIKE $${values.length} OR barcode ILIKE $${values.length})`);
+    conditions.push(`(p.product_name ILIKE $${values.length} OR p.sku ILIKE $${values.length} OR p.barcode ILIKE $${values.length})`);
   }
-  if (categoryId) { values.push(categoryId); conditions.push(`category_id = $${values.length}`); }
-  if (supplierId) { values.push(supplierId); conditions.push(`supplier_id = $${values.length}`); }
-  if (isActive !== undefined) { values.push(isActive); conditions.push(`is_active = $${values.length}`); }
+  if (categoryId) { values.push(categoryId); conditions.push(`p.category_id = $${values.length}`); }
+  if (supplierId) { values.push(supplierId); conditions.push(`p.supplier_id = $${values.length}`); }
+  if (isActive !== undefined) { values.push(isActive); conditions.push(`p.is_active = $${values.length}`); }
 
-  return { whereClause: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '', values };
+  return { whereClause: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '', values, hasJoin: Boolean(branchId) };
 }
 
 exports.getAllProducts = async (filters = {}, client = db) => {
-  const { whereClause, values } = buildFilters(filters);
-  const safeLimit = Math.min(Number(filters.limit) || 25, 100);
+  const { whereClause, values, hasJoin } = buildFilters(filters);
+  const safeLimit = Math.min(Number(filters.limit) || 25, 10000);
   const safePage = Math.max(Number(filters.page) || 1, 1);
   const offset = (safePage - 1) * safeLimit;
 
+  const join = hasJoin ? `INNER JOIN product_branch_inventory pbi ON p.product_id = pbi.product_id AND pbi.branch_id = $${values.length + 1}` : '';
+  if (hasJoin) values.push(filters.branchId);
+
   const query = `
-    SELECT * FROM products
+    SELECT p.*,
+      (SELECT pi.image_url FROM product_images pi
+       WHERE pi.product_id = p.product_id AND pi.is_primary = true
+       LIMIT 1) AS primary_image_url
+    FROM products p
+    ${join}
     ${whereClause}
-    ORDER BY product_name
+    ORDER BY p.product_name
     LIMIT ${safeLimit} OFFSET ${offset};
   `;
 
@@ -107,8 +150,10 @@ exports.getAllProducts = async (filters = {}, client = db) => {
 };
 
 exports.countProducts = async (filters = {}, client = db) => {
-  const { whereClause, values } = buildFilters(filters);
-  const query = `SELECT COUNT(*) FROM products ${whereClause};`;
+  const { whereClause, values, hasJoin } = buildFilters(filters);
+  const join = hasJoin ? `INNER JOIN product_branch_inventory pbi ON p.product_id = pbi.product_id AND pbi.branch_id = $${values.length + 1}` : '';
+  if (hasJoin) values.push(filters.branchId);
+  const query = `SELECT COUNT(*) FROM products p ${join} ${whereClause};`;
   const { rows } = await client.query(query, values);
   return Number(rows[0].count);
 };
@@ -120,7 +165,10 @@ exports.updateProduct = async (productId, fields = {}, client = db) => {
 
   const allowed = [
     'sku','barcode','product_name','category_id','supplier_id','base_uom_id','cost_price','retail_price',
-    'wholesale_uom_id','wholesale_conversion_factor','wholesale_price','wholesale_min_qty','is_active'
+    'wholesale_uom_id','wholesale_conversion_factor','wholesale_price','wholesale_min_qty','is_active',
+    'description','image_url','brand','model','manufacturer',
+    'weight','length','width','height','tax_rate','discount_percentage',
+    'minimum_stock','maximum_stock','serial_number_required','expiry_required','track_inventory'
   ];
 
   for (const key of allowed) {

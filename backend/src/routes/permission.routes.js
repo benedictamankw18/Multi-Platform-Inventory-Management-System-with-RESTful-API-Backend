@@ -11,6 +11,7 @@ const router = express.Router();
 const permissionController = require('../controllers/permission.controller');
 const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
 
 const {
@@ -20,7 +21,7 @@ const {
   searchPermissionValidation,
 } = require('../validations/permission.validation');
 
-router.use(authenticate, authorize('Administrator'));
+router.use(authenticate, checkPermission('MANAGE_USERS'));
 
 router.get('/', searchPermissionValidation, validate, permissionController.getAllPermissions);
 router.post('/', createPermissionValidation, validate, permissionController.createPermission);

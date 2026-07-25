@@ -4,14 +4,13 @@ async function createNotification(req, res, next) {
   try {
     const created = await notificationService.createNotification({
       user_id: req.user ? req.user.sub : null,
-      title: req.body.title,
+      title: req.body.title || null,
       branch_id: req.body.branch_id,
       message: req.body.message,
       type: req.body.type,
       priority: req.body.priority ?? 'normal',
       data: req.body.message || req.body.data,
       createdBy: req.user ? req.user.sub : null,
-      title: req.body.title || null,
       expires_at: req.body.expires_at,
       body: req.body.body || null,
       recipients : req.body.recipients || null,

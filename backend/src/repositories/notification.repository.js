@@ -67,6 +67,7 @@ async function getNotificationById(notificationId, userId = null) {
 async function listNotifications({
     userId,
     isRead,
+    branchId,
     limit = 50,
     offset = 0
 }) {
@@ -96,6 +97,11 @@ async function listNotifications({
     if (typeof isRead !== "undefined") {
         params.push(isRead === true || isRead === "true");
         where.push(`nr.is_read = $${params.length}`);
+    }
+
+    if (branchId) {
+        params.push(branchId);
+        where.push(`n.branch_id = $${params.length}`);
     }
 
     if (where.length) {

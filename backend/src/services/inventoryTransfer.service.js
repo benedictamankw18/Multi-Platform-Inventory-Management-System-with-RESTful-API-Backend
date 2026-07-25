@@ -6,9 +6,7 @@ async function createTransfer({ product_id, from_branch_id, to_branch_id, quanti
   const id = uuidv4();
   const created = await transferRepo.createTransfer({ transfer_id: id, product_id, from_branch_id: from_branch_id, to_branch_id: to_branch_id, quantity, requested_at: transfer_date, notes, requested_by: createdBy });
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_inventory_transfer', resource_id: id, meta: { product_id, from_branch_id, to_branch_id, quantity }, performed_by: createdBy });
-    }
+    await auditRepo.writeLog(createdBy, 'create_inventory_transfer', 'INVENTORY_TRANSFER', id, { product_id, from_branch_id, to_branch_id, quantity });
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -28,9 +26,7 @@ async function listTransfers(query) {
 async function updateTransfer(id, patch, performedBy) {
   const updated = await transferRepo.updateTransfer(id, patch);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'update_inventory_transfer', resource_id: id, meta: patch, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'update_inventory_transfer', 'INVENTORY_TRANSFER', id, patch);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -40,9 +36,7 @@ async function updateTransfer(id, patch, performedBy) {
 async function deactivateTransfer(id, performedBy) {
   const deactivated = await transferRepo.deactivateTransfer(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'deactivate_inventory_transfer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'deactivate_inventory_transfer', 'INVENTORY_TRANSFER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -52,9 +46,7 @@ async function deactivateTransfer(id, performedBy) {
 async function activateTransfer(id, performedBy) {
   const activated = await transferRepo.activateTransfer(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'activate_inventory_transfer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'activate_inventory_transfer', 'INVENTORY_TRANSFER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -64,9 +56,7 @@ async function activateTransfer(id, performedBy) {
 async function approveTransfer(id, performedBy) {
   const approve = await transferRepo.approveTransfer(id, performedBy);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'approve_inventory_transfer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'approve_inventory_transfer', 'INVENTORY_TRANSFER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -76,9 +66,7 @@ async function approveTransfer(id, performedBy) {
 async function rejectTransfer(id, performedBy) {
   const reject = await transferRepo.rejectTransfer(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'reject_inventory_transfer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'reject_inventory_transfer', 'INVENTORY_TRANSFER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }

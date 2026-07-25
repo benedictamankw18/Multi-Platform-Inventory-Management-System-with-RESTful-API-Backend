@@ -9,7 +9,7 @@ const createPriceHistoryValidation = [
 const listPriceHistoryValidation = [
   body('product_id').optional().isUUID().withMessage('product_id must be a UUID'),
   body('page').optional().isInt({ min: 1 }),
-  body('limit').optional().isInt({ min: 1, max: 100 }),
+  body('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 module.exports = {

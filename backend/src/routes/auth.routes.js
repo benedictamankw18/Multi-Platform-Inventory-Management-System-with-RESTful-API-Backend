@@ -103,36 +103,21 @@ router.post('/refresh', refreshTokenValidation, validate, authController.refresh
  */
 router.post('/logout', authenticate, authController.logout);
 
+// ---------------------------------------------------------------------------
+// Branch selection after login
+// ---------------------------------------------------------------------------
+
+router.get('/my-branches', authenticate, authController.listMyBranches);
+
+router.post('/select-branch', authenticate, authController.selectBranch);
+
 // Logout everywhere (revoke all sessions for current user)
-router.post('/logout-all', authenticate, async (req, res) => {
-	try {
-		const result = await authController.logoutAll ? authController.logoutAll(req, res) : null;
-		// If authController.logoutAll handled response, return; otherwise run via service
-		if (result === null) return; // handled inside controller
-	} catch (err) {
-		console.error(err);
-		return res.status(500).json({ message: 'Unexpected error' });
-	}
-});
+router.post('/logout-all', authenticate, authController.logoutAll);
 
-router.post('/forgot-password', forgotPasswordValidation, validate, async (req, res) => {
-	try {
-		const result = await authController.forgotPassword ? authController.forgotPassword(req, res) : null;
-		if (result === null) return;
-	} catch (err) {
-		console.error(err);
-		return res.status(500).json({ message: 'Unexpected error' });
-	}
-});
+router.get('/me/permissions', authenticate, authController.getMyPermissions);
 
-router.post('/reset-password', resetPasswordValidation, validate, async (req, res) => {
-	try {
-		const result = await authController.resetPassword ? authController.resetPassword(req, res) : null;
-		if (result === null) return;
-	} catch (err) {
-		console.error(err);
-		return res.status(500).json({ message: 'Unexpected error' });
-	}
-});
+router.post('/forgot-password', forgotPasswordValidation, validate, authController.forgotPassword);
+
+router.post('/reset-password', resetPasswordValidation, validate, authController.resetPassword);
 
 module.exports = router;

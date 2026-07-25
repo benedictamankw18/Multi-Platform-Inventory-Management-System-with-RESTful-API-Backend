@@ -21,13 +21,13 @@ const db = require('../config/db');
 // Create
 // ---------------------------------------------------------------------------
 
-exports.createUser = async ({ branchId, roleId, fullName, username, email, passwordHash }, client = db) => {
+exports.createUser = async ({ branchId, roleId, fullName, username, email, phone, passwordHash }, client = db) => {
   const query = `
-    INSERT INTO users (branch_id, role_id, full_name, username, email, password_hash)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING user_id, branch_id, role_id, full_name, username, email, is_active, created_at;
+    INSERT INTO users (branch_id, role_id, full_name, username, email, phone, password_hash)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING user_id, branch_id, role_id, full_name, username, email, phone, is_active, created_at;
   `;
-  const { rows } = await client.query(query, [branchId || null, roleId, fullName, username, email, passwordHash]);
+  const { rows } = await client.query(query, [branchId || null, roleId, fullName, username, email, phone || null, passwordHash]);
   return rows[0];
 };
 
@@ -42,7 +42,7 @@ exports.createUser = async ({ branchId, roleId, fullName, username, email, passw
 exports.findUserById = async (userId, client = db) => {
   const query = `
     SELECT u.user_id, u.branch_id, u.role_id, u.full_name, u.username, u.email,
-           u.password_hash, u.is_active, u.last_login_at, u.created_at, u.updated_at,
+           u.phone, u.password_hash, u.is_active, u.last_login_at, u.created_at, u.updated_at,
            r.role_name, b.branch_name
     FROM users u
     JOIN roles r ON r.role_id = u.role_id
@@ -75,23 +75,28 @@ exports.findUserByUsernameOrEmail = async (usernameOrEmail, client = db) => {
   return rows[0];
 };
 
-exports.listUsers = async ({ branchId, roleId, isActive, page = 1, limit = 25 } = {}, client = db) => {
+exports.listUsers = async ({ q, branchId, roleId, isActive, page = 1, limit = 25 } = {}, client = db) => {
   const conditions = [];
   const values = [];
 
+  if (q) {
+    values.push(`%${q}%`);
+    const qi = values.length;
+    conditions.push(`(u.full_name ILIKE $${qi} OR u.email ILIKE $${qi} OR u.username ILIKE $${qi} OR u.phone ILIKE $${qi})`);
+  }
   if (branchId) { values.push(branchId); conditions.push(`u.branch_id = $${values.length}`); }
   if (roleId)   { values.push(roleId);   conditions.push(`u.role_id = $${values.length}`); }
   if (isActive !== undefined) { values.push(isActive); conditions.push(`u.is_active = $${values.length}`); }
   conditions.push('u.deleted_at IS NULL');
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const safeLimit = Math.min(Number(limit) || 25, 100);
+  const safeLimit = Math.min(Number(limit) || 25, 10000);
   const safePage = Math.max(Number(page) || 1, 1);
   const safeOffset = (safePage - 1) * safeLimit;
 
   const query = `
     SELECT u.user_id, u.branch_id, u.role_id, u.full_name, u.username, u.email,
-           u.is_active, u.last_login_at, u.created_at,
+           u.phone, u.is_active, u.last_login_at, u.created_at,
            r.role_name, b.branch_name
     FROM users u
     JOIN roles r ON r.role_id = u.role_id
@@ -104,10 +109,15 @@ exports.listUsers = async ({ branchId, roleId, isActive, page = 1, limit = 25 } 
   return rows;
 };
 
-exports.countUsers = async ({ branchId, roleId, isActive } = {}, client = db) => {
+exports.countUsers = async ({ q, branchId, roleId, isActive } = {}, client = db) => {
   const conditions = [];
   const values = [];
 
+  if (q) {
+    values.push(`%${q}%`);
+    const qi = values.length;
+    conditions.push(`(full_name ILIKE $${qi} OR email ILIKE $${qi} OR username ILIKE $${qi} OR phone ILIKE $${qi})`);
+  }
   if (branchId) { values.push(branchId); conditions.push(`branch_id = $${values.length}`); }
   if (roleId)   { values.push(roleId);   conditions.push(`role_id = $${values.length}`); }
   if (isActive !== undefined) { values.push(isActive); conditions.push(`is_active = $${values.length}`); }
@@ -123,13 +133,14 @@ exports.countUsers = async ({ branchId, roleId, isActive } = {}, client = db) =>
 // Update
 // ---------------------------------------------------------------------------
 
-exports.updateUser = async (userId, { fullName, email, branchId } = {}, client = db) => {
+exports.updateUser = async (userId, { fullName, email, branchId, phone } = {}, client = db) => {
   const fields = [];
   const values = [];
 
   if (fullName !== undefined) { values.push(fullName); fields.push(`full_name = $${values.length}`); }
   if (email !== undefined) { values.push(email); fields.push(`email = $${values.length}`); }
   if (branchId !== undefined) { values.push(branchId); fields.push(`branch_id = $${values.length}`); }
+  if (phone !== undefined) { values.push(phone || null); fields.push(`phone = $${values.length}`); }
 
   if (fields.length === 0) {
     return exports.findUserById(userId, client);
@@ -139,7 +150,7 @@ exports.updateUser = async (userId, { fullName, email, branchId } = {}, client =
   const query = `
     UPDATE users SET ${fields.join(', ')}
     WHERE user_id = $${values.length} AND deleted_at IS NULL
-    RETURNING user_id, branch_id, role_id, full_name, username, email, is_active, updated_at;
+    RETURNING user_id, branch_id, role_id, full_name, username, email, phone, is_active, updated_at;
   `;
 
   const { rows } = await client.query(query, values);

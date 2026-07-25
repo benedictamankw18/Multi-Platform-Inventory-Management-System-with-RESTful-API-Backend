@@ -6,13 +6,13 @@
 
 const db = require('../config/db');
 
-exports.createCategory = async ({ categoryId, categoryName, description = null, isActive = true, parent_category_id = null }, client = db) => {
+exports.createCategory = async ({ categoryId, categoryName, description = null, isActive = true, parent_category_id = null, image_url = null }, client = db) => {
   const query = `
-    INSERT INTO categories (category_id, category_name, description, parent_category_id, is_active)
-    VALUES ($1, $2, $3, $4, $5 )
+    INSERT INTO categories (category_id, category_name, description, parent_category_id, image_url, is_active)
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING *;
   `;
-  const { rows } = await client.query(query, [categoryId || null, categoryName, description, parent_category_id, isActive]);
+  const { rows } = await client.query(query, [categoryId || null, categoryName, description, parent_category_id, image_url, isActive]);
   return rows[0];
 };
 
@@ -44,7 +44,7 @@ function buildFilters({ q, isActive } = {}) {
 
 exports.getAllCategories = async (filters = {}, client = db) => {
   const { whereClause, values } = buildFilters(filters);
-  const safeLimit = Math.min(Number(filters.limit) || 25, 100);
+  const safeLimit = Math.min(Number(filters.limit) || 25, 10000);
   const safePage = Math.max(Number(filters.page) || 1, 1);
   const offset = (safePage - 1) * safeLimit;
 
@@ -70,7 +70,7 @@ exports.updateCategory = async (categoryId, fields = {}, client = db) => {
   const values = [];
   let idx = 1;
 
-  const allowed = ['category_name', 'description', 'is_active', 'parent_category_id'];
+  const allowed = ['category_name', 'description', 'is_active', 'parent_category_id', 'image_url'];
   for (const key of allowed) {
     if (fields[key] !== undefined) {
       values.push(fields[key]);

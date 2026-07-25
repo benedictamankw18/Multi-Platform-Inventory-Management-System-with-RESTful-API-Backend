@@ -55,7 +55,7 @@ const listRolesQueryValidation = [
   query('q').optional().trim().isLength({ max: 100 }),
   query('isSystem').optional().isIn(['true', 'false']).withMessage('isSystem must be true or false.'),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 const assignPermissionValidation = [

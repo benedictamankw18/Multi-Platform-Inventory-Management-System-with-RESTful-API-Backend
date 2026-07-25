@@ -4,6 +4,7 @@ const pool = require('../config/db');
 const salesRepo = require('../repositories/sales.repository');
 const auditRepo = require('../repositories/audit.repository');
 const AppError = require('../utils/AppError');
+const cache = require('../utils/cache.utils');
 
 const PAYMENT_METHODS = new Set(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']);
 
@@ -108,12 +109,13 @@ async function createSale(payload, actor = null) {
       );
 
       if (!inventoryResult.rows.length) {
-        throw new AppError(`Insufficient stock for product ${item.product_id}.`, { status: 409 });
+        throw new AppError(`Insufficient stock for "${product.product_name}".`, { status: 409 });
       }
 
       preparedItems.push({
         sale_item_id: uuidv4(),
         product_id: item.product_id,
+        product_name: product.product_name,
         uom_id: item.uom_id || product.base_uom_id,
         quantity,
         unit_price: unitPrice,
@@ -211,6 +213,7 @@ async function createSale(payload, actor = null) {
     }, client);
 
     await client.query('COMMIT');
+    cache.delByPattern('reports:*').catch(() => {});
 
     return {
       ...saleRows[0],
@@ -238,8 +241,14 @@ async function getSaleItems(id) {
 
 async function listSales(query) {
   const { q, customerId, branchId, status, page = 1, limit = 25 } = query || {};
-  const offset = (Number(page) - 1) * Number(limit);
-  return salesRepo.listSales({ q, customerId, branchId, status, limit: Number(limit), offset });
+  const filters = { q, customerId, branchId, status };
+  const lim = Number(limit);
+  const offset = (Number(page) - 1) * lim;
+  const [sales, total] = await Promise.all([
+    salesRepo.listSales({ ...filters, limit: lim, offset }),
+    salesRepo.countSales(filters),
+  ]);
+  return { sales, total };
 }
 
 async function getSaleReceipt(id, actor = null) {
@@ -261,7 +270,12 @@ async function getSaleReceipt(id, actor = null) {
       receipt = rows[0];
     }
 
-    return { receipt, sale };
+    const { rows: payments } = await client.query(
+      'SELECT payment_method, amount, reference_number FROM payments WHERE sale_id = $1 ORDER BY payment_date',
+      [id]
+    );
+
+    return { receipt, sale: { ...sale, payments } };
   } finally {
     client.release();
   }
@@ -316,6 +330,7 @@ async function voidSale(id, actor = null) {
 
     await auditRepo.writeLog(actorId, 'VOID_SALE', 'SALE', id, { previous_status: sale.status }, client);
     await client.query('COMMIT');
+    cache.delByPattern('reports:*').catch(() => {});
     return updatedRows[0];
   } catch (err) {
     await client.query('ROLLBACK');
@@ -334,31 +349,43 @@ async function refundSale(id, payload = {}, actor = null) {
     const { rows } = await client.query('SELECT * FROM sales WHERE sale_id = $1 LIMIT 1', [id]);
     const sale = rows[0];
     if (!sale) throw new AppError('Sale not found.', { status: 404 });
-    if (sale.status === 'REFUNDED') {
-      await client.query('COMMIT');
-      return sale;
-    }
     if (sale.status === 'VOID') throw new AppError('Voided sales cannot be refunded.', { status: 409 });
+    if (sale.status === 'REFUNDED') throw new AppError('Sale is already fully refunded.', { status: 409 });
+
+    const alreadyRefunded = Number(sale.refunded_amount) || 0;
+    const maxRefundable = Number(sale.total_amount) - alreadyRefunded;
+    if (maxRefundable <= 0) throw new AppError('No amount left to refund.', { status: 409 });
+
+    const refundAmount = payload.amount ? Math.min(Number(payload.amount), maxRefundable) : maxRefundable;
+    if (refundAmount <= 0) throw new AppError('Refund amount must be greater than 0.', { status: 400 });
+
+    const totalRefunded = alreadyRefunded + refundAmount;
+    const isPartial = totalRefunded < Number(sale.total_amount);
+    const newStatus = isPartial ? 'PARTIALLY_REFUNDED' : 'REFUNDED';
 
     await restoreSaleInventory(id, sale.branch_id, client);
 
     const { rows: updatedRows } = await client.query(
       `UPDATE sales
-       SET status = 'REFUNDED',
-           payment_status = 'REFUNDED',
-           remarks = COALESCE($2, remarks),
+       SET status = $2,
+           payment_status = $2,
+           refunded_amount = $3,
+           remarks = COALESCE($4, remarks),
            updated_at = now()
        WHERE sale_id = $1
        RETURNING *`,
-      [id, payload.reason || null]
+      [id, newStatus, totalRefunded, payload.reason || null]
     );
 
     await auditRepo.writeLog(actorId, 'REFUND_SALE', 'SALE', id, {
-      amount: payload.amount || sale.amount_paid,
+      amount: refundAmount,
+      total_refunded: totalRefunded,
+      is_partial: isPartial,
       reason: payload.reason || null,
     }, client);
 
     await client.query('COMMIT');
+    cache.delByPattern('reports:*').catch(() => {});
     return updatedRows[0];
   } catch (err) {
     await client.query('ROLLBACK');

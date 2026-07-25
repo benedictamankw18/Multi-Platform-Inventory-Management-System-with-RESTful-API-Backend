@@ -10,7 +10,7 @@ exports.createInventoryRecordValidation = [
 exports.listInventoryRecordsValidation = [
   body('branch_id').exists().isUUID().withMessage('branch_id is required and must be a UUID.'),
   body('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
-  body('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100.'),
+  body('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
 ];
 
 exports.updateInventoryRecordValidation = [

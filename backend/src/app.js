@@ -86,7 +86,10 @@ app.use(cors());
 // ---------------------------------------------------------------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static('uploads'));
 
 // parse cookies (needed for refresh-token cookie handling)
 app.use(cookieParser());

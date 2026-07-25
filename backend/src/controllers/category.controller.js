@@ -61,3 +61,14 @@ exports.activateCategory = async (req, res) => {
     return handleError(res, err);
   }
 };
+
+exports.uploadCategoryImage = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No image file provided.' });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const updated = await categoryService.updateCategory(req.params.categoryId, { image_url: imageUrl }, req.user && req.user.sub);
+    return res.status(200).json({ category: updated, imageUrl });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};

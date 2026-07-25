@@ -20,7 +20,9 @@ async function createPurchase(req, res, next) {
 
 async function listPurchases(req, res, next) {
   try {
-    const results = await purchaseService.listPurchases(req.body || req.query);
+    const { branchId, ...rest } = req.body || req.query;
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const results = await purchaseService.listPurchases({ ...rest, branchId: resolvedBranchId });
     res.json({ data: results });
   } catch (err) {
     next(err);

@@ -2,7 +2,7 @@ const auditService = require('../services/audit.service');
 const fastCsv = require('fast-csv');
 const ExcelJS = require('exceljs');
 
-const { format } = require('fast-csv');
+const csvFormat = require('fast-csv').format;
 
 async function getAudits (req, res, next)  {
   try {
@@ -71,7 +71,7 @@ async function exportAudits (req, res, next) {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="audits.csv"`);
 
-    const csvStream = fastCsv.format({ headers: true });
+    const csvStream = csvFormat({ headers: true });
     csvStream.pipe(res);
 
     const headerKeys = fields || ['audit_id','user_id','action','entity_type','entity_id','details','ip_address','created_at','username'];
@@ -109,10 +109,10 @@ function extractRows(payload) {
   return [payload];
 }
 
-async function sendExport(res, data, nameBase = 'audit', format = 'csv') {
+async function sendExport(res, data, nameBase = 'audit', exportFormat = 'csv') {
   const rows = extractRows(data);
   const filename = `${nameBase}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}`;
-  if (format === 'xlsx') {
+  if (exportFormat === 'xlsx') {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Audit');
     const keys = Array.from(rows.reduce((set, r) => { Object.keys(r || {}).forEach(k=>set.add(k)); return set; }, new Set()));
@@ -131,7 +131,7 @@ async function sendExport(res, data, nameBase = 'audit', format = 'csv') {
     const keys = Array.from(rows.reduce((set, r) => { Object.keys(r || {}).forEach(k=>set.add(k)); return set; }, new Set()));
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
-    const csvStream = format({ headers: keys.length > 0 ? keys : true });
+    const csvStream = csvFormat({ headers: keys.length > 0 ? keys : true });
     csvStream.pipe(res);
     if (keys.length === 0) {
       csvStream.write({ data: JSON.stringify(rows) });

@@ -18,7 +18,7 @@ exports.createCategory = async (payload, actorId = null) => {
   if (existing) throw new AppError('A category with this name already exists.', { status: 409 });
 
   const categoryId = uuidv4();
-  const created = await categoryRepo.createCategory({ categoryId, categoryName, description: payload.description, isActive: payload.is_active !== undefined ? payload.is_active : true, parent_category_id: payload.parent_id || null });
+  const created = await categoryRepo.createCategory({ categoryId, categoryName, description: payload.description, isActive: payload.is_active !== undefined ? payload.is_active : true, parent_category_id: payload.parent_id || null, image_url: payload.image_url || null });
   await auditRepo.writeLog(actorId, 'CREATE_CATEGORY', 'CATEGORY', created.category_id, { name: created.category_name });
   return created;
 };

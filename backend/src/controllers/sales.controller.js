@@ -11,8 +11,8 @@ async function createSale(req, res, next) {
 
 async function listSales(req, res, next) {
   try {
-    const results = await salesService.listSales(req.query);
-    res.json({ data: results });
+    const { sales, total } = await salesService.listSales(req.query);
+    res.json({ data: sales, total });
   } catch (err) {
     next(err);
   }
@@ -20,8 +20,8 @@ async function listSales(req, res, next) {
 
 async function searchSales(req, res, next) {
   try {
-    const results = await salesService.listSales(req.body);
-    res.json({ data: results });
+    const { sales, total } = await salesService.listSales(req.body);
+    res.json({ data: sales, total });
   } catch (err) {
     next(err);
   }

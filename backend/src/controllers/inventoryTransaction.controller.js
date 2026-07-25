@@ -20,7 +20,9 @@ async function createTransaction(req, res, next) {
 
 async function listTransactions(req, res, next) {
   try {
-    const results = await inventoryService.listTransactions(req.query || {});
+    const { branchId, ...rest } = req.query || {};
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const results = await inventoryService.listTransactions({ ...rest, branchId: resolvedBranchId });
     res.json({ data: results });
   } catch (err) {
     next(err);

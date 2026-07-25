@@ -10,9 +10,7 @@ async function createPayment({ customer_id, amount, payment_date = null, method 
   const payment_id = uuidv4();
   const created = await customerPaymentRepo.createCustomerPayment({ payment_id, customer_id, sale_id: null, amount, payment_method: method, payment_date, reference_number: reference });
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_customer_payment', resource_id: payment_id, meta: { customer_id, amount }, performed_by: createdBy });
-    }
+    await auditRepo.writeLog(createdBy, 'create_customer_payment', 'CUSTOMER_PAYMENT', payment_id, { customer_id, amount });
   } catch (e) {
     console.error('audit error', e.message);
   }

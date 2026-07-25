@@ -45,8 +45,9 @@ exports.getProductById = async (productId) => {
 };
 
 exports.listProducts = async (filters = {}) => {
-  const products = await productRepo.getAllProducts(filters);
-  const total = await productRepo.countProducts(filters);
+  const { branch_id: branchId, ...rest } = filters;
+  const products = await productRepo.getAllProducts({ ...rest, branchId });
+  const total = await productRepo.countProducts({ ...rest, branchId });
   return { products, total };
 };
 
@@ -83,5 +84,5 @@ exports.activateProduct = async (productId, actorId = null) => {
 
   const activated = await productRepo.activateProduct(productId);
   await auditRepo.writeLog(actorId, 'REACTIVATE_PRODUCT', 'PRODUCT', productId, null);
-  return { alreadyInState: false, product: reactivated };
+  return { alreadyInState: false, product: activated };
 };

@@ -102,7 +102,6 @@ exports.getRoleStatistics = async (req, res) => {
 
 exports.getRoleById = async (req, res) => {
   try {
-    console.log(req.params.id);
     const role = await roleService.getRoleById(req.params.id);
     return res.status(200).json({ role });
   } catch (err) {

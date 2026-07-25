@@ -41,7 +41,7 @@ const createSaleValidation = [
   body('tax_amount').optional().isFloat({ min: 0 }),
   body('total_amount').optional().isFloat({ min: 0 }),
   body('amount_paid').optional().isFloat({ min: 0 }),
-  body('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED']),
+  body('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED', 'PARTIALLY_REFUNDED']),
   body('invoice_number').optional().trim().isLength({ max: 50 }),
   body('cashier_name').optional().trim().isLength({ max: 100 }),
   body('customer_name').optional().trim().isLength({ max: 150 }),
@@ -56,18 +56,18 @@ const listSalesQueryValidation = [
   query('q').optional().trim().isLength({ max: 100 }),
   query('customerId').optional().isUUID().withMessage('customerId must be a UUID.'),
   query('branchId').optional().isUUID().withMessage('branchId must be a UUID.'),
-  query('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED']),
+  query('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED', 'PARTIALLY_REFUNDED']),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 200 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 const listSalesValidation = [
   body('q').optional().trim().isLength({ max: 100 }),
   body('customerId').optional().isUUID().withMessage('customerId must be a UUID.'),
   body('branchId').optional().isUUID().withMessage('branchId must be a UUID.'),
-  body('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED']),
+  body('status').optional().isIn(['COMPLETED', 'PARTIALLY_PAID', 'VOID', 'REFUNDED', 'PARTIALLY_REFUNDED']),
   body('page').optional().isInt({ min: 1 }),
-  body('limit').optional().isInt({ min: 1, max: 200 }),
+  body('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 const refundSaleValidation = [

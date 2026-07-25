@@ -72,7 +72,7 @@ async function activateTransfer(id) {
 }
 
 async function approveTransfer(id, approved_by) {
-  const q = `UPDATE ${TABLE} SET status = 'APPROVED', approved_by = $1, received_by = $1, approved_at = NOW(), received_at = NOW()   WHERE transfer_id = $2 RETURNING *`;
+  const q = `UPDATE ${TABLE} SET status = 'APPROVED', approved_by = $1, approved_at = NOW() WHERE transfer_id = $2 RETURNING *`;
   const { rows } = await client.query(q, [ approved_by, id]);
   return rows[0] || null;
 }

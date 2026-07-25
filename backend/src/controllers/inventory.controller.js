@@ -21,8 +21,10 @@ async function createInventory(req, res, next) {
 
 async function listInventories(req, res, next) {
   try {
-    const results = await inventoryService.listInventories(req.body || req.query);
-    res.json({ data: results });
+    const { branchId, ...rest } = req.body || req.query;
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const { items, total } = await inventoryService.listInventories({ ...rest, branchId: resolvedBranchId });
+    res.json({ data: items, total });
   } catch (err) {
     next(err);
   }

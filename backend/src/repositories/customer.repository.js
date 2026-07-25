@@ -4,7 +4,6 @@ const TABLE = 'customers';
 
 async function createCustomer({ customer_id, customer_type = 'WALK_IN', business_name = null, contact_name = null, phone = null, email = null, address = null, credit_limit = 0, is_active = true, loyalty_points = 0, tax_number = null, date_of_birth = null, gender = null, notes = null }) {
   const q = `INSERT INTO ${TABLE} (customer_id, customer_type, business_name, contact_name, phone, email, address, credit_limit, is_active, loyalty_points, tax_number, date_of_birth, gender, notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`;
-  console.log('iD :', customer_id);
   const values = [
     customer_id ,
     customer_type || 'WALK_IN',

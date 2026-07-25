@@ -58,10 +58,11 @@ async function sendExport(res, data, nameBase = 'report', format = 'csv') {
 async function dailySales(req, res, next) {
     try {
 
-        const { date, format } = {
+        const { date, format, branchId: branchIdParam } = {
             ...req.query,
             ...req.body
         };
+        const branchId = branchIdParam || (req.user && (req.user.branch_id || req.user.branchId)) || null;
 
         let targetDate = new Date();
 
@@ -75,7 +76,7 @@ async function dailySales(req, res, next) {
             }
         }
 
-        const data = await reportService.dailySales(targetDate);
+        const data = await reportService.dailySales(targetDate, branchId);
 
         if (format) {
             return sendExport(
@@ -117,7 +118,9 @@ async function monthlySales(req, res, next) {
             });
         }
 
-        const data = await reportService.monthlySales(year, month);
+        const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
+
+        const data = await reportService.monthlySales(year, month, branchId);
 
         if (req.query.format) {
             return sendExport(
@@ -150,7 +153,9 @@ async function annualSales(req, res, next) {
             });
         }
 
-        const data = await reportService.annualSales(year);
+        const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
+
+        const data = await reportService.annualSales(year, branchId);
 
         if (req.query.format) {
             return sendExport(
@@ -196,13 +201,27 @@ async function profitReport(req, res, next) {
             }
         }
 
+        const currentYear = new Date().getFullYear();
+
+        if (!start) {
+            start = new Date(currentYear, 0, 1)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
+
+        if (!end) {
+            end = new Date(currentYear, 11, 31)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
+
         if (start && end && start > end) {
             return res.status(400).json({
                 message: "startDate cannot be greater than endDate."
             });
         }
 
-        const data = await reportService.profitReport(start, end);
+        const data = await reportService.profitReport(start, end, req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null);
 
         if (format) {
             return sendExport(
@@ -224,8 +243,9 @@ async function inventoryReport(req, res, next) {
     try {
 
         const { format } = req.query;
+        const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
 
-        const data = await reportService.inventoryReport();
+        const data = await reportService.inventoryReport(branchId);
 
         if (format) {
             return sendExport(
@@ -246,14 +266,9 @@ async function inventoryReport(req, res, next) {
 async function lowStock(req, res, next) {
     try {
 
+        const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
 
-        // if (Number.isNaN(threshold) || threshold < 0) {
-        //     return res.status(400).json({
-        //         message: "Invalid threshold."
-        //     });
-        // }
-
-        const data = await reportService.lowStock();
+        const data = await reportService.lowStock(branchId);
 
         if (req.query.format) {
             return sendExport(res, data, "low-stock", req.query.format);
@@ -269,11 +284,26 @@ async function lowStock(req, res, next) {
 async function purchasesReport(req, res, next) {
     try {
 
-        const { startDate, endDate, format } = req.query;
+        let { startDate, endDate, format } = req.query;
+
+         const currentYear = new Date().getFullYear();
+
+        if (!startDate) {
+            startDate = new Date(currentYear, 0, 1)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
+
+        if (!endDate) {
+            endDate = new Date(currentYear, 11, 31)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
 
         const data = await reportService.purchasesReport(
-            startDate || null,
-            endDate || null
+            startDate,
+            endDate,
+            req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null
         );
 
         if (format) {
@@ -289,12 +319,25 @@ async function purchasesReport(req, res, next) {
 
 async function bestSellingProducts(req, res, next) {
     try {
-
-        const {
+        let {
             startDate,
             endDate,
             format
         } = req.query;
+
+        const currentYear = new Date().getFullYear();
+
+        if (!startDate) {
+            startDate = new Date(currentYear, 0, 1)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
+
+        if (!endDate) {
+            endDate = new Date(currentYear, 11, 31)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
 
         const limit = Number(req.query.limit ?? 10);
 
@@ -306,8 +349,9 @@ async function bestSellingProducts(req, res, next) {
 
         const data = await reportService.bestSellingProducts(
             limit,
-            startDate || null,
-            endDate || null
+            startDate,
+            endDate,
+            req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null
         );
 
         if (format) {
@@ -324,11 +368,25 @@ async function bestSellingProducts(req, res, next) {
 async function branchPerformance(req, res, next) {
     try {
 
-        const {
+        let {
             startDate,
             endDate,
             format
         } = req.query;
+
+        const currentYear = new Date().getFullYear();
+
+        if (!startDate) {
+            startDate = new Date(currentYear, 0, 1)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
+
+        if (!endDate) {
+            endDate = new Date(currentYear, 11, 31)
+                .toISOString()
+                .split("T")[0]; // YYYY-MM-DD
+        }
 
         const data = await reportService.branchPerformance(
             startDate || null,

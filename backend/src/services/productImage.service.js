@@ -52,6 +52,22 @@ exports.getProductImages = async (productId) => {
   return productImageRepo.getImagesByProductId(productId);
 };
 
+exports.getImageById = async (imageId) => {
+  return productImageRepo.getImageById(imageId);
+};
+
+exports.getPrimaryImage = async (productId) => {
+  return productImageRepo.getPrimaryImage(productId);
+};
+
+exports.updateProductImageNoFile = async (imageId, patch, actorId = null) => {
+  const updated = await productImageRepo.updateProductImage(imageId, patch);
+  if (actorId) {
+    await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', imageId, patch);
+  }
+  return updated;
+};
+
 exports.deleteProductImage = async (imageId, actorId = null) => {
   const existing = await productImageRepo.getImageById(imageId);
   if (!existing) throw new AppError('Product image not found.', { status: 404 });

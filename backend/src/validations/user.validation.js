@@ -72,6 +72,11 @@ const createUserValidation = [
     .withMessage('username must be between 3 and 50 characters.')
     .matches(/^[a-zA-Z0-9_.-]+$/)
     .withMessage('username contains invalid characters.'),
+  body('phone')
+    .optional()
+    .trim()
+    .isLength({ max: 20 })
+    .withMessage('phone must be at most 20 characters.'),
   body('branch_id')
     .optional({ nullable: true })
     .isUUID()
@@ -94,6 +99,7 @@ const updateUserValidation = [
         'role_id',
         'roleId',
         'roles',
+        'phone',
       ];
       return allowedFields.some((field) => value[field] !== undefined);
     })
@@ -147,6 +153,11 @@ const updateUserValidation = [
     .optional({ nullable: true })
     .isUUID()
     .withMessage('Invalid branchId.'),
+  body('phone')
+    .optional()
+    .trim()
+    .isLength({ max: 20 })
+    .withMessage('phone must be at most 20 characters.'),
   body('role_id')
     .optional()
     .isUUID()
@@ -171,6 +182,7 @@ const updateUserValidation = [
 ];
 
 const listUsersValidation = [
+  query('q').optional().trim().isLength({ max: 100 }).withMessage('Search query too long.'),
   query('branch_id').optional().isUUID().withMessage('Invalid branch_id.'),
   query('branchId').optional().isUUID().withMessage('Invalid branchId.'),
   query('role_id').optional().isUUID().withMessage('Invalid role_id.'),
@@ -178,7 +190,7 @@ const listUsersValidation = [
   query('is_active').optional().isIn(['true', 'false']).withMessage('is_active must be true or false.'),
   query('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false.'),
   query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100.'),
+  query('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
 ];
 
 const assignRoleValidation = [

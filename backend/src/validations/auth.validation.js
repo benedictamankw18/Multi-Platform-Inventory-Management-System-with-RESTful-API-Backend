@@ -1,13 +1,23 @@
-const { body } = require("express-validator");
+const { body, oneOf } = require("express-validator");
 
 /**
  * Login Validation
  */
 const loginValidation = [
-    body("username")
-        .trim()
-        .notEmpty()
-        .withMessage("Username is required."),
+    oneOf(
+        [
+            body("usernameOrEmail")
+                .trim()
+                .notEmpty()
+                .withMessage("Username or email is required."),
+
+            body("username")
+                .trim()
+                .notEmpty()
+                .withMessage("Username or email is required."),
+        ],
+        "Username or email is required."
+    ),
 
     body("password")
         .notEmpty()

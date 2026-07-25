@@ -20,6 +20,7 @@
  */
 
 const authService = require('../services/auth.service');
+const roleRepo = require('../repositories/role.repository');
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 
@@ -61,8 +62,9 @@ function handleError(res, err) {
 
 exports.login = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const result = await authService.login(username, password);
+    const { usernameOrEmail, username, password } = req.body;
+    const identifier = usernameOrEmail || username;
+    const result = await authService.login(identifier, password);
 
     setRefreshCookie(res, result.refreshToken);
 
@@ -137,6 +139,48 @@ exports.logoutAll = async (req, res) => {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/auth/my-branches
+// Lists all branches assigned to the logged-in user
+// ---------------------------------------------------------------------------
+
+exports.listMyBranches = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+    const result = await authService.listMyBranches(userId);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/select-branch
+// Sets the user's active branch and re-issues tokens with the new branchId
+// Body: { branchId }
+// ---------------------------------------------------------------------------
+
+exports.selectBranch = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+
+    const { branchId } = req.body;
+    if (!branchId) return res.status(400).json({ message: 'branchId is required.' });
+
+    const result = await authService.selectBranch(userId, branchId);
+
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/auth/forgot-password
 // Body: { email }
 // ---------------------------------------------------------------------------
@@ -159,6 +203,24 @@ exports.resetPassword = async (req, res) => {
     const { token, password } = req.body;
     const result = await authService.resetPassword(token, password);
     return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/auth/me/permissions
+// Returns the permission names assigned to the current user's role
+// ---------------------------------------------------------------------------
+
+exports.getMyPermissions = async (req, res) => {
+  try {
+    const roleId = req.user && req.user.roleId;
+    if (!roleId) return res.status(401).json({ message: 'Authentication required.' });
+
+    const permissions = await roleRepo.getRolePermissions(roleId);
+    const names = permissions.map(p => p.permission_name);
+    return res.status(200).json({ permissions: names });
   } catch (err) {
     return handleError(res, err);
   }

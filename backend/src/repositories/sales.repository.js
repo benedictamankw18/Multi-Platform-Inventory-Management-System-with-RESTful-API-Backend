@@ -29,7 +29,14 @@ async function createSaleItems(items = [], saleId) {
 
 async function getSaleById(saleId) {
   const saleQ = `SELECT * FROM ${TABLE} WHERE sale_id = $1 LIMIT 1`;
-  const itemsQ = `SELECT * FROM ${ITEMS_TABLE} WHERE sale_id = $1 ORDER BY created_at`;
+  const itemsQ = `
+    SELECT si.*, u.uom_name, u.symbol, p.product_name
+    FROM ${ITEMS_TABLE} si
+    LEFT JOIN units_of_measure u ON si.uom_id = u.uom_id
+    LEFT JOIN products p ON si.product_id = p.product_id
+    WHERE si.sale_id = $1
+    ORDER BY si.created_at
+  `;
   const { rows: saleRows } = await client.query(saleQ, [saleId]);
   if (!saleRows.length) return null;
   const sale = saleRows[0];
@@ -38,13 +45,12 @@ async function getSaleById(saleId) {
   return sale;
 }
 
-async function listSales({ q: search, customerId, status, branchId, limit = 25, offset = 0 } = {}) {
-  let base = `SELECT * FROM ${TABLE}`;
+function buildSalesWhere({ q: search, customerId, status, branchId } = {}) {
   const params = [];
   const where = [];
   if (search) {
     params.push(`%${search}%`);
-    where.push(`invoice_number ILIKE $${params.length} OR cashier_name ILIKE $${params.length} OR customer_name ILIKE $${params.length}`);
+    where.push(`(invoice_number ILIKE $${params.length} OR cashier_name ILIKE $${params.length} OR customer_name ILIKE $${params.length})`);
   }
   if (customerId) {
     params.push(customerId);
@@ -58,12 +64,25 @@ async function listSales({ q: search, customerId, status, branchId, limit = 25, 
     params.push(branchId);
     where.push(`branch_id = $${params.length}`);
   }
+  return { where, params };
+}
+
+async function listSales({ q: search, customerId, status, branchId, limit = 25, offset = 0 } = {}) {
+  const { where, params } = buildSalesWhere({ q: search, customerId, status, branchId });
+  let base = `SELECT * FROM ${TABLE}`;
   if (where.length) base += ` WHERE ` + where.join(' AND ');
-  params.push(limit);
-  params.push(offset);
-  base += ` ORDER BY sale_date DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+  params.push(limit, offset);
+  base += ` ORDER BY sale_date DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
   const { rows } = await client.query(base, params);
   return rows;
+}
+
+async function countSales({ q: search, customerId, status, branchId } = {}) {
+  const { where, params } = buildSalesWhere({ q: search, customerId, status, branchId });
+  let query = `SELECT COUNT(*) FROM ${TABLE}`;
+  if (where.length) query += ` WHERE ${where.join(' AND ')}`;
+  const { rows } = await client.query(query, params);
+  return Number(rows[0].count);
 }
 
 async function updateSale(saleId, patch) {
@@ -96,6 +115,7 @@ module.exports = {
   createSaleItems,
   getSaleById,
   listSales,
+  countSales,
   updateSale,
   voidSale,
 };

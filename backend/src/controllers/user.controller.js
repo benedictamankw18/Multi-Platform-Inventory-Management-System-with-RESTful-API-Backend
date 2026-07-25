@@ -57,8 +57,9 @@ exports.createUser = async (req, res) => {
 
 exports.listUsers = async (req, res) => {
   try {
-    const { branch_id, branchId, role_id, roleId, is_active, isActive, page, limit } = req.query;
+    const { q, branch_id, branchId, role_id, roleId, is_active, isActive, page, limit } = req.query;
     const result = await userService.listUsers({
+      q,
       branch_id,
       branchId,
       role_id,

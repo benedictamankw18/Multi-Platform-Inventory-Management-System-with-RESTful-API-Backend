@@ -140,44 +140,85 @@ async function listTransfers({ productId, fromBranchId, toBranchId, status, star
   return rows;
 }
 
-async function listInventories({ q, productId, supplierId, isActive, limit = 25, offset = 0 } = {}) {
+function buildInventoryWhere({ q, productId, supplierId, isActive } = {}) {
   const params = [];
   const where = [];
-  const tableName = 'product_branch_inventory';
 
   if (q) {
     params.push(`%${q}%`);
-    where.push(`(product_id::text ILIKE $${params.length} OR branch_id::text ILIKE $${params.length})`);
+    where.push(`(p.product_name ILIKE $${params.length} OR p.sku ILIKE $${params.length} OR p.barcode ILIKE $${params.length})`);
   }
 
   if (productId) {
     params.push(productId);
-    where.push(`product_id = $${params.length}`);
+    where.push(`pbi.product_id = $${params.length}`);
   }
 
   if (supplierId) {
     params.push(supplierId);
-    where.push(`product_id IN (SELECT product_id FROM products WHERE supplier_id = $${params.length})`);
+    where.push(`pbi.product_id IN (SELECT product_id FROM products WHERE supplier_id = $${params.length})`);
   }
 
-  if (isActive !== undefined) {
-    if (isActive) {
-      where.push('available_quantity > 0');
-    } else {
-      where.push('available_quantity <= 0');
-    }
+  if (isActive === 'true' || isActive === true) {
+    where.push('pbi.available_quantity > 0');
+  } else if (isActive === 'false' || isActive === false) {
+    where.push('pbi.available_quantity <= 0');
   }
 
-  let query = `SELECT * FROM ${tableName}`;
+  return { where, params };
+}
+
+async function listInventories({ q, productId, supplierId, isActive, branchId, limit = 25, offset = 0 } = {}) {
+  const { where, params } = buildInventoryWhere({ q, productId, supplierId, isActive });
+
+  if (branchId) {
+    params.push(branchId);
+    where.push(`pbi.branch_id = $${params.length}`);
+  }
+
+  let query = `
+    SELECT pbi.*,
+      p.sku, p.product_name, p.brand,
+      b.branch_name,
+      (SELECT pi.image_url FROM product_images pi
+       WHERE pi.product_id = pbi.product_id AND pi.is_primary = true
+       LIMIT 1) AS primary_image_url
+    FROM product_branch_inventory pbi
+    INNER JOIN products p ON p.product_id = pbi.product_id
+    LEFT JOIN branches b ON b.branch_id = pbi.branch_id
+  `;
+
   if (where.length) {
     query += ` WHERE ${where.join(' AND ')}`;
   }
 
   params.push(limit, offset);
-  query += ` ORDER BY product_id, branch_id LIMIT $${params.length - 1} OFFSET $${params.length}`;
+  query += ` ORDER BY p.product_name ASC LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
   const { rows } = await client.query(query, params);
   return rows;
+}
+
+async function countInventories({ q, productId, supplierId, isActive, branchId } = {}) {
+  const { where, params } = buildInventoryWhere({ q, productId, supplierId, isActive });
+
+  if (branchId) {
+    params.push(branchId);
+    where.push(`pbi.branch_id = $${params.length}`);
+  }
+
+  let query = `
+    SELECT COUNT(*)
+    FROM product_branch_inventory pbi
+    INNER JOIN products p ON p.product_id = pbi.product_id
+  `;
+
+  if (where.length) {
+    query += ` WHERE ${where.join(' AND ')}`;
+  }
+
+  const { rows } = await client.query(query, params);
+  return Number(rows[0].count);
 }
 
 module.exports = {
@@ -194,4 +235,5 @@ module.exports = {
   getTransferById,
   listTransfers,
   listInventories,
+  countInventories,
 };

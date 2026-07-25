@@ -223,6 +223,32 @@ exports.listLoginHistoryForUser = async (userId, { limit = 50, offset = 0 } = {}
 };
 
 // ---------------------------------------------------------------------------
+// User-branch assignment (for branch selection after login)
+// ---------------------------------------------------------------------------
+
+exports.listBranchesForUser = async (userId, client = db) => {
+  const query = `
+    SELECT b.branch_id, b.branch_name, b.address, b.city, b.country, b.is_active
+    FROM user_branches ub
+    JOIN branches b ON b.branch_id = ub.branch_id
+    WHERE ub.user_id = $1
+    ORDER BY b.branch_name;
+  `;
+  const { rows } = await client.query(query, [userId]);
+  return rows;
+};
+
+exports.updateUserBranch = async (userId, branchId, client = db) => {
+  const query = `
+    UPDATE users SET branch_id = $1, updated_at = now()
+    WHERE user_id = $2 AND deleted_at IS NULL
+    RETURNING user_id, branch_id, role_id, full_name, username, email, is_active;
+  `;
+  const { rows } = await client.query(query, [branchId, userId]);
+  return rows[0];
+};
+
+// ---------------------------------------------------------------------------
 // Activity logs
 // ---------------------------------------------------------------------------
 

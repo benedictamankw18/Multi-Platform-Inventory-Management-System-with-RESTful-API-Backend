@@ -101,7 +101,7 @@ exports.entityAuditValidation = [
 
 exports.listAuditsValidation = [
   query('page').optional().isInt({ min: 1 }).toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 10000 }).toInt(),
   query('from').optional().isISO8601(),
   query('to').optional().isISO8601(),
   query('user_id').optional().isUUID(),

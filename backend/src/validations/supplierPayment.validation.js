@@ -31,7 +31,7 @@ const listSupplierPaymentsValidation = [
   ...supplierIdValidation,
   body('poId').optional().isUUID().withMessage('poId must be a valid UUID'),
   body('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
-  body('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be an integer between 1 and 100'),
+  body('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be an integer between 1 and 10000'),
 ];
 
 module.exports = {

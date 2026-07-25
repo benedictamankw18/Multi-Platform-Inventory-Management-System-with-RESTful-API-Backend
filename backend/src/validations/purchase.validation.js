@@ -32,7 +32,7 @@ const listPurchasesValidation = [
   body('status').optional().isString(),
   body('isActive').optional().isIn(['true','false']).withMessage('isActive must be true or false.'),
   body('page').optional().isInt({ min: 1 }),
-  body('limit').optional().isInt({ min: 1, max: 100 }),
+  body('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 module.exports = {

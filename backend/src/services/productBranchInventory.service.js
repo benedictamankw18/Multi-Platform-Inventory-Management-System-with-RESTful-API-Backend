@@ -5,13 +5,14 @@ const { v4: uuidv4 } = require('uuid');
 const e = require('express');
 
 exports.createInventoryRecord = async (payload = {}, actorId = null) => {
-  const { product_id: productId, branch_id: branchId, quantity } = payload;
+  const { product_id: productId, branch_id: branchId, quantity, quantity_on_hand } = payload;
 
-  if (!productId || !branchId || quantity === undefined || quantity === null) {
+  if (!productId || !branchId || (quantity === undefined || quantity === null) && (quantity_on_hand === undefined || quantity_on_hand === null)) {
     throw new AppError('product_id, branch_id, and quantity are required.', { status: 400 });
   }
 
-  if (Number.isNaN(Number(quantity))) {
+  const qty = quantity !== undefined ? Number(quantity) : Number(quantity_on_hand);
+  if (Number.isNaN(qty)) {
     throw new AppError('quantity must be a number.', { status: 400 });
   }
 
@@ -25,14 +26,19 @@ exports.createInventoryRecord = async (payload = {}, actorId = null) => {
     inventory_id: inventoryId,
     product_id: productId,
     branch_id: branchId,
-    quantity_on_hand: Number(quantity),
-    available_quantity: Number(quantity),
+    quantity_on_hand: qty,
+    available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : qty,
+    reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : 0,
+    reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : 0,
+    reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : 0,
+    damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : 0,
+    expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : 0,
   });
 
   await auditRepo.writeLog(actorId, 'CREATE_PRODUCT_BRANCH_INVENTORY', 'PRODUCT_BRANCH_INVENTORY', created.inventory_id, {
     product_id: productId,
     branch_id: branchId,
-    quantity: Number(quantity),
+    quantity: qty,
   });
 
   return created;
@@ -54,7 +60,7 @@ exports.listInventoryRecords = async (filters = {}) => {
 };
 
 exports.updateInventoryRecord = async (inventoryId, payload ={}, actorId = null) => {
-const { product_id: productId, branch_id: branchId, quantity } = payload;
+const { product_id: productId, branch_id: branchId, quantity, quantity_on_hand } = payload;
 
 const existing = await productBranchInventoryRepo.getInventoryById(inventoryId);
 
@@ -62,21 +68,27 @@ if (!existing) {
   throw new AppError('Inventory record not found.', { status: 404 });
 }
 
-  if (Number.isNaN(Number(quantity))) {
+  const qty = quantity !== undefined ? Number(quantity) : (quantity_on_hand !== undefined ? Number(quantity_on_hand) : undefined);
+  if (qty !== undefined && Number.isNaN(qty)) {
     throw new AppError('quantity must be a number.', { status: 400 });
   }
 
   const updated = await productBranchInventoryRepo.updateInventory(inventoryId, {
-    product_id: productId,
-    branch_id: branchId,
-    quantity_on_hand: Number(quantity),
-    available_quantity: Number(quantity),
+    product_id: productId || existing.product_id,
+    branch_id: branchId || existing.branch_id,
+    quantity_on_hand: qty !== undefined ? qty : existing.quantity_on_hand,
+    available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : (qty !== undefined ? qty : existing.available_quantity),
+    reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : existing.reorder_level,
+    reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : existing.reorder_quantity,
+    reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : existing.reserved_quantity,
+    damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : existing.damaged_quantity,
+    expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : existing.expired_quantity,
   });
 
   await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT_BRANCH_INVENTORY', 'PRODUCT_BRANCH_INVENTORY', updated.inventory_id, {
     product_id: productId,
     branch_id: branchId,
-    quantity: Number(quantity),
+    quantity: qty,
   });
 
   return updated;

@@ -2,12 +2,39 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4UU6ZjeDBD3IWkrkDCVG7ERgtvtq1XcVuOzGBkVxaX15bbOdoutEdWsG3xhpotB
+\restrict PnG70B28wEUywrcjxP200edNuMq0SegnmQ6Okwj88ezwhmdhV2qtgcoAAi1uzqb
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
 
--- Started on 2026-07-05 04:37:37
+-- Started on 2026-07-19 00:56:25
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE IF EXISTS multiplatforminventorysystem;
+--
+-- TOC entry 5638 (class 1262 OID 16388)
+-- Name: multiplatforminventorysystem; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE multiplatforminventorysystem WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en-GH';
+
+
+ALTER DATABASE multiplatforminventorysystem OWNER TO postgres;
+
+\unrestrict PnG70B28wEUywrcjxP200edNuMq0SegnmQ6Okwj88ezwhmdhV2qtgcoAAi1uzqb
+\connect multiplatforminventorysystem
+\restrict PnG70B28wEUywrcjxP200edNuMq0SegnmQ6Okwj88ezwhmdhV2qtgcoAAi1uzqb
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -22,24 +49,26 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 2 (class 3079 OID 24580)
--- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+-- TOC entry 5 (class 2615 OID 2200)
+-- Name: public; Type: SCHEMA; Schema: -; Owner: pg_database_owner
 --
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+CREATE SCHEMA public;
+
+
+ALTER SCHEMA public OWNER TO pg_database_owner;
+
+--
+-- TOC entry 5639 (class 0 OID 0)
+-- Dependencies: 5
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
 
 
 --
--- TOC entry 5609 (class 0 OID 0)
--- Dependencies: 2
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
-
-
---
--- TOC entry 298 (class 1255 OID 25274)
+-- TOC entry 300 (class 1255 OID 25274)
 -- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -60,7 +89,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 247 (class 1259 OID 25484)
+-- TOC entry 245 (class 1259 OID 25484)
 -- Name: activity_logs; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -76,7 +105,7 @@ CREATE TABLE public.activity_logs (
 ALTER TABLE public.activity_logs OWNER TO postgres;
 
 --
--- TOC entry 242 (class 1259 OID 25216)
+-- TOC entry 240 (class 1259 OID 25216)
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -102,7 +131,7 @@ CREATE TABLE public.audit_logs (
 ALTER TABLE public.audit_logs OWNER TO postgres;
 
 --
--- TOC entry 246 (class 1259 OID 25320)
+-- TOC entry 244 (class 1259 OID 25320)
 -- Name: backups; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -194,7 +223,7 @@ CREATE TABLE public.categories (
 ALTER TABLE public.categories OWNER TO postgres;
 
 --
--- TOC entry 250 (class 1259 OID 25530)
+-- TOC entry 248 (class 1259 OID 25530)
 -- Name: customer_payments; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -211,7 +240,7 @@ CREATE TABLE public.customer_payments (
 ALTER TABLE public.customer_payments OWNER TO postgres;
 
 --
--- TOC entry 234 (class 1259 OID 24967)
+-- TOC entry 233 (class 1259 OID 24967)
 -- Name: customers; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -239,21 +268,22 @@ CREATE TABLE public.customers (
 ALTER TABLE public.customers OWNER TO postgres;
 
 --
--- TOC entry 248 (class 1259 OID 25499)
+-- TOC entry 246 (class 1259 OID 25499)
 -- Name: expense_categories; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.expense_categories (
     category_id uuid DEFAULT gen_random_uuid() NOT NULL,
     category_name character varying(100),
-    description text
+    description text,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
 ALTER TABLE public.expense_categories OWNER TO postgres;
 
 --
--- TOC entry 249 (class 1259 OID 25510)
+-- TOC entry 247 (class 1259 OID 25510)
 -- Name: expenses; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -265,7 +295,8 @@ CREATE TABLE public.expenses (
     description text,
     amount numeric(12,2),
     expense_date date,
-    created_at timestamp without time zone DEFAULT now()
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -300,7 +331,7 @@ CREATE TABLE public.inventory_transactions (
 ALTER TABLE public.inventory_transactions OWNER TO postgres;
 
 --
--- TOC entry 233 (class 1259 OID 24919)
+-- TOC entry 260 (class 1259 OID 25929)
 -- Name: inventory_transfers; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -310,7 +341,7 @@ CREATE TABLE public.inventory_transfers (
     from_branch_id uuid NOT NULL,
     to_branch_id uuid NOT NULL,
     quantity numeric(12,2) NOT NULL,
-    status character varying(20) DEFAULT 'PENDING'::character varying NOT NULL,
+    status character varying(20) DEFAULT 'DRAFT'::character varying NOT NULL,
     requested_by uuid,
     approved_by uuid,
     requested_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -323,14 +354,14 @@ CREATE TABLE public.inventory_transfers (
     received_at timestamp without time zone,
     received_by uuid,
     CONSTRAINT inventory_transfers_check CHECK ((from_branch_id <> to_branch_id)),
-    CONSTRAINT inventory_transfers_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'COMPLETED'::character varying])::text[])))
+    CONSTRAINT inventory_transfers_status_check CHECK (((status)::text = ANY (ARRAY[('DRAFT'::character varying)::text, ('PENDING'::character varying)::text, ('APPROVED'::character varying)::text, ('REJECTED'::character varying)::text, ('COMPLETED'::character varying)::text])))
 );
 
 
 ALTER TABLE public.inventory_transfers OWNER TO postgres;
 
 --
--- TOC entry 259 (class 1259 OID 25788)
+-- TOC entry 257 (class 1259 OID 25788)
 -- Name: login_history; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -356,7 +387,44 @@ CREATE TABLE public.login_history (
 ALTER TABLE public.login_history OWNER TO postgres;
 
 --
--- TOC entry 241 (class 1259 OID 25187)
+-- TOC entry 259 (class 1259 OID 25854)
+-- Name: message_queue; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.message_queue (
+    id uuid NOT NULL,
+    type text NOT NULL,
+    payload jsonb,
+    attempts integer DEFAULT 0,
+    status text DEFAULT 'PENDING'::text,
+    next_try timestamp with time zone,
+    last_error text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.message_queue OWNER TO postgres;
+
+--
+-- TOC entry 262 (class 1259 OID 26056)
+-- Name: notification_recipients; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notification_recipients (
+    notification_recipient_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    notification_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    is_read boolean DEFAULT false NOT NULL,
+    read_at timestamp without time zone,
+    delivered_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.notification_recipients OWNER TO postgres;
+
+--
+-- TOC entry 261 (class 1259 OID 26020)
 -- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -366,21 +434,22 @@ CREATE TABLE public.notifications (
     branch_id uuid,
     notification_type character varying(30) NOT NULL,
     message text NOT NULL,
+    created_by uuid,
     is_read boolean DEFAULT false NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    deleted_at timestamp without time zone, 
     title character varying(200),
     priority character varying(20) DEFAULT 'NORMAL'::character varying,
     expires_at timestamp without time zone,
-    CONSTRAINT notifications_notification_type_check CHECK (((notification_type)::text = ANY ((ARRAY['LOW_STOCK'::character varying, 'SYNC_FAILURE'::character varying, 'BRANCH_SHORTAGE'::character varying, 'TRANSFER_REQUEST'::character varying, 'OTHER'::character varying])::text[])))
+    deleted_at timestamp without time zone,
+    CONSTRAINT notifications_notification_type_check CHECK (((notification_type)::text = ANY (ARRAY[('LOW_STOCK'::character varying)::text, ('SYNC_FAILURE'::character varying)::text, ('BRANCH_SHORTAGE'::character varying)::text, ('TRANSFER_REQUEST'::character varying)::text, ('OTHER'::character varying)::text, ('INFO'::character varying)::text, ('WARNING'::character varying)::text, ('ERROR'::character varying)::text, ('SUCCESS'::character varying)::text])))
 );
 
 
 ALTER TABLE public.notifications OWNER TO postgres;
 
 --
--- TOC entry 244 (class 1259 OID 25283)
+-- TOC entry 242 (class 1259 OID 25283)
 -- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -397,7 +466,7 @@ CREATE TABLE public.password_reset_tokens (
 ALTER TABLE public.password_reset_tokens OWNER TO postgres;
 
 --
--- TOC entry 237 (class 1259 OID 25072)
+-- TOC entry 236 (class 1259 OID 25072)
 -- Name: payments; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -436,7 +505,7 @@ CREATE TABLE public.permissions (
 ALTER TABLE public.permissions OWNER TO postgres;
 
 --
--- TOC entry 252 (class 1259 OID 25566)
+-- TOC entry 250 (class 1259 OID 25566)
 -- Name: price_history; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -471,14 +540,16 @@ CREATE TABLE public.product_branch_inventory (
     damaged_quantity numeric(12,2) DEFAULT 0,
     expired_quantity numeric(12,2) DEFAULT 0,
     available_quantity numeric(12,2) DEFAULT 0,
-    last_stock_take timestamp without time zone
+    last_stock_take timestamp without time zone,
+    created_by character varying(100),
+    is_active boolean DEFAULT true NOT NULL
 );
 
 
 ALTER TABLE public.product_branch_inventory OWNER TO postgres;
 
 --
--- TOC entry 253 (class 1259 OID 25584)
+-- TOC entry 251 (class 1259 OID 25584)
 -- Name: product_images; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -538,7 +609,7 @@ CREATE TABLE public.products (
 ALTER TABLE public.products OWNER TO postgres;
 
 --
--- TOC entry 240 (class 1259 OID 25153)
+-- TOC entry 239 (class 1259 OID 25153)
 -- Name: purchase_order_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -563,7 +634,7 @@ CREATE TABLE public.purchase_order_items (
 ALTER TABLE public.purchase_order_items OWNER TO postgres;
 
 --
--- TOC entry 239 (class 1259 OID 25116)
+-- TOC entry 238 (class 1259 OID 25116)
 -- Name: purchase_orders; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -587,6 +658,7 @@ CREATE TABLE public.purchase_orders (
     shipping_cost numeric(12,2) DEFAULT 0,
     tax_amount numeric(12,2) DEFAULT 0,
     discount_amount numeric(12,2) DEFAULT 0,
+    is_active boolean DEFAULT true NOT NULL,
     CONSTRAINT purchase_orders_status_check CHECK (((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying, 'APPROVED'::character varying, 'RECEIVED'::character varying, 'CANCELLED'::character varying])::text[])))
 );
 
@@ -594,7 +666,7 @@ CREATE TABLE public.purchase_orders (
 ALTER TABLE public.purchase_orders OWNER TO postgres;
 
 --
--- TOC entry 238 (class 1259 OID 25094)
+-- TOC entry 237 (class 1259 OID 25094)
 -- Name: receipts; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -614,7 +686,7 @@ CREATE TABLE public.receipts (
 ALTER TABLE public.receipts OWNER TO postgres;
 
 --
--- TOC entry 258 (class 1259 OID 25770)
+-- TOC entry 256 (class 1259 OID 25770)
 -- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -666,7 +738,7 @@ CREATE TABLE public.roles (
 ALTER TABLE public.roles OWNER TO postgres;
 
 --
--- TOC entry 236 (class 1259 OID 25038)
+-- TOC entry 235 (class 1259 OID 25038)
 -- Name: sale_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -692,7 +764,7 @@ CREATE TABLE public.sale_items (
 ALTER TABLE public.sale_items OWNER TO postgres;
 
 --
--- TOC entry 235 (class 1259 OID 24987)
+-- TOC entry 234 (class 1259 OID 24987)
 -- Name: sales; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -730,7 +802,7 @@ CREATE TABLE public.sales (
 ALTER TABLE public.sales OWNER TO postgres;
 
 --
--- TOC entry 257 (class 1259 OID 25658)
+-- TOC entry 255 (class 1259 OID 25658)
 -- Name: stock_adjustment_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -747,7 +819,7 @@ CREATE TABLE public.stock_adjustment_items (
 ALTER TABLE public.stock_adjustment_items OWNER TO postgres;
 
 --
--- TOC entry 256 (class 1259 OID 25637)
+-- TOC entry 254 (class 1259 OID 25637)
 -- Name: stock_adjustments; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -764,7 +836,7 @@ CREATE TABLE public.stock_adjustments (
 ALTER TABLE public.stock_adjustments OWNER TO postgres;
 
 --
--- TOC entry 255 (class 1259 OID 25620)
+-- TOC entry 253 (class 1259 OID 25620)
 -- Name: stock_count_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -781,7 +853,7 @@ CREATE TABLE public.stock_count_items (
 ALTER TABLE public.stock_count_items OWNER TO postgres;
 
 --
--- TOC entry 254 (class 1259 OID 25601)
+-- TOC entry 252 (class 1259 OID 25601)
 -- Name: stock_counts; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -798,7 +870,7 @@ CREATE TABLE public.stock_counts (
 ALTER TABLE public.stock_counts OWNER TO postgres;
 
 --
--- TOC entry 251 (class 1259 OID 25548)
+-- TOC entry 249 (class 1259 OID 25548)
 -- Name: supplier_payments; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -843,7 +915,7 @@ CREATE TABLE public.suppliers (
 ALTER TABLE public.suppliers OWNER TO postgres;
 
 --
--- TOC entry 243 (class 1259 OID 25235)
+-- TOC entry 241 (class 1259 OID 25235)
 -- Name: sync_logs; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -866,7 +938,7 @@ CREATE TABLE public.sync_logs (
 ALTER TABLE public.sync_logs OWNER TO postgres;
 
 --
--- TOC entry 245 (class 1259 OID 25306)
+-- TOC entry 243 (class 1259 OID 25306)
 -- Name: system_settings; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -901,7 +973,7 @@ CREATE TABLE public.units_of_measure (
 ALTER TABLE public.units_of_measure OWNER TO postgres;
 
 --
--- TOC entry 260 (class 1259 OID 25833)
+-- TOC entry 258 (class 1259 OID 25833)
 -- Name: user_branches; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -966,24 +1038,8 @@ CREATE TABLE public.users (
 
 ALTER TABLE public.users OWNER TO postgres;
 
-
--- Migration: create message_queue table
-CREATE TABLE IF NOT EXISTS message_queue (
-  id uuid PRIMARY KEY,
-  type text NOT NULL,
-  payload jsonb,
-  attempts integer DEFAULT 0,
-  status text DEFAULT 'PENDING',
-  next_try timestamptz NULL,
-  last_error text NULL,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_message_queue_status_next_try ON message_queue(status, next_try);
-
 --
--- TOC entry 5351 (class 2606 OID 25493)
+-- TOC entry 5363 (class 2606 OID 25493)
 -- Name: activity_logs activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -992,7 +1048,7 @@ ALTER TABLE ONLY public.activity_logs
 
 
 --
--- TOC entry 5333 (class 2606 OID 25229)
+-- TOC entry 5345 (class 2606 OID 25229)
 -- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1001,7 +1057,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5349 (class 2606 OID 25329)
+-- TOC entry 5361 (class 2606 OID 25329)
 -- Name: backups backups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1010,7 +1066,7 @@ ALTER TABLE ONLY public.backups
 
 
 --
--- TOC entry 5255 (class 2606 OID 24703)
+-- TOC entry 5274 (class 2606 OID 24703)
 -- Name: branches branches_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1019,7 +1075,7 @@ ALTER TABLE ONLY public.branches
 
 
 --
--- TOC entry 5244 (class 2606 OID 24634)
+-- TOC entry 5263 (class 2606 OID 24634)
 -- Name: business_settings business_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1028,7 +1084,7 @@ ALTER TABLE ONLY public.business_settings
 
 
 --
--- TOC entry 5265 (class 2606 OID 24777)
+-- TOC entry 5284 (class 2606 OID 24777)
 -- Name: categories categories_category_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1037,7 +1093,7 @@ ALTER TABLE ONLY public.categories
 
 
 --
--- TOC entry 5267 (class 2606 OID 24775)
+-- TOC entry 5286 (class 2606 OID 24775)
 -- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1046,7 +1102,7 @@ ALTER TABLE ONLY public.categories
 
 
 --
--- TOC entry 5359 (class 2606 OID 25537)
+-- TOC entry 5371 (class 2606 OID 25537)
 -- Name: customer_payments customer_payments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1055,7 +1111,7 @@ ALTER TABLE ONLY public.customer_payments
 
 
 --
--- TOC entry 5298 (class 2606 OID 24986)
+-- TOC entry 5313 (class 2606 OID 24986)
 -- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1064,7 +1120,7 @@ ALTER TABLE ONLY public.customers
 
 
 --
--- TOC entry 5353 (class 2606 OID 25509)
+-- TOC entry 5365 (class 2606 OID 25509)
 -- Name: expense_categories expense_categories_category_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1073,7 +1129,7 @@ ALTER TABLE ONLY public.expense_categories
 
 
 --
--- TOC entry 5355 (class 2606 OID 25507)
+-- TOC entry 5367 (class 2606 OID 25507)
 -- Name: expense_categories expense_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1082,7 +1138,7 @@ ALTER TABLE ONLY public.expense_categories
 
 
 --
--- TOC entry 5357 (class 2606 OID 25519)
+-- TOC entry 5369 (class 2606 OID 25519)
 -- Name: expenses expenses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1091,7 +1147,7 @@ ALTER TABLE ONLY public.expenses
 
 
 --
--- TOC entry 5292 (class 2606 OID 24903)
+-- TOC entry 5311 (class 2606 OID 24903)
 -- Name: inventory_transactions inventory_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1100,7 +1156,7 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5294 (class 2606 OID 24941)
+-- TOC entry 5400 (class 2606 OID 25951)
 -- Name: inventory_transfers inventory_transfers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1109,7 +1165,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5296 (class 2606 OID 25704)
+-- TOC entry 5402 (class 2606 OID 25953)
 -- Name: inventory_transfers inventory_transfers_transfer_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1118,7 +1174,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5381 (class 2606 OID 25801)
+-- TOC entry 5393 (class 2606 OID 25801)
 -- Name: login_history login_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1127,7 +1183,25 @@ ALTER TABLE ONLY public.login_history
 
 
 --
--- TOC entry 5331 (class 2606 OID 25205)
+-- TOC entry 5398 (class 2606 OID 25866)
+-- Name: message_queue message_queue_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.message_queue
+    ADD CONSTRAINT message_queue_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5407 (class 2606 OID 26067)
+-- Name: notification_recipients notification_recipients_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_recipients
+    ADD CONSTRAINT notification_recipients_pkey PRIMARY KEY (notification_recipient_id);
+
+
+--
+-- TOC entry 5405 (class 2606 OID 26039)
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1136,7 +1210,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5341 (class 2606 OID 25296)
+-- TOC entry 5353 (class 2606 OID 25296)
 -- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1145,7 +1219,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- TOC entry 5343 (class 2606 OID 25298)
+-- TOC entry 5355 (class 2606 OID 25298)
 -- Name: password_reset_tokens password_reset_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1154,7 +1228,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- TOC entry 5314 (class 2606 OID 25088)
+-- TOC entry 5329 (class 2606 OID 25088)
 -- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1163,7 +1237,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5249 (class 2606 OID 24666)
+-- TOC entry 5268 (class 2606 OID 24666)
 -- Name: permissions permissions_permission_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1172,7 +1246,7 @@ ALTER TABLE ONLY public.permissions
 
 
 --
--- TOC entry 5251 (class 2606 OID 24664)
+-- TOC entry 5270 (class 2606 OID 24664)
 -- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1181,7 +1255,7 @@ ALTER TABLE ONLY public.permissions
 
 
 --
--- TOC entry 5363 (class 2606 OID 25573)
+-- TOC entry 5375 (class 2606 OID 25573)
 -- Name: price_history price_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1190,7 +1264,7 @@ ALTER TABLE ONLY public.price_history
 
 
 --
--- TOC entry 5286 (class 2606 OID 24873)
+-- TOC entry 5305 (class 2606 OID 24873)
 -- Name: product_branch_inventory product_branch_inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1199,7 +1273,7 @@ ALTER TABLE ONLY public.product_branch_inventory
 
 
 --
--- TOC entry 5288 (class 2606 OID 24875)
+-- TOC entry 5307 (class 2606 OID 24875)
 -- Name: product_branch_inventory product_branch_inventory_product_id_branch_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1208,7 +1282,7 @@ ALTER TABLE ONLY public.product_branch_inventory
 
 
 --
--- TOC entry 5365 (class 2606 OID 25595)
+-- TOC entry 5377 (class 2606 OID 25595)
 -- Name: product_images product_images_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1217,7 +1291,7 @@ ALTER TABLE ONLY public.product_images
 
 
 --
--- TOC entry 5278 (class 2606 OID 24832)
+-- TOC entry 5297 (class 2606 OID 24832)
 -- Name: products products_barcode_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1226,7 +1300,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5280 (class 2606 OID 24828)
+-- TOC entry 5299 (class 2606 OID 24828)
 -- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1235,7 +1309,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5282 (class 2606 OID 24830)
+-- TOC entry 5301 (class 2606 OID 24830)
 -- Name: products products_sku_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1244,7 +1318,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5328 (class 2606 OID 25171)
+-- TOC entry 5343 (class 2606 OID 25171)
 -- Name: purchase_order_items purchase_order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1253,7 +1327,7 @@ ALTER TABLE ONLY public.purchase_order_items
 
 
 --
--- TOC entry 5324 (class 2606 OID 25137)
+-- TOC entry 5339 (class 2606 OID 25137)
 -- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1262,7 +1336,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5326 (class 2606 OID 25715)
+-- TOC entry 5341 (class 2606 OID 25715)
 -- Name: purchase_orders purchase_orders_po_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1271,7 +1345,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5316 (class 2606 OID 25106)
+-- TOC entry 5331 (class 2606 OID 25106)
 -- Name: receipts receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1280,7 +1354,7 @@ ALTER TABLE ONLY public.receipts
 
 
 --
--- TOC entry 5318 (class 2606 OID 25110)
+-- TOC entry 5333 (class 2606 OID 25110)
 -- Name: receipts receipts_receipt_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1289,7 +1363,7 @@ ALTER TABLE ONLY public.receipts
 
 
 --
--- TOC entry 5320 (class 2606 OID 25108)
+-- TOC entry 5335 (class 2606 OID 25108)
 -- Name: receipts receipts_sale_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1298,7 +1372,7 @@ ALTER TABLE ONLY public.receipts
 
 
 --
--- TOC entry 5375 (class 2606 OID 25782)
+-- TOC entry 5387 (class 2606 OID 25782)
 -- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1307,7 +1381,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- TOC entry 5253 (class 2606 OID 24677)
+-- TOC entry 5272 (class 2606 OID 24677)
 -- Name: role_permissions role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1316,7 +1390,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
--- TOC entry 5246 (class 2606 OID 24648)
+-- TOC entry 5265 (class 2606 OID 24648)
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1325,7 +1399,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- TOC entry 5312 (class 2606 OID 25056)
+-- TOC entry 5327 (class 2606 OID 25056)
 -- Name: sale_items sale_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1334,7 +1408,7 @@ ALTER TABLE ONLY public.sale_items
 
 
 --
--- TOC entry 5304 (class 2606 OID 25725)
+-- TOC entry 5319 (class 2606 OID 25725)
 -- Name: sales sales_invoice_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1343,7 +1417,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5306 (class 2606 OID 25022)
+-- TOC entry 5321 (class 2606 OID 25022)
 -- Name: sales sales_local_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1352,7 +1426,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5308 (class 2606 OID 25020)
+-- TOC entry 5323 (class 2606 OID 25020)
 -- Name: sales sales_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1361,7 +1435,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5373 (class 2606 OID 25664)
+-- TOC entry 5385 (class 2606 OID 25664)
 -- Name: stock_adjustment_items stock_adjustment_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1370,7 +1444,7 @@ ALTER TABLE ONLY public.stock_adjustment_items
 
 
 --
--- TOC entry 5371 (class 2606 OID 25647)
+-- TOC entry 5383 (class 2606 OID 25647)
 -- Name: stock_adjustments stock_adjustments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1379,7 +1453,7 @@ ALTER TABLE ONLY public.stock_adjustments
 
 
 --
--- TOC entry 5369 (class 2606 OID 25626)
+-- TOC entry 5381 (class 2606 OID 25626)
 -- Name: stock_count_items stock_count_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1388,7 +1462,7 @@ ALTER TABLE ONLY public.stock_count_items
 
 
 --
--- TOC entry 5367 (class 2606 OID 25609)
+-- TOC entry 5379 (class 2606 OID 25609)
 -- Name: stock_counts stock_counts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1397,7 +1471,7 @@ ALTER TABLE ONLY public.stock_counts
 
 
 --
--- TOC entry 5361 (class 2606 OID 25555)
+-- TOC entry 5373 (class 2606 OID 25555)
 -- Name: supplier_payments supplier_payments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1406,7 +1480,7 @@ ALTER TABLE ONLY public.supplier_payments
 
 
 --
--- TOC entry 5273 (class 2606 OID 24809)
+-- TOC entry 5292 (class 2606 OID 24809)
 -- Name: suppliers suppliers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1415,7 +1489,7 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
--- TOC entry 5337 (class 2606 OID 25255)
+-- TOC entry 5349 (class 2606 OID 25255)
 -- Name: sync_logs sync_logs_device_id_local_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1424,7 +1498,7 @@ ALTER TABLE ONLY public.sync_logs
 
 
 --
--- TOC entry 5339 (class 2606 OID 25253)
+-- TOC entry 5351 (class 2606 OID 25253)
 -- Name: sync_logs sync_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1433,7 +1507,7 @@ ALTER TABLE ONLY public.sync_logs
 
 
 --
--- TOC entry 5345 (class 2606 OID 25317)
+-- TOC entry 5357 (class 2606 OID 25317)
 -- Name: system_settings system_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1442,7 +1516,7 @@ ALTER TABLE ONLY public.system_settings
 
 
 --
--- TOC entry 5347 (class 2606 OID 25319)
+-- TOC entry 5359 (class 2606 OID 25319)
 -- Name: system_settings system_settings_setting_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1451,7 +1525,7 @@ ALTER TABLE ONLY public.system_settings
 
 
 --
--- TOC entry 5269 (class 2606 OID 24791)
+-- TOC entry 5288 (class 2606 OID 24791)
 -- Name: units_of_measure units_of_measure_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1460,7 +1534,7 @@ ALTER TABLE ONLY public.units_of_measure
 
 
 --
--- TOC entry 5271 (class 2606 OID 24793)
+-- TOC entry 5290 (class 2606 OID 24793)
 -- Name: units_of_measure units_of_measure_uom_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1469,7 +1543,16 @@ ALTER TABLE ONLY public.units_of_measure
 
 
 --
--- TOC entry 5383 (class 2606 OID 25843)
+-- TOC entry 5409 (class 2606 OID 26069)
+-- Name: notification_recipients uq_notification_user; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_recipients
+    ADD CONSTRAINT uq_notification_user UNIQUE (notification_id, user_id);
+
+
+--
+-- TOC entry 5395 (class 2606 OID 25843)
 -- Name: user_branches user_branches_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1478,7 +1561,7 @@ ALTER TABLE ONLY public.user_branches
 
 
 --
--- TOC entry 5263 (class 2606 OID 24756)
+-- TOC entry 5282 (class 2606 OID 24756)
 -- Name: user_sessions user_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1487,7 +1570,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
--- TOC entry 5257 (class 2606 OID 24726)
+-- TOC entry 5276 (class 2606 OID 24726)
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1496,7 +1579,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5259 (class 2606 OID 24722)
+-- TOC entry 5278 (class 2606 OID 24722)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1505,7 +1588,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5261 (class 2606 OID 24724)
+-- TOC entry 5280 (class 2606 OID 24724)
 -- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1514,7 +1597,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5334 (class 1259 OID 25273)
+-- TOC entry 5346 (class 1259 OID 25273)
 -- Name: idx_audit_logs_created; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1522,7 +1605,7 @@ CREATE INDEX idx_audit_logs_created ON public.audit_logs USING btree (created_at
 
 
 --
--- TOC entry 5335 (class 1259 OID 25272)
+-- TOC entry 5347 (class 1259 OID 25272)
 -- Name: idx_audit_logs_user; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1530,7 +1613,7 @@ CREATE INDEX idx_audit_logs_user ON public.audit_logs USING btree (user_id);
 
 
 --
--- TOC entry 5289 (class 1259 OID 25262)
+-- TOC entry 5308 (class 1259 OID 25262)
 -- Name: idx_inv_txn_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1538,7 +1621,7 @@ CREATE INDEX idx_inv_txn_created_at ON public.inventory_transactions USING btree
 
 
 --
--- TOC entry 5290 (class 1259 OID 25261)
+-- TOC entry 5309 (class 1259 OID 25261)
 -- Name: idx_inv_txn_product_branch; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1546,7 +1629,7 @@ CREATE INDEX idx_inv_txn_product_branch ON public.inventory_transactions USING b
 
 
 --
--- TOC entry 5283 (class 1259 OID 25259)
+-- TOC entry 5302 (class 1259 OID 25259)
 -- Name: idx_inventory_branch; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1554,7 +1637,7 @@ CREATE INDEX idx_inventory_branch ON public.product_branch_inventory USING btree
 
 
 --
--- TOC entry 5284 (class 1259 OID 25260)
+-- TOC entry 5303 (class 1259 OID 25260)
 -- Name: idx_inventory_product; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1562,7 +1645,7 @@ CREATE INDEX idx_inventory_product ON public.product_branch_inventory USING btre
 
 
 --
--- TOC entry 5376 (class 1259 OID 25815)
+-- TOC entry 5388 (class 1259 OID 25815)
 -- Name: idx_login_history_ip; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1570,7 +1653,7 @@ CREATE INDEX idx_login_history_ip ON public.login_history USING btree (ip_addres
 
 
 --
--- TOC entry 5377 (class 1259 OID 25813)
+-- TOC entry 5389 (class 1259 OID 25813)
 -- Name: idx_login_history_login_time; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1578,7 +1661,7 @@ CREATE INDEX idx_login_history_login_time ON public.login_history USING btree (l
 
 
 --
--- TOC entry 5378 (class 1259 OID 25814)
+-- TOC entry 5390 (class 1259 OID 25814)
 -- Name: idx_login_history_successful; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1586,7 +1669,7 @@ CREATE INDEX idx_login_history_successful ON public.login_history USING btree (s
 
 
 --
--- TOC entry 5379 (class 1259 OID 25812)
+-- TOC entry 5391 (class 1259 OID 25812)
 -- Name: idx_login_history_user; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1594,7 +1677,15 @@ CREATE INDEX idx_login_history_user ON public.login_history USING btree (user_id
 
 
 --
--- TOC entry 5329 (class 1259 OID 25271)
+-- TOC entry 5396 (class 1259 OID 25867)
+-- Name: idx_message_queue_status_next_try; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_message_queue_status_next_try ON public.message_queue USING btree (status, next_try);
+
+
+--
+-- TOC entry 5403 (class 1259 OID 26055)
 -- Name: idx_notifications_unread; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1602,7 +1693,7 @@ CREATE INDEX idx_notifications_unread ON public.notifications USING btree (user_
 
 
 --
--- TOC entry 5321 (class 1259 OID 25270)
+-- TOC entry 5336 (class 1259 OID 25270)
 -- Name: idx_po_branch; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1610,7 +1701,7 @@ CREATE INDEX idx_po_branch ON public.purchase_orders USING btree (branch_id);
 
 
 --
--- TOC entry 5322 (class 1259 OID 25269)
+-- TOC entry 5337 (class 1259 OID 25269)
 -- Name: idx_po_supplier; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1618,7 +1709,7 @@ CREATE INDEX idx_po_supplier ON public.purchase_orders USING btree (supplier_id)
 
 
 --
--- TOC entry 5274 (class 1259 OID 25258)
+-- TOC entry 5293 (class 1259 OID 25258)
 -- Name: idx_products_active; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1626,7 +1717,7 @@ CREATE INDEX idx_products_active ON public.products USING btree (is_active);
 
 
 --
--- TOC entry 5275 (class 1259 OID 25256)
+-- TOC entry 5294 (class 1259 OID 25256)
 -- Name: idx_products_barcode; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1634,7 +1725,7 @@ CREATE INDEX idx_products_barcode ON public.products USING btree (barcode);
 
 
 --
--- TOC entry 5276 (class 1259 OID 25257)
+-- TOC entry 5295 (class 1259 OID 25257)
 -- Name: idx_products_sku; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1642,7 +1733,7 @@ CREATE INDEX idx_products_sku ON public.products USING btree (sku);
 
 
 --
--- TOC entry 5309 (class 1259 OID 25268)
+-- TOC entry 5324 (class 1259 OID 25268)
 -- Name: idx_sale_items_product; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1650,7 +1741,7 @@ CREATE INDEX idx_sale_items_product ON public.sale_items USING btree (product_id
 
 
 --
--- TOC entry 5310 (class 1259 OID 25267)
+-- TOC entry 5325 (class 1259 OID 25267)
 -- Name: idx_sale_items_sale; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1658,7 +1749,7 @@ CREATE INDEX idx_sale_items_sale ON public.sale_items USING btree (sale_id);
 
 
 --
--- TOC entry 5299 (class 1259 OID 25263)
+-- TOC entry 5314 (class 1259 OID 25263)
 -- Name: idx_sales_branch; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1666,7 +1757,7 @@ CREATE INDEX idx_sales_branch ON public.sales USING btree (branch_id);
 
 
 --
--- TOC entry 5300 (class 1259 OID 25265)
+-- TOC entry 5315 (class 1259 OID 25265)
 -- Name: idx_sales_customer; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1674,7 +1765,7 @@ CREATE INDEX idx_sales_customer ON public.sales USING btree (customer_id);
 
 
 --
--- TOC entry 5301 (class 1259 OID 25264)
+-- TOC entry 5316 (class 1259 OID 25264)
 -- Name: idx_sales_date; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1682,7 +1773,7 @@ CREATE INDEX idx_sales_date ON public.sales USING btree (sale_date);
 
 
 --
--- TOC entry 5302 (class 1259 OID 25266)
+-- TOC entry 5317 (class 1259 OID 25266)
 -- Name: idx_sales_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1690,7 +1781,7 @@ CREATE INDEX idx_sales_type ON public.sales USING btree (sale_type);
 
 
 --
--- TOC entry 5247 (class 1259 OID 25816)
+-- TOC entry 5266 (class 1259 OID 25816)
 -- Name: roles_role_name_active_unique; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1698,7 +1789,7 @@ CREATE UNIQUE INDEX roles_role_name_active_unique ON public.roles USING btree (r
 
 
 --
--- TOC entry 5451 (class 2620 OID 25275)
+-- TOC entry 5480 (class 2620 OID 25275)
 -- Name: branches trg_branches_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1706,7 +1797,7 @@ CREATE TRIGGER trg_branches_updated_at BEFORE UPDATE ON public.branches FOR EACH
 
 
 --
--- TOC entry 5450 (class 2620 OID 25281)
+-- TOC entry 5479 (class 2620 OID 25281)
 -- Name: business_settings trg_business_settings_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1714,7 +1805,7 @@ CREATE TRIGGER trg_business_settings_updated_at BEFORE UPDATE ON public.business
 
 
 --
--- TOC entry 5455 (class 2620 OID 25279)
+-- TOC entry 5484 (class 2620 OID 25279)
 -- Name: customers trg_customers_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1722,7 +1813,7 @@ CREATE TRIGGER trg_customers_updated_at BEFORE UPDATE ON public.customers FOR EA
 
 
 --
--- TOC entry 5454 (class 2620 OID 25277)
+-- TOC entry 5483 (class 2620 OID 25277)
 -- Name: products trg_products_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1730,7 +1821,7 @@ CREATE TRIGGER trg_products_updated_at BEFORE UPDATE ON public.products FOR EACH
 
 
 --
--- TOC entry 5456 (class 2620 OID 25280)
+-- TOC entry 5485 (class 2620 OID 25280)
 -- Name: purchase_orders trg_purchase_orders_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1738,7 +1829,7 @@ CREATE TRIGGER trg_purchase_orders_updated_at BEFORE UPDATE ON public.purchase_o
 
 
 --
--- TOC entry 5453 (class 2620 OID 25278)
+-- TOC entry 5482 (class 2620 OID 25278)
 -- Name: suppliers trg_suppliers_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1746,7 +1837,7 @@ CREATE TRIGGER trg_suppliers_updated_at BEFORE UPDATE ON public.suppliers FOR EA
 
 
 --
--- TOC entry 5452 (class 2620 OID 25276)
+-- TOC entry 5481 (class 2620 OID 25276)
 -- Name: users trg_users_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1754,7 +1845,7 @@ CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW E
 
 
 --
--- TOC entry 5427 (class 2606 OID 25494)
+-- TOC entry 5445 (class 2606 OID 25494)
 -- Name: activity_logs activity_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1763,7 +1854,7 @@ ALTER TABLE ONLY public.activity_logs
 
 
 --
--- TOC entry 5425 (class 2606 OID 25230)
+-- TOC entry 5443 (class 2606 OID 25230)
 -- Name: audit_logs audit_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1772,7 +1863,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5386 (class 2606 OID 25678)
+-- TOC entry 5412 (class 2606 OID 25678)
 -- Name: branches branches_manager_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1781,7 +1872,7 @@ ALTER TABLE ONLY public.branches
 
 
 --
--- TOC entry 5390 (class 2606 OID 25693)
+-- TOC entry 5416 (class 2606 OID 25693)
 -- Name: categories categories_parent_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1790,7 +1881,7 @@ ALTER TABLE ONLY public.categories
 
 
 --
--- TOC entry 5430 (class 2606 OID 25538)
+-- TOC entry 5448 (class 2606 OID 25538)
 -- Name: customer_payments customer_payments_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1799,7 +1890,7 @@ ALTER TABLE ONLY public.customer_payments
 
 
 --
--- TOC entry 5431 (class 2606 OID 25543)
+-- TOC entry 5449 (class 2606 OID 25543)
 -- Name: customer_payments customer_payments_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1808,7 +1899,7 @@ ALTER TABLE ONLY public.customer_payments
 
 
 --
--- TOC entry 5428 (class 2606 OID 25520)
+-- TOC entry 5446 (class 2606 OID 25520)
 -- Name: expenses expenses_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1817,7 +1908,7 @@ ALTER TABLE ONLY public.expenses
 
 
 --
--- TOC entry 5429 (class 2606 OID 25525)
+-- TOC entry 5447 (class 2606 OID 25525)
 -- Name: expenses expenses_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1826,7 +1917,25 @@ ALTER TABLE ONLY public.expenses
 
 
 --
--- TOC entry 5397 (class 2606 OID 24909)
+-- TOC entry 5477 (class 2606 OID 26070)
+-- Name: notification_recipients fk_notification; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_recipients
+    ADD CONSTRAINT fk_notification FOREIGN KEY (notification_id) REFERENCES public.notifications(notification_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5478 (class 2606 OID 26075)
+-- Name: notification_recipients fk_user; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_recipients
+    ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5423 (class 2606 OID 24909)
 -- Name: inventory_transactions inventory_transactions_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1835,7 +1944,7 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5398 (class 2606 OID 24914)
+-- TOC entry 5424 (class 2606 OID 24914)
 -- Name: inventory_transactions inventory_transactions_performed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1844,7 +1953,7 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5399 (class 2606 OID 24904)
+-- TOC entry 5425 (class 2606 OID 24904)
 -- Name: inventory_transactions inventory_transactions_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1853,7 +1962,7 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5400 (class 2606 OID 24962)
+-- TOC entry 5468 (class 2606 OID 25954)
 -- Name: inventory_transfers inventory_transfers_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1862,7 +1971,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5401 (class 2606 OID 24947)
+-- TOC entry 5469 (class 2606 OID 25959)
 -- Name: inventory_transfers inventory_transfers_from_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1871,7 +1980,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5402 (class 2606 OID 24942)
+-- TOC entry 5470 (class 2606 OID 25964)
 -- Name: inventory_transfers inventory_transfers_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1880,7 +1989,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5403 (class 2606 OID 25705)
+-- TOC entry 5471 (class 2606 OID 25969)
 -- Name: inventory_transfers inventory_transfers_received_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1889,7 +1998,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5404 (class 2606 OID 24957)
+-- TOC entry 5472 (class 2606 OID 25974)
 -- Name: inventory_transfers inventory_transfers_requested_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1898,7 +2007,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5405 (class 2606 OID 24952)
+-- TOC entry 5473 (class 2606 OID 25979)
 -- Name: inventory_transfers inventory_transfers_to_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1907,7 +2016,7 @@ ALTER TABLE ONLY public.inventory_transfers
 
 
 --
--- TOC entry 5446 (class 2606 OID 25807)
+-- TOC entry 5464 (class 2606 OID 25807)
 -- Name: login_history login_history_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1916,7 +2025,7 @@ ALTER TABLE ONLY public.login_history
 
 
 --
--- TOC entry 5447 (class 2606 OID 25802)
+-- TOC entry 5465 (class 2606 OID 25802)
 -- Name: login_history login_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1925,7 +2034,7 @@ ALTER TABLE ONLY public.login_history
 
 
 --
--- TOC entry 5423 (class 2606 OID 25211)
+-- TOC entry 5474 (class 2606 OID 26040)
 -- Name: notifications notifications_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1934,7 +2043,16 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5424 (class 2606 OID 25206)
+-- TOC entry 5475 (class 2606 OID 26050)
+-- Name: notifications notifications_createdby_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_createdby_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5476 (class 2606 OID 26045)
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1943,7 +2061,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5426 (class 2606 OID 25299)
+-- TOC entry 5444 (class 2606 OID 25299)
 -- Name: password_reset_tokens password_reset_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1952,7 +2070,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- TOC entry 5412 (class 2606 OID 25731)
+-- TOC entry 5432 (class 2606 OID 25731)
 -- Name: payments payments_received_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1961,7 +2079,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5413 (class 2606 OID 25089)
+-- TOC entry 5433 (class 2606 OID 25089)
 -- Name: payments payments_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1970,7 +2088,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5434 (class 2606 OID 25579)
+-- TOC entry 5452 (class 2606 OID 25579)
 -- Name: price_history price_history_changed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1979,7 +2097,7 @@ ALTER TABLE ONLY public.price_history
 
 
 --
--- TOC entry 5435 (class 2606 OID 25574)
+-- TOC entry 5453 (class 2606 OID 25574)
 -- Name: price_history price_history_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1988,7 +2106,7 @@ ALTER TABLE ONLY public.price_history
 
 
 --
--- TOC entry 5395 (class 2606 OID 24881)
+-- TOC entry 5421 (class 2606 OID 24881)
 -- Name: product_branch_inventory product_branch_inventory_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1997,7 +2115,7 @@ ALTER TABLE ONLY public.product_branch_inventory
 
 
 --
--- TOC entry 5396 (class 2606 OID 24876)
+-- TOC entry 5422 (class 2606 OID 24876)
 -- Name: product_branch_inventory product_branch_inventory_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2006,7 +2124,7 @@ ALTER TABLE ONLY public.product_branch_inventory
 
 
 --
--- TOC entry 5436 (class 2606 OID 25596)
+-- TOC entry 5454 (class 2606 OID 25596)
 -- Name: product_images product_images_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2015,7 +2133,7 @@ ALTER TABLE ONLY public.product_images
 
 
 --
--- TOC entry 5391 (class 2606 OID 24843)
+-- TOC entry 5417 (class 2606 OID 24843)
 -- Name: products products_base_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2024,7 +2142,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5392 (class 2606 OID 24833)
+-- TOC entry 5418 (class 2606 OID 24833)
 -- Name: products products_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2033,7 +2151,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5393 (class 2606 OID 24838)
+-- TOC entry 5419 (class 2606 OID 24838)
 -- Name: products products_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2042,7 +2160,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5394 (class 2606 OID 24848)
+-- TOC entry 5420 (class 2606 OID 24848)
 -- Name: products products_wholesale_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2051,7 +2169,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- TOC entry 5420 (class 2606 OID 25172)
+-- TOC entry 5440 (class 2606 OID 25172)
 -- Name: purchase_order_items purchase_order_items_po_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2060,7 +2178,7 @@ ALTER TABLE ONLY public.purchase_order_items
 
 
 --
--- TOC entry 5421 (class 2606 OID 25177)
+-- TOC entry 5441 (class 2606 OID 25177)
 -- Name: purchase_order_items purchase_order_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2069,7 +2187,7 @@ ALTER TABLE ONLY public.purchase_order_items
 
 
 --
--- TOC entry 5422 (class 2606 OID 25182)
+-- TOC entry 5442 (class 2606 OID 25182)
 -- Name: purchase_order_items purchase_order_items_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2078,7 +2196,7 @@ ALTER TABLE ONLY public.purchase_order_items
 
 
 --
--- TOC entry 5416 (class 2606 OID 25716)
+-- TOC entry 5436 (class 2606 OID 25716)
 -- Name: purchase_orders purchase_orders_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2087,7 +2205,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5417 (class 2606 OID 25143)
+-- TOC entry 5437 (class 2606 OID 25143)
 -- Name: purchase_orders purchase_orders_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2096,7 +2214,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5418 (class 2606 OID 25148)
+-- TOC entry 5438 (class 2606 OID 25148)
 -- Name: purchase_orders purchase_orders_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2105,7 +2223,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5419 (class 2606 OID 25138)
+-- TOC entry 5439 (class 2606 OID 25138)
 -- Name: purchase_orders purchase_orders_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2114,7 +2232,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5414 (class 2606 OID 25739)
+-- TOC entry 5434 (class 2606 OID 25739)
 -- Name: receipts receipts_printed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2123,7 +2241,7 @@ ALTER TABLE ONLY public.receipts
 
 
 --
--- TOC entry 5415 (class 2606 OID 25111)
+-- TOC entry 5435 (class 2606 OID 25111)
 -- Name: receipts receipts_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2132,7 +2250,7 @@ ALTER TABLE ONLY public.receipts
 
 
 --
--- TOC entry 5445 (class 2606 OID 25783)
+-- TOC entry 5463 (class 2606 OID 25783)
 -- Name: refresh_tokens refresh_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2141,7 +2259,7 @@ ALTER TABLE ONLY public.refresh_tokens
 
 
 --
--- TOC entry 5384 (class 2606 OID 24683)
+-- TOC entry 5410 (class 2606 OID 24683)
 -- Name: role_permissions role_permissions_permission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2150,7 +2268,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
--- TOC entry 5385 (class 2606 OID 24678)
+-- TOC entry 5411 (class 2606 OID 24678)
 -- Name: role_permissions role_permissions_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2159,7 +2277,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
--- TOC entry 5409 (class 2606 OID 25062)
+-- TOC entry 5429 (class 2606 OID 25062)
 -- Name: sale_items sale_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2168,7 +2286,7 @@ ALTER TABLE ONLY public.sale_items
 
 
 --
--- TOC entry 5410 (class 2606 OID 25057)
+-- TOC entry 5430 (class 2606 OID 25057)
 -- Name: sale_items sale_items_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2177,7 +2295,7 @@ ALTER TABLE ONLY public.sale_items
 
 
 --
--- TOC entry 5411 (class 2606 OID 25067)
+-- TOC entry 5431 (class 2606 OID 25067)
 -- Name: sale_items sale_items_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2186,7 +2304,7 @@ ALTER TABLE ONLY public.sale_items
 
 
 --
--- TOC entry 5406 (class 2606 OID 25023)
+-- TOC entry 5426 (class 2606 OID 25023)
 -- Name: sales sales_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2195,7 +2313,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5407 (class 2606 OID 25033)
+-- TOC entry 5427 (class 2606 OID 25033)
 -- Name: sales sales_cashier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2204,7 +2322,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5408 (class 2606 OID 25028)
+-- TOC entry 5428 (class 2606 OID 25028)
 -- Name: sales sales_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2213,7 +2331,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 5443 (class 2606 OID 25665)
+-- TOC entry 5461 (class 2606 OID 25665)
 -- Name: stock_adjustment_items stock_adjustment_items_adjustment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2222,7 +2340,7 @@ ALTER TABLE ONLY public.stock_adjustment_items
 
 
 --
--- TOC entry 5444 (class 2606 OID 25670)
+-- TOC entry 5462 (class 2606 OID 25670)
 -- Name: stock_adjustment_items stock_adjustment_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2231,7 +2349,7 @@ ALTER TABLE ONLY public.stock_adjustment_items
 
 
 --
--- TOC entry 5441 (class 2606 OID 25653)
+-- TOC entry 5459 (class 2606 OID 25653)
 -- Name: stock_adjustments stock_adjustments_adjusted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2240,7 +2358,7 @@ ALTER TABLE ONLY public.stock_adjustments
 
 
 --
--- TOC entry 5442 (class 2606 OID 25648)
+-- TOC entry 5460 (class 2606 OID 25648)
 -- Name: stock_adjustments stock_adjustments_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2249,7 +2367,7 @@ ALTER TABLE ONLY public.stock_adjustments
 
 
 --
--- TOC entry 5439 (class 2606 OID 25627)
+-- TOC entry 5457 (class 2606 OID 25627)
 -- Name: stock_count_items stock_count_items_count_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2258,7 +2376,7 @@ ALTER TABLE ONLY public.stock_count_items
 
 
 --
--- TOC entry 5440 (class 2606 OID 25632)
+-- TOC entry 5458 (class 2606 OID 25632)
 -- Name: stock_count_items stock_count_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2267,7 +2385,7 @@ ALTER TABLE ONLY public.stock_count_items
 
 
 --
--- TOC entry 5437 (class 2606 OID 25610)
+-- TOC entry 5455 (class 2606 OID 25610)
 -- Name: stock_counts stock_counts_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2276,7 +2394,7 @@ ALTER TABLE ONLY public.stock_counts
 
 
 --
--- TOC entry 5438 (class 2606 OID 25615)
+-- TOC entry 5456 (class 2606 OID 25615)
 -- Name: stock_counts stock_counts_counted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2285,7 +2403,7 @@ ALTER TABLE ONLY public.stock_counts
 
 
 --
--- TOC entry 5432 (class 2606 OID 25561)
+-- TOC entry 5450 (class 2606 OID 25561)
 -- Name: supplier_payments supplier_payments_po_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2294,7 +2412,7 @@ ALTER TABLE ONLY public.supplier_payments
 
 
 --
--- TOC entry 5433 (class 2606 OID 25556)
+-- TOC entry 5451 (class 2606 OID 25556)
 -- Name: supplier_payments supplier_payments_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2303,7 +2421,7 @@ ALTER TABLE ONLY public.supplier_payments
 
 
 --
--- TOC entry 5448 (class 2606 OID 25844)
+-- TOC entry 5466 (class 2606 OID 25844)
 -- Name: user_branches user_branches_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2312,7 +2430,7 @@ ALTER TABLE ONLY public.user_branches
 
 
 --
--- TOC entry 5449 (class 2606 OID 25849)
+-- TOC entry 5467 (class 2606 OID 25849)
 -- Name: user_branches user_branches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2321,7 +2439,7 @@ ALTER TABLE ONLY public.user_branches
 
 
 --
--- TOC entry 5389 (class 2606 OID 24757)
+-- TOC entry 5415 (class 2606 OID 24757)
 -- Name: user_sessions user_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2330,7 +2448,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
--- TOC entry 5387 (class 2606 OID 24727)
+-- TOC entry 5413 (class 2606 OID 24727)
 -- Name: users users_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2339,7 +2457,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5388 (class 2606 OID 24732)
+-- TOC entry 5414 (class 2606 OID 24732)
 -- Name: users users_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2347,11 +2465,11 @@ ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(role_id) ON DELETE RESTRICT;
 
 
--- Completed on 2026-07-05 04:37:37
+-- Completed on 2026-07-19 00:56:26
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4UU6ZjeDBD3IWkrkDCVG7ERgtvtq1XcVuOzGBkVxaX15bbOdoutEdWsG3xhpotB
+\unrestrict PnG70B28wEUywrcjxP200edNuMq0SegnmQ6Okwj88ezwhmdhV2qtgcoAAi1uzqb
 

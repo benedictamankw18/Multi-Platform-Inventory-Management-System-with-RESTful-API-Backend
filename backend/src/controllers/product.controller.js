@@ -22,8 +22,9 @@ exports.createProduct = async (req, res) => {
 
 exports.listProducts = async (req, res) => {
   try {
-    const { q, categoryId, supplierId, isActive, page, limit } = req.body;
-    const result = await productService.listProducts({ q, categoryId, supplierId, isActive, page, limit });
+    const { q, categoryId, supplierId, isActive, page, limit, branchId } = req.body;
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const result = await productService.listProducts({ q, categoryId, supplierId, isActive, page, limit, branch_id: resolvedBranchId });
     return res.status(200).json(result);
   } catch (err) {
     return handleError(res, err);

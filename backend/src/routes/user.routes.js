@@ -20,6 +20,7 @@ const router = express.Router();
 const userController = require('../controllers/user.controller');
 const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
 
 const {
@@ -67,7 +68,7 @@ const ADMIN_ROLES = ['Administrator', 'Business Owner'];
  *       '400':
  *         description: Validation error
  */
-router.post('/', authenticate, authorize(...ADMIN_ROLES), createUserValidation, validate, userController.createUser);
+router.post('/', authenticate, checkPermission('MANAGE_USERS'), createUserValidation, validate, userController.createUser);
 /**
  * @openapi
  * /users:
@@ -103,7 +104,7 @@ router.post('/', authenticate, authorize(...ADMIN_ROLES), createUserValidation, 
  *                   items:
  *                     $ref: '#/components/schemas/User'
  */
-router.get('/', authenticate, authorize(...ADMIN_ROLES), listUsersValidation, validate, userController.listUsers);
+router.get('/', authenticate, checkPermission('MANAGE_USERS'), listUsersValidation, validate, userController.listUsers);
 /**
  * @openapi
  * /users/{id}:
@@ -129,9 +130,9 @@ router.get('/', authenticate, authorize(...ADMIN_ROLES), listUsersValidation, va
  *       '404':
  *         description: Not found
  */
-router.get('/:id/sessions', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.listUserSessions);
-router.get('/:id/branches', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.listUserBranches);
-router.get('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.getUserById);
+router.get('/:id/sessions', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.listUserSessions);
+router.get('/:id/branches', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.listUserBranches);
+router.get('/:id', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.getUserById);
 /**
  * @openapi
  * /users/{id}:
@@ -166,9 +167,9 @@ router.get('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation, va
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.put('/:id', authenticate, authorize(...ADMIN_ROLES), updateUserValidation, validate, userController.updateUser);
-router.patch('/:id', authenticate, authorize(...ADMIN_ROLES), updateUserValidation, validate, userController.updateUser);
-router.delete('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.deleteUser);
+router.put('/:id', authenticate, checkPermission('MANAGE_USERS'), updateUserValidation, validate, userController.updateUser);
+router.patch('/:id', authenticate, checkPermission('MANAGE_USERS'), updateUserValidation, validate, userController.updateUser);
+router.delete('/:id', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.deleteUser);
 /**
  * @openapi
  * /users/{id}/role:
@@ -199,7 +200,7 @@ router.delete('/:id', authenticate, authorize(...ADMIN_ROLES), userIdValidation,
  *       '200':
  *         description: Roles assigned
  */
-router.patch('/:id/role', authenticate, authorize(...ADMIN_ROLES), assignRoleValidation, validate, userController.assignRole);
+router.patch('/:id/role', authenticate, checkPermission('MANAGE_USERS'), assignRoleValidation, validate, userController.assignRole);
 /**
  * @openapi
  * /users/{id}/deactivate:
@@ -219,7 +220,7 @@ router.patch('/:id/role', authenticate, authorize(...ADMIN_ROLES), assignRoleVal
  *       '200':
  *         description: User deactivated
  */
-router.patch('/:id/deactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.deactivateUser);
+router.patch('/:id/deactivate', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.deactivateUser);
 /**
  * @openapi
  * /users/{id}/reactivate:
@@ -239,6 +240,6 @@ router.patch('/:id/deactivate', authenticate, authorize(...ADMIN_ROLES), userIdV
  *       '200':
  *         description: User reactivated
  */
-router.patch('/:id/reactivate', authenticate, authorize(...ADMIN_ROLES), userIdValidation, validate, userController.reactivateUser);
+router.patch('/:id/reactivate', authenticate, checkPermission('MANAGE_USERS'), userIdValidation, validate, userController.reactivateUser);
 
 module.exports = router;

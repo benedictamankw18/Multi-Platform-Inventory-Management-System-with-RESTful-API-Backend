@@ -4,13 +4,9 @@ const auditRepo = require('../repositories/audit.repository');
 
 async function createCustomer({ customer_name, contact_email, phone, address, contact_person, createdBy }) {
   const id = uuidv4();
-  console.log('Creating customer with ID:', id);
-  const created = await customerRepo.createCustomer({ customer_id: id, customer_name, contact_email, phone, address, contact_person, created_by: createdBy });
-  console.log('Creating customer with ID:', id);
+  const created = await customerRepo.createCustomer({ customer_id: id, business_name: customer_name, email: contact_email, phone, address, contact_name: contact_person, created_by: createdBy });
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'create_customer', resource_id: id, meta: { customer_name }, performed_by: createdBy });
-    }
+    await auditRepo.writeLog(createdBy, 'create_customer', 'CUSTOMER', id, { customer_name });
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -30,9 +26,7 @@ async function listCustomers(query) {
 async function updateCustomer(id, patch, performedBy) {
   const updated = await customerRepo.updateCustomer(id, patch);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'update_customer', resource_id: id, meta: patch, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'update_customer', 'CUSTOMER', id, patch);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -42,9 +36,7 @@ async function updateCustomer(id, patch, performedBy) {
 async function deactivateCustomer(id, performedBy) {
   const deactivated = await customerRepo.deactivateCustomer(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'deactivate_customer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'deactivate_customer', 'CUSTOMER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -54,9 +46,7 @@ async function deactivateCustomer(id, performedBy) {
 async function activateCustomer(id, performedBy) {
   const activated = await customerRepo.activateCustomer(id);
   try {
-    if (auditRepo && typeof auditRepo.create === 'function') {
-      auditRepo.create({ action: 'activate_customer', resource_id: id, performed_by: performedBy });
-    }
+    await auditRepo.writeLog(performedBy, 'activate_customer', 'CUSTOMER', id);
   } catch (e) {
     console.error('audit error', e.message);
   }

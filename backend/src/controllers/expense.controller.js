@@ -9,7 +9,9 @@ async function createExpense(req, res, next) {
 
 async function listExpenses(req, res, next) {
   try {
-    const data = await expenseService.listExpenses(req.query);
+    const { branchId, ...rest } = req.query;
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const data = await expenseService.listExpenses({ ...rest, branchId: resolvedBranchId });
     res.json({ data });
   } catch (err) { next(err); }
 }

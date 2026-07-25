@@ -16,7 +16,7 @@ async function createPriceHistory(req, res, next) {
 
 async function listPriceHistory(req, res, next) {
   try {
-    const { product_id, page = 1, limit = 50 } = req.body || {};
+    const { product_id, page = 1, limit = 50 } = req.query || {};
     const results = await priceHistoryService.listPriceHistory({ product_id : product_id, page: Number(page), limit: Number(limit) });
     res.json({ data: results });
   } catch (err) {

@@ -36,11 +36,11 @@ const listBranchesValidation = [
   query('q').optional().trim().isLength({ max: 100 }).withMessage('q cannot exceed 100 characters.'),
   query('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false.'),
   query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100.'),
+  query('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
   body('q').optional().trim().isLength({ max: 100 }).withMessage('q cannot exceed 100 characters.'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean.'),
   body('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
-  body('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100.'),
+  body('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
 ];
 
 module.exports = {

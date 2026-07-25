@@ -294,6 +294,86 @@ exports.revokeSessionById = async (sessionId, actorId = null) => {
 };
 
 // ---------------------------------------------------------------------------
+// § Branch selection after login
+// ---------------------------------------------------------------------------
+
+exports.listMyBranches = async (userId) => {
+  if (!userId) throw new AppError('User ID is required.', { status: 400 });
+  const branches = await authRepo.listBranchesForUser(userId);
+  return { branches };
+};
+
+exports.selectBranch = async (userId, branchId) => {
+  if (!userId || !branchId) {
+    throw new AppError('User ID and branch ID are required.', { status: 400 });
+  }
+
+  // Verify the branch is actually assigned to this user
+  const branches = await authRepo.listBranchesForUser(userId);
+  const assigned = branches.find((b) => b.branch_id === branchId);
+  if (!assigned) {
+    throw new AppError('This branch is not assigned to your account.', { status: 403 });
+  }
+  if (!assigned.is_active) {
+    throw new AppError('This branch is currently inactive.', { status: 400 });
+  }
+
+  // Update the user's default branch
+  const updated = await authRepo.updateUserBranch(userId, branchId);
+  if (!updated) {
+    throw new AppError('Failed to update branch.', { status: 500 });
+  }
+
+  // Re-fetch the user with role info to sign a new token
+  const fullUser = await authRepo.findUserForLogin(updated.username);
+  if (!fullUser) {
+    throw new AppError('Failed to refresh session.', { status: 500 });
+  }
+
+  // Find the existing session for this user to rotate the token
+  const sessions = await authRepo.listSessionsForUser(userId, { limit: 1 });
+  const session = sessions[0];
+
+  if (session) {
+    const newJti = crypto.randomUUID();
+    await authRepo.rotateSessionToken(session.session_id, newJti);
+
+    const accessToken = signAccessToken(fullUser, session.session_id);
+    const refreshToken = signRefreshToken(userId, session.session_id, newJti);
+
+    await auditRepo.writeLog(userId, 'SELECT_BRANCH', 'USER', userId);
+
+    return {
+      accessToken,
+      refreshToken,
+      branch: assigned,
+      user: {
+        userId: updated.user_id,
+        username: updated.username,
+        fullName: updated.full_name,
+        email: updated.email,
+        role: fullUser.role_name,
+        branchId: branchId,
+      },
+    };
+  }
+
+  // Fallback: no active session, just return the branch info
+  await auditRepo.writeLog(userId, 'SELECT_BRANCH', 'USER', userId);
+  return {
+    branch: assigned,
+    user: {
+      userId: updated.user_id,
+      username: updated.username,
+      fullName: updated.full_name,
+      email: updated.email,
+      role: fullUser.role_name,
+      branchId: branchId,
+    },
+  };
+};
+
+// ---------------------------------------------------------------------------
 // § Helpers exposed for the controller layer
 // ---------------------------------------------------------------------------
 

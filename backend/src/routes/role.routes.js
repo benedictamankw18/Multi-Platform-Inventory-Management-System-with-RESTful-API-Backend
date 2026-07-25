@@ -15,6 +15,7 @@ const router = express.Router();
 const roleController = require('../controllers/role.controller');
 const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
 
 const {
@@ -28,7 +29,7 @@ const {
   copyPermissionsValidation,
 } = require('../validations/role.validation');
 
-router.use(authenticate, authorize('Administrator'));
+router.use(authenticate, checkPermission('MANAGE_USERS'));
 
 // --- Static paths BEFORE /:id ---
 router.get('/dropdown', roleController.getRolesDropdown);
