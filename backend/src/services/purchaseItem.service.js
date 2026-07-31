@@ -39,7 +39,10 @@ async function listItems(po_id, { limit = 100, offset = 0 } = {}) {
 }
 
 async function updateItem(item_id, patch, performedBy) {
-  const updated = await purchaseItemRepo.updatePurchaseItem(item_id, patch);
+  const mapped = { ...patch };
+  if (mapped.quantity !== undefined) { mapped.quantity_ordered = mapped.quantity; delete mapped.quantity }
+  if (mapped.unit_price !== undefined) { mapped.unit_cost = mapped.unit_price; delete mapped.unit_price }
+  const updated = await purchaseItemRepo.updatePurchaseItem(item_id, mapped);
   try {
     await auditRepo.writeLog(performedBy, 'update_purchase_item', 'PURCHASE_ITEM', item_id, patch);
   } catch (e) {

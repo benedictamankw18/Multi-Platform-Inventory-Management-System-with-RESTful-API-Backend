@@ -8,7 +8,7 @@ async function createCustomerPayment(req, res, next) {
       payment_date: req.body.payment_date,
       method: req.body.method,
       reference: req.body.reference,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {

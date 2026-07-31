@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -619,7 +620,7 @@ export default function ProductsPage() {
           <h1>Products</h1>
           <p className="page-subtitle">{total} product{total !== 1 ? 's' : ''} total</p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {hasPermission('IMPORT_PRODUCTS') && (
           <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowImportMenu(!showImportMenu)}>Import</button>
@@ -690,9 +691,9 @@ export default function ProductsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={10}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan={10}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No products yet.</p>{hasPermission('CREATE_PRODUCT') && <button type="button" className="btn btn--primary" style={{ marginTop: 8 }} onClick={openCreate}>Add Product</button>}</div></td></tr>
+                <tr key="empty"><td colSpan={10}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No products yet.</p>{hasPermission('CREATE_PRODUCT') && <button type="button" className="btn btn--primary" style={{ marginTop: 8 }} onClick={openCreate}>Add Product</button>}</div></td></tr>
               ) : products.map((p) => (
                 <tr key={p.product_id} style={{ opacity: p.is_active ? 1 : 0.5 }}>
                   <td>
@@ -728,7 +729,7 @@ export default function ProductsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
@@ -743,7 +744,7 @@ export default function ProductsPage() {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" style={{ maxWidth: 720, textAlign: 'left', padding: 0, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-5) var(--space-6)', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-5) var(--space-6)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
               <div>
                 <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)', fontWeight: 500 }}>{viewing.sku}</span>
                 <h3 style={{ margin: 0, fontSize: 'var(--text-h4)' }}>{viewing.product_name}</h3>
@@ -801,7 +802,7 @@ export default function ProductsPage() {
 
               {/* Details grid */}
               <Section title="Details" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', marginTop: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-3)', marginTop: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
                 <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Supplier</span>
                   <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{viewing.supplier_id ? supMap[viewing.supplier_id] ?? '—' : '—'}</div>
@@ -1003,7 +1004,7 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field"><span>Barcode</span><input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder="Optional" /></div>
                 <div className="field"><span>Brand</span><input value={form.brand} onChange={(e) => set('brand', e.target.value)} placeholder="Optional" /></div>
                 <div className="field"><span>Model</span><input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="Optional" /></div>
@@ -1015,7 +1016,7 @@ export default function ProductsPage() {
 
               {/* -- Relationships -- */}
               <Section title="Category / Supplier / UoM" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field">
                   <span>Category</span>
                   <select value={form.category_id} onChange={(e) => set('category_id', e.target.value)}>
@@ -1041,12 +1042,12 @@ export default function ProductsPage() {
 
               {/* -- Pricing -- */}
               <Section title="Pricing" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field"><span>Cost Price</span><input type="number" step="0.01" min="0" value={form.cost_price} onChange={(e) => set('cost_price', e.target.value)} placeholder="0.00" /></div>
                 <div className="field"><span>Retail Price</span><input type="number" step="0.01" min="0" value={form.retail_price} onChange={(e) => set('retail_price', e.target.value)} placeholder="0.00" /></div>
                 <div className="field"><span>Wholesale Price</span><input type="number" step="0.01" min="0" value={form.wholesale_price} onChange={(e) => set('wholesale_price', e.target.value)} placeholder="0.00" /></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field">
                   <span>Wholesale UoM</span>
                   <select value={form.wholesale_uom_id} onChange={(e) => set('wholesale_uom_id', e.target.value)}>
@@ -1082,13 +1083,13 @@ export default function ProductsPage() {
                 <span>Branch</span>
                 <input type="text" value={selectedBranch?.branch_name ?? 'Select a branch'} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field"><span>Qty on Hand</span><input type="number" step="0.01" min="0" value={form.quantity_on_hand} onChange={(e) => set('quantity_on_hand', e.target.value)} placeholder="0" /></div>
                 <div className="field"><span>Reorder Level</span><input type="number" step="0.01" min="0" value={form.reorder_level} onChange={(e) => set('reorder_level', e.target.value)} placeholder="0" /></div>
                 <div className="field"><span>Reorder Qty</span><input type="number" step="0.01" min="0" value={form.reorder_quantity} onChange={(e) => set('reorder_quantity', e.target.value)} placeholder="0" /></div>
                 <div className="field"><span>Available Qty</span><input type="number" step="0.01" min="0" value={form.available_quantity} onChange={(e) => set('available_quantity', e.target.value)} placeholder="0" /></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field"><span>Reserved Qty</span><input type="number" step="0.01" min="0" value={form.reserved_quantity} onChange={(e) => set('reserved_quantity', e.target.value)} placeholder="0" /></div>
                 <div className="field"><span>Damaged Qty</span><input type="number" step="0.01" min="0" value={form.damaged_quantity} onChange={(e) => set('damaged_quantity', e.target.value)} placeholder="0" /></div>
                 <div className="field"><span>Expired Qty</span><input type="number" step="0.01" min="0" value={form.expired_quantity} onChange={(e) => set('expired_quantity', e.target.value)} placeholder="0" /></div>
@@ -1096,7 +1097,7 @@ export default function ProductsPage() {
 
               {/* -- Physical -- */}
               <Section title="Physical Attributes" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field"><span>Weight</span><input type="number" step="0.01" min="0" value={form.weight} onChange={(e) => set('weight', e.target.value)} placeholder="kg" /></div>
                 <div className="field"><span>Length</span><input type="number" step="0.01" min="0" value={form.length} onChange={(e) => set('length', e.target.value)} placeholder="cm" /></div>
                 <div className="field"><span>Width</span><input type="number" step="0.01" min="0" value={form.width} onChange={(e) => set('width', e.target.value)} placeholder="cm" /></div>
@@ -1112,21 +1113,15 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* ---- Confirm dialog ---- */}
-      {confirmTarget && (
-        <div className="dialog-overlay" onClick={() => setConfirmTarget(null)}>
-          <div className="dialog" onClick={(e) => e.stopPropagation()}>
-            <h3>{confirmTarget.is_active ? 'Deactivate product?' : 'Activate product?'}</h3>
-            <p>Are you sure you want to {confirmTarget.is_active ? 'deactivate' : 'activate'} <strong>{confirmTarget.product_name}</strong>?</p>
-            <div className="dialog__actions">
-              <button type="button" className="btn btn--ghost" onClick={() => setConfirmTarget(null)}>Cancel</button>
-              <button type="button" className={`btn ${confirmTarget.is_active ? 'btn--danger' : 'btn--primary'}`} onClick={() => { const p = confirmTarget; setConfirmTarget(null); handleToggle(p) }}>
-                {confirmTarget.is_active ? 'Deactivate' : 'Activate'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!confirmTarget}
+        title={confirmTarget?.is_active ? 'Deactivate product?' : 'Activate product?'}
+        message={confirmTarget ? `Are you sure you want to ${confirmTarget.is_active ? 'deactivate' : 'activate'} ${confirmTarget.product_name}?` : ''}
+        confirmLabel={confirmTarget?.is_active ? 'Deactivate' : 'Activate'}
+        variant={confirmTarget?.is_active ? 'danger' : 'primary'}
+        onConfirm={() => { if (confirmTarget) { const p = confirmTarget; setConfirmTarget(null); handleToggle(p) } }}
+        onCancel={() => setConfirmTarget(null)}
+      />
 
       {/* ---- Import Modal ---- */}
       {modal === 'import' && importRows.length > 0 && (

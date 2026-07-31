@@ -105,6 +105,7 @@ router.post('/', authenticate, checkPermission('MANAGE_USERS'), createUserValida
  *                     $ref: '#/components/schemas/User'
  */
 router.get('/', authenticate, checkPermission('MANAGE_USERS'), listUsersValidation, validate, userController.listUsers);
+router.get('/lookup', authenticate, checkPermission('MANAGE_NOTIFICATIONS'), userController.lookupUsers);
 /**
  * @openapi
  * /users/{id}:

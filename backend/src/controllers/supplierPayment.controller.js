@@ -9,7 +9,7 @@ async function createSupplierPayment(req, res, next) {
       payment_method: req.body.payment_method,
       reference_number: req.body.reference_number,
       po_id: req.body.po_id,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {
@@ -24,6 +24,16 @@ async function listPaymentsBySupplier(req, res, next) {
     const offset = (page - 1) * limit;
     const results = await supplierPaymentService.listPaymentsBySupplier(supplierId, { limit: Number(limit), offset: Number(offset) });
     res.json({ data: results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listAllPayments(req, res, next) {
+  try {
+    const { page = 1, limit = 50, supplierId, poId } = req.query || {};
+    const result = await supplierPaymentService.listAllPayments({ page: Number(page), limit: Number(limit), supplierId, poId });
+    res.json({ data: result.items, total: result.total });
   } catch (err) {
     next(err);
   }
@@ -65,6 +75,7 @@ async function deletePayment(req, res, next) {
 module.exports = {
   createSupplierPayment,
   listPaymentsBySupplier,
+  listAllPayments,
   getPaymentById,
   updatePayment,
   deletePayment,

@@ -9,6 +9,7 @@ const productRepo = require('../repositories/product.repository');
 const auditRepo = require('../repositories/audit.repository');
 const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
+const priceHistoryService = require('./priceHistory.service');
 
 exports.createProduct = async (payload, actorId = null) => {
   // Basic required fields
@@ -63,6 +64,21 @@ exports.updateProduct = async (productId, fields, actorId = null) => {
 
   const updated = await productRepo.updateProduct(productId, fields);
   await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT', 'PRODUCT', productId, fields);
+
+  const priceFields = ['retail_price', 'cost_price', 'wholesale_price'];
+  for (const field of priceFields) {
+    if (field in fields && Number(fields[field]) !== Number(existing[field] || 0)) {
+      const oldVal = existing[field] != null ? Number(existing[field]) : null;
+      const newVal = Number(fields[field]);
+      priceHistoryService.createPriceHistory({
+        product_id: productId,
+        old_price: oldVal,
+        price: newVal,
+        changed_by: actorId,
+      }).catch((e) => console.error('price history error', e.message));
+    }
+  }
+
   return updated;
 };
 

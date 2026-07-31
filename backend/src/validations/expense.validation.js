@@ -25,7 +25,7 @@ const listExpensesValidation = [
   query('fromDate').optional().isISO8601(),
   query('toDate').optional().isISO8601(),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 500 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
 ];
 
 module.exports = {

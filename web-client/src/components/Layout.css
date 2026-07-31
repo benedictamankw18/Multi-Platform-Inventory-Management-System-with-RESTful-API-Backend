@@ -30,6 +30,14 @@
   border-bottom: 1px solid var(--border);
 }
 
+.sidebar__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .sidebar__brand-text {
   display: flex;
   flex-direction: column;
@@ -212,6 +220,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-bottom: var(--space-5);
 }
 
@@ -507,17 +517,10 @@
   .page {
     padding: var(--space-4) var(--space-4) var(--space-10);
   }
-}
 
-@media (max-width: 735px) {
   .pos-main {
     flex-direction: column;
     height: auto;
-  }
-
-  .dropdown-results{
-    max-height: 200px;
-    z-index: 99999;
   }
 
   .pos-cart {
@@ -528,6 +531,13 @@
     width: 100% !important;
     border-left: none !important;
     border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 735px) {
+  .dropdown-results{
+    max-height: 200px;
+    z-index: 99999;
   }
 }
 
@@ -572,19 +582,19 @@
 .receipt-branch {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: #000000;
 }
 
 .receipt-meta {
   font-size: 11px;
-  color: #555;
+  color: #000000;
   line-height: 1.4;
 }
 
 .receipt-section {
   margin: 0;
   padding: 4px 0;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid #000;
 }
 
 .receipt-row {
@@ -597,8 +607,8 @@
 .r-center { text-align: center; }
 .r-right { text-align: right; }
 .r-left { text-align: left; }
-.r-discount { color: #16a34a; }
-.r-remain { color: #dc2626; }
+.r-discount { color: #000000; }
+.r-remain { color: #000000; }
 
 .receipt-items {
   width: 100%;
@@ -618,7 +628,7 @@
 .receipt-items th {
   font-weight: 600;
   text-align: left;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #000000;
 }
 
 .ri-name  { width: auto; white-space: nowrap; }
@@ -643,12 +653,12 @@
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: #444;
+  color: #000000;
   margin-top: 1px;
 }
 
 .receipt-totals {
-  border-top: 1px dashed #888;
+  border-top: 1px dashed #000000;
   padding-top: 4px;
 }
 
@@ -663,7 +673,7 @@
 }
 
 .receipt-payment {
-  border-top: 1px dashed #888;
+  border-top: 1px dashed #000;
 }
 
 .receipt-barcode {
@@ -680,8 +690,8 @@
 .receipt-footer {
   text-align: center;
   font-size: 11px;
-  color: #555;
-  border-top: 1px solid #ccc;
+  color: #000;
+  border-top: 1px solid #000;
   padding: 4px 0;
   margin: 0;
 }

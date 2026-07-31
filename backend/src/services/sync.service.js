@@ -1,29 +1,47 @@
 const syncRepo = require('../repositories/sync.repository');
 const { v4: uuidv4 } = require('uuid');
+const notificationService = require('./notification.service');
 
 async function getLastSync(entity) {
   return syncRepo.getLastSync(entity);
 }
 
 async function pull(entity, since) {
-  // validate inputs minimally
-  const sinceTs = since || '1970-01-01T00:00:00Z';
-  const rows = await syncRepo.pullChanges(entity, sinceTs);
-  const syncId = uuidv4();
-  const localTransactionId = uuidv4(); // Could be passed in if needed
-  const deviceId = uuidv4(); // In a real scenario, this could be passed in or determined from context
-  await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
-  return rows;
+  try {
+    const sinceTs = since || '1970-01-01T00:00:00Z';
+    const rows = await syncRepo.pullChanges(entity, sinceTs);
+    const syncId = uuidv4();
+    const localTransactionId = uuidv4();
+    const deviceId = uuidv4();
+    await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pulled ${rows.length} rows` });
+    return rows;
+  } catch (e) {
+    const syncId = uuidv4();
+    const localTransactionId = uuidv4();
+    const deviceId = uuidv4();
+    await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'FAILED', synced_at: new Date().toISOString(), error_message: e.message });
+    await notificationService.createSyncFailureNotification({ entity, errorMessage: e.message, performedBy: null }).catch(() => {});
+    throw e;
+  }
 }
 
 async function push(entity, items) {
   if (!Array.isArray(items)) throw new Error('items must be an array');
-  const result = await syncRepo.pushChanges(entity, items);
-  const syncId = uuidv4();
-  const deviceId = uuidv4(); // In a real scenario, this could be passed in or determined from context
-  const localTransactionId = uuidv4(); // Could be passed in if needed
-  await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pushed ${items.length} items` });
-  return result;
+  try {
+    const result = await syncRepo.pushChanges(entity, items);
+    const syncId = uuidv4();
+    const deviceId = uuidv4();
+    const localTransactionId = uuidv4();
+    await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'SUCCESS', synced_at: new Date().toISOString(), error_message: `pushed ${items.length} items` });
+    return result;
+  } catch (e) {
+    const syncId = uuidv4();
+    const deviceId = uuidv4();
+    const localTransactionId = uuidv4();
+    await syncRepo.createSyncLog({ sync_id: syncId, device_id: deviceId, local_transaction_id: localTransactionId, entity_type: entity, sync_status: 'FAILED', synced_at: new Date().toISOString(), error_message: e.message });
+    await notificationService.createSyncFailureNotification({ entity, errorMessage: e.message, performedBy: null }).catch(() => {});
+    throw e;
+  }
 }
 
 // ---- Global sync helpers -------------------------------------------------
@@ -47,6 +65,7 @@ async function pushGlobal({ source = null, target = null, batch_id = null, sync_
         await syncRepo.markSyncSuccess(created.sync_id);
       } catch (e) {
         await syncRepo.markSyncFailed(created.sync_id, e.message);
+        await notificationService.createSyncFailureNotification({ entity: entity_type, errorMessage: e.message, performedBy: null }).catch(() => {});
       }
     }
   }
@@ -64,7 +83,9 @@ async function pullGlobal({ source = null, target = null, entity = null, since =
 }
 
 async function listSyncLogs(filters = {}) {
-  return syncRepo.listSyncLogs(filters);
+  const { page = 1, limit = 50, ...rest } = filters;
+  const offset = (Number(page) - 1) * Number(limit);
+  return syncRepo.listSyncLogs({ ...rest, limit: Number(limit), offset });
 }
 
 async function retrySync(sync_id) {

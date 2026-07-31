@@ -20,7 +20,11 @@ async function getCustomerById(id) {
 async function listCustomers(query) {
   const { q, isActive, page = 1, limit = 25 } = query || {};
   const offset = (page - 1) * limit;
-  return customerRepo.listCustomers({ q, isActive, limit, offset });
+  const [items, total] = await Promise.all([
+    customerRepo.listCustomers({ q, isActive, limit, offset }),
+    customerRepo.countCustomers({ q, isActive }),
+  ]);
+  return { items, total };
 }
 
 async function updateCustomer(id, patch, performedBy) {

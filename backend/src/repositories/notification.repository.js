@@ -68,6 +68,7 @@ async function listNotifications({
     userId,
     isRead,
     branchId,
+    notificationType,
     limit = 50,
     offset = 0
 }) {
@@ -102,6 +103,11 @@ async function listNotifications({
     if (branchId) {
         params.push(branchId);
         where.push(`n.branch_id = $${params.length}`);
+    }
+
+    if (notificationType) {
+        params.push(notificationType);
+        where.push(`n.notification_type = $${params.length}`);
     }
 
     if (where.length) {
@@ -204,6 +210,65 @@ async function deleteNotification(notificationId) {
     return rows[0] || null;
 }
 
+async function findRecentLowStock(branchId, productId, hours = 24) {
+    const q = `
+        SELECT notification_id
+        FROM notifications
+        WHERE branch_id = $1
+          AND notification_type = 'LOW_STOCK'
+          AND message ILIKE '%' || $2 || '%'
+          AND created_at >= NOW() - INTERVAL '1 hour' * $3
+          AND deleted_at IS NULL
+        LIMIT 1
+    `;
+    const { rows } = await client.query(q, [branchId, productId, hours]);
+    return rows[0] || null;
+}
+
+async function findUsersWithPermissionAtBranch(permissionNames, branchId) {
+    const q = `
+        SELECT DISTINCT u.user_id
+        FROM users u
+        JOIN user_branches ub ON ub.user_id = u.user_id
+        JOIN role_permissions rp ON rp.role_id = u.role_id
+        JOIN permissions p ON p.permission_id = rp.permission_id
+        WHERE ub.branch_id = $1
+          AND p.permission_name = ANY($2::text[])
+          AND u.deleted_at IS NULL
+          AND u.is_active = TRUE
+    `;
+    const { rows } = await client.query(q, [branchId, permissionNames]);
+    return rows.map(r => r.user_id);
+}
+
+async function findUsersWithPermission(permissionNames) {
+  const q = `
+    SELECT DISTINCT u.user_id
+    FROM users u
+    JOIN role_permissions rp ON rp.role_id = u.role_id
+    JOIN permissions p ON p.permission_id = rp.permission_id
+    WHERE p.permission_name = ANY($1::text[])
+      AND u.deleted_at IS NULL
+      AND u.is_active = TRUE
+  `;
+  const { rows } = await client.query(q, [permissionNames]);
+  return rows.map(r => r.user_id);
+}
+
+async function findRecentSyncFailure(entityType, hours = 1) {
+  const q = `
+    SELECT notification_id
+    FROM notifications
+    WHERE notification_type = 'SYNC_FAILURE'
+      AND message ILIKE '%' || $1 || '%'
+      AND created_at >= NOW() - INTERVAL '1 hour' * $2
+      AND deleted_at IS NULL
+    LIMIT 1
+  `;
+  const { rows } = await client.query(q, [entityType, hours]);
+  return rows[0] || null;
+}
+
 module.exports = {
   createNotification,
   getNotificationById,
@@ -211,4 +276,8 @@ module.exports = {
   markAsRead,
   updateNotification,
   deleteNotification,
+  findRecentLowStock,
+  findUsersWithPermissionAtBranch,
+  findUsersWithPermission,
+  findRecentSyncFailure,
 };

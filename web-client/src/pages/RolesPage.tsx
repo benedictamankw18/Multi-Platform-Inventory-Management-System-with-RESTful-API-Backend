@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 import {
   getRoles,
   getRoleById,
@@ -92,6 +93,7 @@ export default function RolesPage() {
   const [permDesc, setPermDesc] = useState('')
   const [permFormError, setPermFormError] = useState('')
   const [permFormSaving, setPermFormSaving] = useState(false)
+
 
   // ---- Permission delete confirm ----
   const [deletingPerm, setDeletingPerm] = useState<PermissionRecord | null>(null)
@@ -343,7 +345,7 @@ export default function RolesPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border)', marginBottom: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
         {(['roles', 'permissions'] as const).map(t => (
           <button
             key={t}
@@ -382,8 +384,8 @@ export default function RolesPage() {
         {loading ? (
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th colSpan={6}><div className="skeleton skeleton--row" /></th></tr></thead>
-              <tbody><tr><td colSpan={6}><div className="skeleton skeleton--row" /></td></tr></tbody>
+              <thead><tr key="loading-header"><th colSpan={6}><div className="skeleton skeleton--row" /></th></tr></thead>
+              <tbody><tr key="loading"><td colSpan={6}><div className="skeleton skeleton--row" /></td></tr></tbody>
             </table>
           </div>
         ) : tab === 'roles' ? (
@@ -507,7 +509,7 @@ export default function RolesPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
@@ -655,36 +657,19 @@ export default function RolesPage() {
       )}
 
       {/* ======== Role Delete Confirm ======== */}
-      {deletingRole && (
-        <div className="modal-overlay" onClick={() => { setDeletingRole(null); setDeleteCheck(null) }}>
-          <div className="modal" style={{ maxWidth: 420, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 12 }}>Delete Role</h3>
-            {deleteCheck ? (
-              <>
-                {!deleteCheck.canDelete ? (
-                  <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
-                    {deleteCheck.isSystem ? 'System roles cannot be deleted.' : 'This role is assigned to users and cannot be deleted. Reassign users first.'}
-                  </p>
-                ) : (
-                  <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
-                    Are you sure you want to delete <strong>{deletingRole.role_name}</strong>? This action cannot be undone.
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="skeleton skeleton--row" />
-            )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => { setDeletingRole(null); setDeleteCheck(null) }}>Cancel</button>
-              {deleteCheck?.canDelete && (
-                <button type="button" className="btn btn--primary" style={{ background: 'var(--danger)' }} disabled={deleteLoading} onClick={handleDeleteRole}>
-                  {deleteLoading ? 'Deleting...' : 'Delete'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!deletingRole}
+        title="Delete Role"
+        message={!deleteCheck ? undefined : !deleteCheck.canDelete
+          ? (deleteCheck.isSystem ? 'System roles cannot be deleted.' : 'This role is assigned to users and cannot be deleted. Reassign users first.')
+          : `Are you sure you want to delete ${deletingRole?.role_name}? This action cannot be undone.`
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteLoading}
+        onConfirm={handleDeleteRole}
+        onCancel={() => { setDeletingRole(null); setDeleteCheck(null) }}
+      />
 
       {/* ======== Permission Create/Edit Modal ======== */}
       {permFormOpen && (
@@ -726,38 +711,29 @@ export default function RolesPage() {
       )}
 
       {/* ======== Permission Delete Confirm ======== */}
-      {deletingPerm && (
-        <div className="modal-overlay" onClick={() => { setDeletingPerm(null); setPermDeleteCheck(null) }}>
-          <div className="modal" style={{ maxWidth: 480, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 12 }}>Delete Permission</h3>
-            {permDeleteCheck ? (
-              <>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: 12 }}>
-                  Are you sure you want to delete <strong style={{ fontFamily: 'monospace' }}>{deletingPerm.permission_name}</strong>?
-                </p>
-                {permDeleteCheck.rolesAffected.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>This permission will be removed from {permDeleteCheck.rolesAffected.length} role(s):</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {permDeleteCheck.rolesAffected.map(r => (
-                        <span key={r.role_id} className="badge badge--info">{r.role_name}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="skeleton skeleton--row" />
-            )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => { setDeletingPerm(null); setPermDeleteCheck(null) }}>Cancel</button>
-              <button type="button" className="btn btn--primary" style={{ background: 'var(--error)' }} disabled={permDeleteLoading} onClick={handleDeletePerm}>
-                {permDeleteLoading ? 'Deleting...' : 'Delete'}
-              </button>
+      <ConfirmModal
+        open={!!deletingPerm}
+        title="Delete Permission"
+        confirmLabel="Delete"
+        variant="danger"
+        loading={permDeleteLoading}
+        onConfirm={handleDeletePerm}
+        onCancel={() => { setDeletingPerm(null); setPermDeleteCheck(null) }}
+      >
+        <p style={{ color: 'var(--text-secondary)', marginBottom: permDeleteCheck?.rolesAffected?.length ? 12 : 0, fontSize: 14 }}>
+          Are you sure you want to delete <strong style={{ fontFamily: 'monospace' }}>{deletingPerm?.permission_name}</strong>?
+        </p>
+        {permDeleteCheck && permDeleteCheck.rolesAffected.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>This permission will be removed from {permDeleteCheck.rolesAffected.length} role(s):</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {permDeleteCheck.rolesAffected.map(r => (
+                <span key={r.role_id} className="badge badge--info">{r.role_name}</span>
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ConfirmModal>
     </div>
   )
 }

@@ -311,7 +311,7 @@ export default function InventoryPage() {
           <h1>Inventory</h1>
           <p className="page-subtitle">{total} record{total !== 1 ? 's' : ''} total</p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowImportMenu(!showImportMenu)}>Import</button>
             {showImportMenu && (
@@ -373,9 +373,9 @@ export default function InventoryPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={8}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={8}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No inventory records found.</p></div></td></tr>
+                <tr key="empty"><td colSpan={8}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No inventory records found.</p></div></td></tr>
               ) : items.map((item) => (
                 <tr key={item.inventory_id}>
                   <td>
@@ -410,7 +410,7 @@ export default function InventoryPage() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>

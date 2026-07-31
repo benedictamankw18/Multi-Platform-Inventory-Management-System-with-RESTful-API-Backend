@@ -7,7 +7,7 @@ async function createPurchase(req, res, next) {
       order_number: req.body.po_number,
       order_date: req.body.order_date,
       branch_id: req.body.branch_id,
-      expected_date: req.body.expected_date,
+      expected_delivery_date: req.body.expected_delivery_date,
       status: req.body.status,
       total_amount: req.body.total_amount,
       createdBy: req.user ? req.user.sub : null,
@@ -43,7 +43,7 @@ async function updatePurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
     const patch = req.body;
-    const updated = await purchaseService.updatePurchase(id, patch, req.user ? req.user.id : null);
+    const updated = await purchaseService.updatePurchase(id, patch, req.user ? req.user.sub : null);
     res.json({ data: updated });
   } catch (err) {
     next(err);
@@ -53,7 +53,7 @@ async function updatePurchase(req, res, next) {
 async function deactivatePurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
-    const deactivated = await purchaseService.deactivatePurchase(id, req.user ? req.user.id : null);
+    const deactivated = await purchaseService.deactivatePurchase(id, req.user ? req.user.sub : null);
     res.json({ data: deactivated });
   } catch (err) {
     next(err);
@@ -64,7 +64,7 @@ async function deactivatePurchase(req, res, next) {
 async function reactivatePurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
-    const reactivated = await purchaseService.reactivatePurchase(id, req.user ? req.user.id : null);
+    const reactivated = await purchaseService.reactivatePurchase(id, req.user ? req.user.sub : null);
     res.json({ data: reactivated });
   } catch (err) {
     next(err);
@@ -74,7 +74,7 @@ async function reactivatePurchase(req, res, next) {
 async function submitPurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
-    const result = await purchaseService.submitPurchase(id, req.user ? req.user.id : null);
+    const result = await purchaseService.submitPurchase(id, req.user ? req.user.sub : null);
     res.json({ data: result });
   } catch (err) {
     next(err);
@@ -84,7 +84,7 @@ async function submitPurchase(req, res, next) {
 async function approvePurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
-    const result = await purchaseService.approvePurchase(id, req.user ? req.user.id : null);
+    const result = await purchaseService.approvePurchase(id, req.user ? req.user.sub : null);
     res.json({ data: result });
   } catch (err) {
     next(err);
@@ -94,8 +94,23 @@ async function approvePurchase(req, res, next) {
 async function receivePurchase(req, res, next) {
   try {
     const id = req.params.purchaseId;
-    const result = await purchaseService.receivePurchase(id, req.user ? req.user.id : null);
+    const result = await purchaseService.receivePurchase(id, req.user ? req.user.sub : null);
     res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function recordPayment(req, res, next) {
+  try {
+    const id = req.params.purchaseId;
+    const payment = await purchaseService.recordPayment(id, {
+      amount: req.body.amount,
+      payment_method: req.body.payment_method,
+      payment_date: req.body.payment_date,
+      reference_number: req.body.reference_number,
+    }, req.user ? req.user.sub : null);
+    res.status(201).json({ data: payment });
   } catch (err) {
     next(err);
   }
@@ -110,5 +125,6 @@ module.exports = {
   submitPurchase,
   approvePurchase,
   receivePurchase,
+  recordPayment,
   reactivatePurchase,
 };

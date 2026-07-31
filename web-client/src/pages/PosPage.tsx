@@ -3,13 +3,16 @@ import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 import {
   searchProducts,
   createSale,
   getSaleReceipt,
   getBusinessSettings,
+  getCustomers,
   resolveImageUrl,
   type Product,
+  type Customer,
   type Sale,
 } from '../services/api'
 
@@ -107,6 +110,13 @@ export default function PosPage() {
   const [newPaymentMethod, setNewPaymentMethod] = useState<PaymentMethod>('CASH')
   const [newPaymentAmount, setNewPaymentAmount] = useState('')
   const [customerName, setCustomerName] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('')
+  const [customerResults, setCustomerResults] = useState<Customer[]>([])
+  const [customerSearching, setCustomerSearching] = useState(false)
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false)
+  const customerSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const customerInputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
   const [lastSale, setLastSale] = useState<Sale & { items: unknown[]; payments: unknown[] } | null>(null)
   const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({})
@@ -131,6 +141,10 @@ export default function PosPage() {
 
   useEffect(() => {
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current) }
+  }, [])
+
+  useEffect(() => {
+    return () => { if (customerSearchTimeout.current) clearTimeout(customerSearchTimeout.current) }
   }, [])
 
   useEffect(() => {
@@ -211,6 +225,72 @@ export default function PosPage() {
   function handleSearchKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       setShowDropdown(false)
+    }
+  }
+
+  function handleCustomerSearch(value: string) {
+    setCustomerSearchQuery(value)
+    setCustomerDropdownOpen(true)
+    if (customerSearchTimeout.current) clearTimeout(customerSearchTimeout.current)
+
+    if (!value.trim()) {
+      setCustomerResults([])
+      return
+    }
+
+    customerSearchTimeout.current = setTimeout(async () => {
+      setCustomerSearching(true)
+      try {
+        const res = await getCustomers({ search: value.trim(), limit: 10, page: 1 })
+        const customers = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        setCustomerResults(customers.filter((c: Customer) => c.is_active !== false))
+      } catch {
+        setCustomerResults([])
+      }
+      setCustomerSearching(false)
+    }, 250)
+  }
+
+  function selectCustomer(customer: Customer) {
+    setSelectedCustomer(customer)
+    setCustomerName(customer.business_name || customer.contact_name || customer.phone || '')
+    setCustomerSearchQuery('')
+    setCustomerResults([])
+    setCustomerDropdownOpen(false)
+    customerInputRef.current?.blur()
+  }
+
+  function selectCustomCustomer() {
+    const name = customerSearchQuery.trim()
+    if (!name) return
+    setSelectedCustomer(null)
+    setCustomerName(name)
+    setCustomerSearchQuery('')
+    setCustomerResults([])
+    setCustomerDropdownOpen(false)
+    customerInputRef.current?.blur()
+  }
+
+  function clearCustomer() {
+    setSelectedCustomer(null)
+    setCustomerName('')
+    setCustomerSearchQuery('')
+    setCustomerResults([])
+    setCustomerDropdownOpen(false)
+  }
+
+  function handleCustomerKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setCustomerDropdownOpen(false)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (customerResults.length > 0) {
+        selectCustomer(customerResults[0])
+      } else {
+        selectCustomCustomer()
+      }
+    } else if (e.key === 'Backspace' && !customerSearchQuery && customerName) {
+      clearCustomer()
     }
   }
 
@@ -299,6 +379,7 @@ export default function PosPage() {
     try {
       const salePayload = {
         branch_id: selectedBranch.branch_id,
+        customer_id: selectedCustomer?.customer_id || undefined,
         customer_name: customerName.trim() || undefined,
         cashier_id: user?.userId || undefined,
         cashier_name: user?.fullName || undefined,
@@ -332,6 +413,7 @@ export default function PosPage() {
       setPayments([])
       setNewPaymentAmount('')
       setCustomerName('')
+      setSelectedCustomer(null)
       setSearchQuery('')
 
       // Fetch receipt data + business settings in parallel
@@ -384,6 +466,7 @@ export default function PosPage() {
     setPayments([])
     setNewPaymentAmount('')
     setCustomerName('')
+    setSelectedCustomer(null)
     setSearchQuery('')
     setNewPaymentMethod('CASH')
     setQtyDrafts({})
@@ -403,6 +486,7 @@ export default function PosPage() {
           confirmSaveCart()
           setCart(saved.cart)
           setCustomerName(saved.customerName === 'Walk-in' ? '' : saved.customerName)
+          setSelectedCustomer(null)
           setPayments(saved.payments ?? [])
           setNewPaymentAmount('')
           setSavedCarts((prev) => prev.filter((s) => s.id !== id))
@@ -414,6 +498,7 @@ export default function PosPage() {
     }
     setCart(saved.cart)
     setCustomerName(saved.customerName === 'Walk-in' ? '' : saved.customerName)
+    setSelectedCustomer(null)
     setPayments(saved.payments ?? [])
     setNewPaymentAmount('')
     setSavedCarts((prev) => prev.filter((s) => s.id !== id))
@@ -646,15 +731,81 @@ export default function PosPage() {
         <div className="pos-payment" style={{ width: 360, borderLeft: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
           <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Customer */}
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer</label>
+            <div style={{ position: 'relative' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span>Customer</span>
+                {(selectedCustomer || customerName) && (
+                  <button type="button" onClick={clearCustomer} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11, padding: 0, fontWeight: 500, textTransform: 'none', letterSpacing: 'normal' }}>Clear</button>
+                )}
+              </label>
               <input
+                ref={customerInputRef}
                 type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                value={customerDropdownOpen ? customerSearchQuery : (selectedCustomer ? (selectedCustomer.business_name || selectedCustomer.contact_name || selectedCustomer.phone || '') : customerName)}
+                onChange={(e) => { if (!customerDropdownOpen) setCustomerName(''); handleCustomerSearch(e.target.value) }}
+                onFocus={() => { setCustomerDropdownOpen(true); setCustomerSearchQuery(''); if (!selectedCustomer && !customerName) setCustomerSearchQuery('') }}
+                onBlur={() => setTimeout(() => {
+                  setCustomerDropdownOpen(false)
+                  if (!selectedCustomer && customerSearchQuery.trim() && !customerName) {
+                    setCustomerName(customerSearchQuery.trim())
+                    setCustomerSearchQuery('')
+                  }
+                }, 200)}
+                onKeyDown={handleCustomerKeyDown}
                 placeholder="Walk-in customer"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14 }}
+                style={{ width: '100%', padding: '8px 12px', border: `1px solid ${selectedCustomer ? 'var(--success)' : 'var(--border)'}`, borderRadius: 6, background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14 }}
               />
+              {selectedCustomer && (
+                <div style={{ position: 'absolute', right: 10, top: 32, fontSize: 11, color: 'var(--success)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="12" height="12"><path d="M20 6L9 17l-5-5" /></svg>
+                  Linked
+                </div>
+              )}
+
+              {customerDropdownOpen && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: 'var(--shadow-lg)', zIndex: 50, maxHeight: 240, overflowY: 'auto' }}>
+                  {/* Walk-in option */}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { clearCustomer(); setCustomerName(''); customerInputRef.current?.blur() }}
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', background: (!selectedCustomer && !customerName) ? 'rgba(34,197,94,0.08)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}
+                  >
+                    Walk-in Customer
+                  </button>
+
+                  {customerSearching && (
+                    <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>Searching…</div>
+                  )}
+
+                  {!customerSearching && customerResults.length > 0 && customerResults.map((c) => (
+                    <button
+                      type="button"
+                      key={c.customer_id}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectCustomer(c)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '8px 12px', textAlign: 'left', background: selectedCustomer?.customer_id === c.customer_id ? 'rgba(37,99,235,0.08)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', gap: 8 }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{c.business_name || c.contact_name || 'Unnamed'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.phone || ''}{c.contact_name && c.business_name ? ` · ${c.contact_name}` : ''}</div>
+                      </div>
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--bg)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{c.customer_type || 'INDIVIDUAL'}</span>
+                    </button>
+                  ))}
+
+                  {!customerSearching && customerResults.length === 0 && customerSearchQuery.trim() && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={selectCustomCustomer}
+                      style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', background: 'rgba(37,99,235,0.05)', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--primary)' }}
+                    >
+                      Use "{customerSearchQuery}" as name
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Sale Type Indicator */}
@@ -809,21 +960,14 @@ export default function PosPage() {
         </div>
       </div>
 
-      {/* ── Confirm Dialog ── */}
-      {confirmDialog && (
-        <div className="modal-overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 360, textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(217,119,6,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" width="24" height="24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-primary)' }}>{confirmDialog.message}</p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setConfirmDialog(null)}>Cancel</button>
-              <button type="button" className="btn btn--primary" onClick={confirmDialog.onConfirm}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!confirmDialog}
+        title="Load Saved Cart"
+        message={confirmDialog?.message}
+        confirmLabel="Confirm"
+        onConfirm={() => { if (confirmDialog) { const fn = confirmDialog.onConfirm; setConfirmDialog(null); fn() } }}
+        onCancel={() => setConfirmDialog(null)}
+      />
 
       {/* ── Save Cart Modal ── */}
       {showSaveModal && (
@@ -853,7 +997,7 @@ export default function PosPage() {
       {/* ── Saved Carts Modal ── */}
       {showSavedCartsModal && (
         <div className="modal-overlay" onClick={() => setShowSavedCartsModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(520px, 100%)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0 }}>Saved Carts</h3>
               <button type="button" onClick={() => setShowSavedCartsModal(false)}
@@ -1110,7 +1254,7 @@ export default function PosPage() {
               <span>{fmt(Number(sale?.total_amount ?? total))}</span>
             </div>
             {Number(sale?.refunded_amount ?? 0) > 0 && (
-              <div className="receipt-row" style={{ color: '#d97706' }}>
+              <div className="receipt-row" style={{ color: '#000000' }}>
                 <span>Refunded</span>
                 <span>{fmt(Number(sale.refunded_amount))}</span>
               </div>
@@ -1157,9 +1301,8 @@ export default function PosPage() {
 
           {/* Footer */}
           {businessInfo.receipt_footer && (
-            <div className="receipt-footer">{businessInfo.receipt_footer}</div>
+            <div className="receipt-footer">{businessInfo.receipt_footer || 'Thank you for your business!'}</div>
           )}
-          <div className="receipt-thankyou">Thank you for your business!</div>
         </div>
       </div>
     </>

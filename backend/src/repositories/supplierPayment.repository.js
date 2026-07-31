@@ -28,6 +28,17 @@ async function listSupplierPayments({ supplierId, poId, limit = 50, offset = 0 }
   return rows;
 }
 
+async function countSupplierPayments({ supplierId, poId } = {}) {
+  let base = `SELECT COUNT(*) FROM ${TABLE}`;
+  const params = [];
+  const where = [];
+  if (supplierId) { params.push(supplierId); where.push(`supplier_id = $${params.length}`); }
+  if (poId) { params.push(poId); where.push(`po_id = $${params.length}`); }
+  if (where.length) base += ` WHERE ` + where.join(' AND ');
+  const { rows } = await client.query(base, params);
+  return Number(rows[0].count);
+}
+
 async function updateSupplierPayment(payment_id, patch) {
   const allowed = ['supplier_id','po_id','amount','payment_method','payment_date','reference_number'];
   const fields = [];
@@ -53,6 +64,7 @@ module.exports = {
   createSupplierPayment,
   getSupplierPaymentById,
   listSupplierPayments,
+  countSupplierPayments,
   updateSupplierPayment,
   deleteSupplierPayment,
 };

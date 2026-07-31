@@ -10,7 +10,7 @@ async function createTransaction(req, res, next) {
       reference_type: req.body.reference_type,
       reference_id: req.body.reference_id,
       notes: req.body.notes,
-      performedBy: req.user ? req.user.id : null,
+      performedBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {

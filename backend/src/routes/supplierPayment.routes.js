@@ -3,9 +3,11 @@ const router = express.Router();
 
 const supplierPaymentController = require('../controllers/supplierPayment.controller');
 const authenticate = require('../middleware/auth.middleware');
+const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
 const { createSupplierPaymentValidation, paymentIdValidation, updateSupplierPaymentValidation, listSupplierPaymentsValidation } = require('../validations/supplierPayment.validation');
 
+router.get('/', authenticate, checkPermission('VIEW_SUPPLIERS'), supplierPaymentController.listAllPayments);
 router.post('/', authenticate, createSupplierPaymentValidation, validate, supplierPaymentController.createSupplierPayment);
 router.get('/:paymentId', authenticate, paymentIdValidation, validate, supplierPaymentController.getPaymentById);
 router.put('/:paymentId', authenticate, paymentIdValidation, updateSupplierPaymentValidation, validate, supplierPaymentController.updatePayment);

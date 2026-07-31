@@ -23,23 +23,25 @@ async function getTransactionById(id) {
 }
 
 async function listTransactions({ search, productId, branchId, transactionType, referenceType, startDate, endDate, limit = 25, offset = 0 }) {
-  let base = `SELECT * FROM ${TRAN_TABLE}`;
+  let base = `SELECT it.*, p.product_name, p.sku, b.branch_name FROM ${TRAN_TABLE} it
+              left join products p on p.product_id = it.product_id
+              left join branches b on b.branch_id = it.branch_id`;
   const params = [];
   const where = [];
   if (search) {
     params.push(`%${search}%`);
-    where.push(`notes ILIKE $${params.length}`);
+    where.push(`it.notes ILIKE $${params.length}`);
   }
-  if (productId) { params.push(productId); where.push(`product_id = $${params.length}`); }
-  if (branchId) { params.push(branchId); where.push(`branch_id = $${params.length}`); }
-  if (transactionType) { params.push(transactionType); where.push(`transaction_type = $${params.length}`); }
-  if (referenceType) { params.push(referenceType); where.push(`reference_type = $${params.length}`); }
-  if (startDate) { params.push(startDate); where.push(`created_at >= $${params.length}`); }
-  if (endDate) { params.push(endDate); where.push(`created_at <= $${params.length}`); }
+  if (productId) { params.push(productId); where.push(`it.product_id = $${params.length}`); }
+  if (branchId) { params.push(branchId); where.push(`it.branch_id = $${params.length}`); }
+  if (transactionType) { params.push(transactionType); where.push(`it.transaction_type = $${params.length}`); }
+  if (referenceType) { params.push(referenceType); where.push(`it.reference_type = $${params.length}`); }
+  if (startDate) { params.push(startDate); where.push(`it.created_at >= $${params.length}`); }
+  if (endDate) { params.push(endDate); where.push(`it.created_at <= $${params.length}`); }
   if (where.length) base += ` WHERE ` + where.join(' AND ');
   params.push(limit);
   params.push(offset);
-  base += ` ORDER BY created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+  base += ` ORDER BY it.created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
   const { rows } = await client.query(base, params);
   return rows;
 }

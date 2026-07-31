@@ -3,6 +3,8 @@ const inventoryRepo = require('../repositories/inventory.repository');
 const auditRepo = require('../repositories/audit.repository');
 const productBranchInventoryRepo = require('../repositories/productBranchInventory.repository');
 const productRepo = require('../repositories/product.repository');
+const branchRepo = require('../repositories/branch.repository');
+const notificationService = require('./notification.service');
 
 async function createInventory({ product_id, branch_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, createdBy }) {
   const id = uuidv4();
@@ -97,6 +99,21 @@ async function createTransaction({ product_id, branch_id, quantity, type, refere
     await auditRepo.writeLog(performedBy, 'inventory_transaction', 'INVENTORY', transaction_id, { product_id, branch_id, transaction_type, quantity });
   } catch (e) {
     console.error('audit error', e.message);
+  }
+
+  if (transaction_type === 'STOCK_IN' || transaction_type === 'STOCK_OUT') {
+    try {
+      const product = await productRepo.getProductById(product_id);
+      const threshold = pbi && pbi.reorder_level > 0 ? Number(pbi.reorder_level) : (product ? Number(product.minimum_stock) : 0);
+      if (threshold > 0 && new_quantity <= threshold) {
+        const branch = await branchRepo.getBranchById(branch_id);
+        if (branch) {
+          await notificationService.createLowStockNotification({ product, branch, newQuantity: new_quantity, performedBy, threshold });
+        }
+      }
+    } catch (e) {
+      console.error('low-stock notification error', e.message);
+    }
   }
 
   return created;

@@ -59,11 +59,12 @@ exports.writeLog = async (
 // ---------------------------------------------------------------------------
 // Internal helper — builds WHERE clause from optional filters
 // ---------------------------------------------------------------------------
-function buildFilters({ userId, action, entityType, entityId, startDate, endDate } = {}) {
+function buildFilters({ userId, userSearch, action, entityType, entityId, startDate, endDate } = {}) {
   const conditions = [];
   const values = [];
 
   if (userId)     { values.push(userId);                    conditions.push(`a.user_id = $${values.length}`); }
+  if (userSearch) { values.push(`%${userSearch}%`);         conditions.push(`(u.full_name ILIKE $${values.length} OR u.username ILIKE $${values.length} OR u.email ILIKE $${values.length} OR u.phone ILIKE $${values.length})`); }
   if (action)     { values.push(`%${action}%`);             conditions.push(`a.action ILIKE $${values.length}`); }
   if (entityType) { values.push(entityType.toUpperCase());  conditions.push(`a.entity_type = $${values.length}`); }
   if (entityId)   { values.push(entityId);                  conditions.push(`a.entity_id = $${values.length}`); }
@@ -144,7 +145,7 @@ exports.findAll = async (filters = {}, client = db) => {
 
 exports.count = async (filters = {}, client = db) => {
   const { whereClause, values } = buildFilters(filters);
-  const query = `SELECT COUNT(*) FROM audit_logs a ${whereClause};`;
+  const query = `SELECT COUNT(*) FROM audit_logs a LEFT JOIN users u ON u.user_id = a.user_id ${whereClause};`;
   const { rows } = await client.query(query, values);
   return Number(rows[0].count);
 };

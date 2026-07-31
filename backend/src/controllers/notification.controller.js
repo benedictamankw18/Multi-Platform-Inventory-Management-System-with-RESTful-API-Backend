@@ -14,6 +14,7 @@ async function createNotification(req, res, next) {
       expires_at: req.body.expires_at,
       body: req.body.body || null,
       recipients : req.body.recipients || null,
+      channels: req.body.channels || ['in_app'],
     });
     res.status(201).json({ data: created });
   } catch (err) {

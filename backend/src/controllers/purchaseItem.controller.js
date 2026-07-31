@@ -13,7 +13,7 @@ async function createPurchaseItem(req, res, next) {
       expiry_date: req.body.expiry_date,
       batch_number: req.body.batch_number,
       serial_number: req.body.serial_number,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {
@@ -36,7 +36,7 @@ async function listPurchaseItems(req, res, next) {
 async function updatePurchaseItem(req, res, next) {
   try {
     const item_id = req.params.itemId;
-    const updated = await purchaseItemService.updateItem(item_id, req.body, req.user ? req.user.id : null);
+    const updated = await purchaseItemService.updateItem(item_id, req.body, req.user ? req.user.sub : null);
     res.json({ data: updated });
   } catch (err) {
     next(err);
@@ -46,7 +46,7 @@ async function updatePurchaseItem(req, res, next) {
 async function deletePurchaseItem(req, res, next) {
   try {
     const item_id = req.params.itemId;
-    const deleted = await purchaseItemService.removeItem(item_id, req.user ? req.user.id : null);
+    const deleted = await purchaseItemService.removeItem(item_id, req.user ? req.user.sub : null);
     res.json({ data: deleted });
   } catch (err) {
     next(err);

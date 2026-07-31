@@ -192,3 +192,26 @@ exports.listUserBranches = async (req, res) => {
     return handleError(res, err);
   }
 };
+
+// ---------------------------------------------------------------------------
+// GET /api/users/lookup?q=
+// Lightweight user search for notification recipient picker.
+// Returns id, full_name, email, phone for users matching the query.
+// Requires MANAGE_NOTIFICATIONS permission.
+// ---------------------------------------------------------------------------
+exports.lookupUsers = async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    const users = await userService.listUsers({ q, limit: 20 });
+    const items = Array.isArray(users?.users) ? users.users : Array.isArray(users) ? users : [];
+    const result = items.map((u) => ({
+      user_id: u.user_id,
+      full_name: u.full_name,
+      email: u.email,
+      phone: u.phone,
+    }));
+    return res.status(200).json({ users: result });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};

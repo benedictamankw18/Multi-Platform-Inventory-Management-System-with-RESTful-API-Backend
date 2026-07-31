@@ -17,7 +17,9 @@ async function createExpense(payload, actor = null) {
 }
 
 async function listExpenses(query) {
-  return expenseRepo.listExpenses(query || {});
+  const items = await expenseRepo.listExpenses(query || {});
+  const total = await expenseRepo.countExpenses(query || {});
+  return { items, total };
 }
 
 async function getExpenseById(id) {

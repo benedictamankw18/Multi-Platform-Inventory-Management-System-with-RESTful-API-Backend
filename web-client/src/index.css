@@ -93,6 +93,16 @@
   box-sizing: border-box;
 }
 
+
+.alert--success{
+  color: var(--success);
+
+}
+
+.alert--error{
+  color: var(--error);
+}
+
 *,
 *::before,
 *::after {

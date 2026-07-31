@@ -452,7 +452,7 @@ export default function BranchesPage() {
           <h1>Branches</h1>
           <p className="page-subtitle">{total} branch{total !== 1 ? 'es' : ''} total</p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {hasPermission('MANAGE_BRANCHES') && (
           <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowImportMenu(!showImportMenu)}>Import</button>
@@ -509,7 +509,7 @@ export default function BranchesPage() {
           <div className="table-wrap">
             <table className="data-table">
               <thead><tr><th>Name</th><th>Address / City</th><th>Phone</th><th>Email</th><th>Manager</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
-              <tbody><tr><td colSpan={7}><div className="skeleton skeleton--row" /></td></tr></tbody>
+              <tbody><tr key="loading"><td colSpan={7}><div className="skeleton skeleton--row" /></td></tr></tbody>
             </table>
           </div>
         ) : items.length === 0 ? (
@@ -563,7 +563,7 @@ export default function BranchesPage() {
         )}
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
@@ -709,7 +709,7 @@ export default function BranchesPage() {
           <div className="modal-overlay" onClick={closeView}>
             <div className="modal" style={{ maxWidth: 600, textAlign: 'left', padding: 0, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-5) var(--space-6)', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-5) var(--space-6)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <h3 style={{ margin: 0, fontSize: 'var(--text-h4)' }}>{v.branch_name}</h3>
                   <span className={`badge ${v.is_active ? 'badge--success' : 'badge--danger'}`}>{v.is_active ? 'Active' : 'Inactive'}</span>

@@ -21,6 +21,13 @@ async function listPaymentsBySupplier(supplierId, { limit = 50, offset = 0 } = {
   return supplierPaymentRepo.listSupplierPayments({ supplierId, limit, offset });
 }
 
+async function listAllPayments({ page = 1, limit = 50, supplierId, poId } = {}) {
+  const offset = (page - 1) * limit;
+  const items = await supplierPaymentRepo.listSupplierPayments({ supplierId, poId, limit, offset });
+  const total = await supplierPaymentRepo.countSupplierPayments({ supplierId, poId });
+  return { items, total };
+}
+
 async function getPaymentById(payment_id) {
   return supplierPaymentRepo.getSupplierPaymentById(payment_id);
 }
@@ -38,6 +45,7 @@ async function deletePayment(payment_id) {
 module.exports = {
   createPayment,
   listPaymentsBySupplier,
+  listAllPayments,
   getPaymentById,
   updatePayment,
   deletePayment,

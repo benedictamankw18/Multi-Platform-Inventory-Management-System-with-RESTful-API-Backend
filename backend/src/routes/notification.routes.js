@@ -9,7 +9,7 @@ const { createNotificationValidation, notificationIdValidation, listNotification
 
 router.get('/', authenticate, listNotificationsValidation, validate, notificationController.listNotifications);
 router.get('/me', authenticate, listNotificationsValidation, validate, notificationController.listNotifications);
-router.post('/', authenticate, createNotificationValidation, validate, notificationController.createNotification);
+router.post('/', authenticate, checkPermission('MANAGE_NOTIFICATIONS'), createNotificationValidation, validate, notificationController.createNotification);
 router.patch('/:notificationId/read', authenticate, notificationIdValidation, validate, notificationController.markAsRead);
 router.delete('/:notificationId', authenticate, notificationIdValidation, validate, notificationController.deleteNotification);
 router.get('/:notificationId', authenticate, notificationIdValidation, validate, notificationController.getNotificationById);

@@ -45,7 +45,7 @@ async function updateNextTry(id, nextTry) {
 }
 
 async function list({ status = null, type = null, limit = 50, offset = 0 } = {}) {
-  const q = `SELECT * FROM ${TABLE} WHERE ($1::text IS NULL OR status = $1) AND ($2::text IS NULL OR type = $2) ORDER BY created_at DESC LIMIT $3 OFFSET $4`;
+  const q = `SELECT * FROM ${TABLE} WHERE ($1::text IS NULL OR status = $1) AND ($2::text IS NULL OR type ILIKE '%' || $2 || '%') ORDER BY created_at DESC LIMIT $3 OFFSET $4`;
   const vals = [status, type, limit, offset];
   const { rows } = await client.query(q, vals);
   return rows;

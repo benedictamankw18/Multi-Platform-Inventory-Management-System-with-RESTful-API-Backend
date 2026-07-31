@@ -28,19 +28,25 @@ exports.listPriceHistoryByProduct = async (
     client = db
 ) => {
 
-    let q = `SELECT * FROM ${TABLE}`;
+    let q = `
+        SELECT ph.*, p.product_name, pri.image_url, u.full_name AS changed_by_name
+        FROM ${TABLE} ph
+        LEFT JOIN products p ON p.product_id = ph.product_id
+        LEFT JOIN product_images pri ON pri.product_id = ph.product_id AND pri.is_primary = TRUE
+        LEFT JOIN users u ON u.user_id = ph.changed_by
+    `;
     const params = [];
 
     if (product_id) {
         params.push(product_id);
-        q += ` WHERE product_id = $${params.length}`;
+        q += ` WHERE ph.product_id = $${params.length}`;
     }
 
     params.push(limit);
     params.push(offset);
 
     q += `
-        ORDER BY created_at DESC
+        ORDER BY ph.created_at DESC
         LIMIT $${params.length - 1}
         OFFSET $${params.length}
     `;

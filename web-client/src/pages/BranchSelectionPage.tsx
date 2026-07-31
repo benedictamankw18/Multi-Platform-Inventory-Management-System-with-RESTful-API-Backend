@@ -4,7 +4,7 @@ import '../components/Layout.css'
 import './BranchSelection.css'
 
 export default function BranchSelectionPage() {
-  const { user, branches, error, fetchBranches, selectBranch, logout } = useAuth()
+  const { user, branches, branchesLoading, error, fetchBranches, selectBranch, logout } = useAuth()
 
   useEffect(() => {
     fetchBranches()
@@ -33,13 +33,27 @@ export default function BranchSelectionPage() {
           <div className="branch-select__error">{error}</div>
         )}
 
-        {branches.length === 0 && !error && (
+        {branches.length === 0 && !error && branchesLoading && (
           <div className="branch-select__empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             <p>Loading branches...</p>
+          </div>
+        )}
+
+        {branches.length === 0 && !error && !branchesLoading && (
+          <div className="branch-select__empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p>No branch assigned.</p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', opacity: 0.7 }}>
+              Contact the Manager or Administrator.
+            </p>
           </div>
         )}
 

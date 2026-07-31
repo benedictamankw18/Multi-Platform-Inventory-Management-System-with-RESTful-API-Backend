@@ -8,4 +8,7 @@ const controller = require('../controllers/adminSms.controller');
 // POST /api/v1/admin/sms/test  { to, message }
 router.post('/test', authenticate, authorize('Administrator'), controller.sendTest);
 
+// GET /api/v1/admin/sms/balance
+router.get('/balance', authenticate, authorize('Administrator'), controller.getBalance);
+
 module.exports = router;

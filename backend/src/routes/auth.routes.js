@@ -16,8 +16,9 @@ const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const authenticate = require('../middleware/auth.middleware');
 const validate = require('../middleware/validation.middleware');
+const upload = require('../middleware/upload.middleware');
 
-const { loginValidation, refreshTokenValidation, forgotPasswordValidation, resetPasswordValidation } = require('../validations/auth.validation');
+const { loginValidation, refreshTokenValidation, forgotPasswordValidation, resetPasswordValidation, changePasswordValidation, updateProfileValidation } = require('../validations/auth.validation');
 
 // Additional endpoints: logout-all, forgot-password, reset-password
 
@@ -119,5 +120,17 @@ router.get('/me/permissions', authenticate, authController.getMyPermissions);
 router.post('/forgot-password', forgotPasswordValidation, validate, authController.forgotPassword);
 
 router.post('/reset-password', resetPasswordValidation, validate, authController.resetPassword);
+
+// ---------------------------------------------------------------------------
+// Profile — current user's own profile
+// ---------------------------------------------------------------------------
+
+router.get('/me', authenticate, authController.getProfile);
+
+router.patch('/me/profile', authenticate, updateProfileValidation, validate, authController.updateProfile);
+
+router.post('/me/change-password', authenticate, changePasswordValidation, validate, authController.changePassword);
+
+router.post('/me/profile-photo', authenticate, upload.single('image'), authController.uploadProfilePhoto);
 
 module.exports = router;

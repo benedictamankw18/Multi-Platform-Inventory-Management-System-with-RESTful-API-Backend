@@ -3,6 +3,7 @@ const userRepo = require('../repositories/user.repository');
 const roleRepo = require('../repositories/role.repository');
 const authRepo = require('../repositories/auth.repository');
 const auditRepo = require('../repositories/audit.repository');
+const notificationService = require('./notification.service');
 const AppError = require('../utils/AppError');
 
 const SALT_ROUNDS = 10;
@@ -131,6 +132,17 @@ exports.createUser = async (payload = {}, actorId = null) => {
       roles,
     });
 
+    notificationService.createNotification({
+      title: 'Welcome',
+      message: 'Your account has been created. You can now log in.',
+      type: 'SUCCESS',
+      priority: 'NORMAL',
+      user_id: created.user_id,
+      recipients: [created.user_id],
+      createdBy: getActorId(actorId),
+      channels: ['in_app', 'email', 'sms'],
+    }).catch((e) => console.error('notif error', e && e.message));
+
     return sanitizeUser({ ...created, role_name: undefined });
   } catch (err) {
     if (err.code === UNIQUE_VIOLATION) {
@@ -231,6 +243,20 @@ exports.updateUser = async (userId, payload = {}, actorId = null) => {
 
     updated = await userRepo.updateUserRole(userId, roleId);
     await authRepo.revokeAllSessionsForUser(userId);
+
+    const newRole = await roleRepo.getRoleById(roleId).catch(() => null)
+    const oldName = existing.role_name || 'Unknown'
+    const newName = newRole?.role_name || 'Unknown'
+    notificationService.createNotification({
+      title: 'Role Updated',
+      message: `Your role has been changed from ${oldName} to ${newName}.`,
+      type: 'INFO',
+      priority: 'HIGH',
+      user_id: userId,
+      recipients: [userId],
+      createdBy: getActorId(actorId),
+      channels: ['in_app', 'email', 'sms'],
+    }).catch((e) => console.error('role change notif error', e && e.message));
   }
 
   await auditRepo.writeLog(getActorId(actorId), 'UPDATE_USER', 'USER', userId, {
@@ -238,6 +264,17 @@ exports.updateUser = async (userId, payload = {}, actorId = null) => {
     branch_id: branchId,
     roles: roles || (roleId ? [roleId] : undefined),
   });
+
+    notificationService.createNotification({
+      title: 'Account Updated',
+      message: 'Your account details have been updated by an administrator.',
+      type: 'INFO',
+      priority: 'NORMAL',
+      user_id: userId,
+      recipients: [userId],
+      createdBy: getActorId(actorId),
+      channels: ['in_app', 'email'],
+    }).catch((e) => console.error('notif error', e && e.message));
 
   return sanitizeUser(await userRepo.findUserById(updated.user_id || userId));
 };
@@ -272,6 +309,17 @@ exports.deactivateUser = async (userId, actorId = null) => {
   const updated = await userRepo.setActiveStatus(userId, false);
   await authRepo.revokeAllSessionsForUser(userId);
   await auditRepo.writeLog(getActorId(actorId), 'DEACTIVATE_USER', 'USER', userId);
+
+    notificationService.createNotification({
+      title: 'Account Deactivated',
+      message: 'Your account has been deactivated by an administrator.',
+      type: 'WARNING',
+      priority: 'HIGH',
+      user_id: userId,
+      recipients: [userId],
+      createdBy: getActorId(actorId),
+      channels: ['in_app', 'email', 'sms'],
+    }).catch((e) => console.error('notif error', e && e.message));
 
   return { alreadyInState: false, user: sanitizeUser(updated) };
 };

@@ -1,10 +1,11 @@
 const { v4: uuidv4 } = require('uuid');
 const purchaseRepo = require('../repositories/purchase.repository');
+const supplierPaymentRepo = require('../repositories/supplierPayment.repository');
 const auditRepo = require('../repositories/audit.repository');
 
-async function createPurchase({ supplier_id, order_number, order_date, branch_id, expected_date, status, total_amount, createdBy }) {
+async function createPurchase({ supplier_id, order_number, order_date, branch_id, expected_delivery_date, status, total_amount, createdBy }) {
   const id = uuidv4();
-  const created = await purchaseRepo.createPurchaseOrder({ po_id: id, supplier_id, po_number: order_number, branch_id, order_date, expected_date, status, total_amount, created_by: createdBy });
+  const created = await purchaseRepo.createPurchaseOrder({ po_id: id, supplier_id, po_number: order_number, branch_id, order_date, expected_delivery_date, status, total_amount, created_by: createdBy });
   try {
     await auditRepo.writeLog(createdBy, 'create_purchase', 'PURCHASE', id, { order_number, supplier_id });
   } catch (e) {
@@ -85,6 +86,34 @@ async function receivePurchase(id, receiverId) {
   return updated;
 }
 
+async function recordPayment(id, { amount, payment_method, payment_date, reference_number }, performedBy) {
+  const po = await purchaseRepo.getPurchaseOrderById(id);
+  if (!po) throw new Error('Purchase order not found');
+
+  const payment_id = uuidv4();
+  const payment = await supplierPaymentRepo.createSupplierPayment({
+    payment_id,
+    supplier_id: po.supplier_id,
+    po_id: id,
+    amount,
+    payment_method,
+    payment_date,
+    reference_number,
+  });
+
+  const payments = await supplierPaymentRepo.listSupplierPayments({ poId: id, limit: 1000 });
+  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const paymentStatus = totalPaid >= Number(po.total_amount) ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'UNPAID';
+  await purchaseRepo.updatePurchaseOrder(id, { payment_status: paymentStatus });
+
+  try {
+    await auditRepo.writeLog(performedBy, 'record_purchase_payment', 'PURCHASE', id, { amount, payment_id });
+  } catch (e) {
+    console.error('audit error', e.message);
+  }
+  return payment;
+}
+
 module.exports = {
   createPurchase,
   getPurchaseById,
@@ -95,4 +124,5 @@ module.exports = {
   submitPurchase,
   approvePurchase,
   receivePurchase,
+  recordPayment,
 };

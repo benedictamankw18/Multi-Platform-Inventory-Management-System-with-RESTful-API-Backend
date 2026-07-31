@@ -31,7 +31,9 @@ INSERT INTO permissions (permission_name, description) VALUES
   ('VIEW_BRANCHES',      'View branches list'),
   ('MANAGE_BRANCHES',    'Create, edit, and delete branches'),
   ('VIEW_AUDIT_LOGS',    'View audit logs'),
-  ('MANAGE_SETTINGS',    'Access and modify business settings')
+  ('MANAGE_SETTINGS',    'Access and modify business settings'),
+  ('MANAGE_NOTIFICATIONS', 'Create and send notifications'),
+  ('MANAGE_SYNC',          'View sync operations and receive sync failure alerts')
 ON CONFLICT (permission_name) DO NOTHING;
 
 -- ====== Role permission assignments ======
@@ -73,7 +75,7 @@ WHERE r.role_name = 'Manager'
     'VIEW_CUSTOMERS', 'MANAGE_CUSTOMERS',
     'VIEW_EXPENSES', 'MANAGE_EXPENSES',
     'VIEW_BRANCHES',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS'
+    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS', 'MANAGE_SYNC'
   )
 ON CONFLICT DO NOTHING;
 

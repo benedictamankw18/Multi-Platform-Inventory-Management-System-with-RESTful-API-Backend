@@ -28,7 +28,7 @@ async function processPending({ limit = 50 } = {}) {
     const id = it.id;
     try {
       await queueRepo.markProcessing(id);
-      const payload = it.payload ? JSON.parse(it.payload) : {};
+      const payload = it.payload || {};
       let res;
       if (it.type === 'email') {
         if (payload.purpose === 'password_reset' && payload.user && payload.token) {
@@ -52,7 +52,6 @@ async function processPending({ limit = 50 } = {}) {
       await queueRepo.markDone(id);
     } catch (err) {
       console.error('[queue.service] processing error for', id, err && err.message);
-      await queueRepo.incrementAttempts(id);
       const attemptsRow = await queueRepo.incrementAttempts(id);
       const attempts = attemptsRow ? attemptsRow.attempts : 1;
       if (attempts >= MAX_RETRIES) {

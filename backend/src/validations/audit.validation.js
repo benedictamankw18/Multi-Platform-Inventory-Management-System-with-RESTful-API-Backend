@@ -52,6 +52,12 @@ exports.listLogsValidation = [
     .isUUID()
     .withMessage('userId must be a valid UUID.'),
 
+  query('userSearch')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('userSearch cannot exceed 200 characters.'),
+
   query('entityType')
     .optional()
     .trim()

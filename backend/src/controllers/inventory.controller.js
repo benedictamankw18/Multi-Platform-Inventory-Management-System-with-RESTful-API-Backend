@@ -11,7 +11,7 @@ async function createInventory(req, res, next) {
       cost_price: req.body.cost_price,
       selling_price: req.body.selling_price,
       location: req.body.location,
-      createdBy: req.user ? req.user.id : null,
+      createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });
   } catch (err) {
@@ -44,7 +44,7 @@ async function updateInventory(req, res, next) {
   try {
     const id = req.params.inventoryId;
     const patch = req.body;
-    const updated = await inventoryService.updateInventory(id, patch, req.user ? req.user.id : null);
+    const updated = await inventoryService.updateInventory(id, patch, req.user ? req.user.sub : null);
     res.json({ data: updated });
   } catch (err) {
     next(err);
@@ -54,7 +54,7 @@ async function updateInventory(req, res, next) {
 async function deactivateInventory(req, res, next) {
   try {
     const id = req.params.inventoryId;
-    const deactivated = await inventoryService.deactivateInventory(id, req.user ? req.user.id : null);
+    const deactivated = await inventoryService.deactivateInventory(id, req.user ? req.user.sub : null);
     res.json({ data: deactivated });
   } catch (err) {
     next(err);
@@ -64,7 +64,7 @@ async function deactivateInventory(req, res, next) {
 async function activateInventory(req, res, next) {
   try {
     const id = req.params.inventoryId;
-    const activated = await inventoryService.activateInventory(id, req.user ? req.user.id : null);
+    const activated = await inventoryService.activateInventory(id, req.user ? req.user.sub : null);
     res.json({ data: activated });
   } catch (err) {
     next(err);

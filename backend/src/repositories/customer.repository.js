@@ -20,7 +20,6 @@ async function createCustomer({ customer_id, customer_type = 'WALK_IN', business
     gender || null,
     notes || null,
   ];
-  // console.log('Executing query:', q, 'with values:', values);
   const { rows } = await client.query(q, values);
   return rows[0];
 }
@@ -82,10 +81,28 @@ async function activateCustomer(customer_id) {
   return rows[0];
 }
 
+async function countCustomers({ q: search, isActive } = {}) {
+  let base = `SELECT COUNT(*) FROM ${TABLE}`;
+  const params = [];
+  const where = [];
+  if (search) {
+    params.push(`%${search}%`);
+    where.push(`(contact_name ILIKE $${params.length} OR business_name ILIKE $${params.length})`);
+  }
+  if (typeof isActive !== 'undefined') {
+    params.push(isActive === 'true' || isActive === true);
+    where.push(`is_active = $${params.length}`);
+  }
+  if (where.length) base += ` WHERE ` + where.join(' AND ');
+  const { rows } = await client.query(base, params);
+  return Number(rows[0].count);
+}
+
 module.exports = {
   createCustomer,
   getCustomerById,
   listCustomers,
+  countCustomers,
   updateCustomer,
   deactivateCustomer,
   activateCustomer,

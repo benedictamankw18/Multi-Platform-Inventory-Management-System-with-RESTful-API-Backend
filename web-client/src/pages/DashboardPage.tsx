@@ -169,7 +169,8 @@ export default function DashboardPage() {
       <div className="page-header">
         <div>
           <span className="dashboard-eyebrow">Inventory command center</span>
-          <h1>Welcome{user?.fullName ? `, ${user.fullName}` : ''}</h1>
+
+          <h1>Welcome{user?.username ? `, ${user.username}` : ''}</h1>
           <p className="page-subtitle">
             {user?.role ? `${user.role.charAt(0).toUpperCase()}${user.role.slice(1)}` : 'User'} &middot; {user?.email || user?.username || ''}
           </p>

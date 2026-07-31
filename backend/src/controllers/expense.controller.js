@@ -11,8 +11,8 @@ async function listExpenses(req, res, next) {
   try {
     const { branchId, ...rest } = req.query;
     const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
-    const data = await expenseService.listExpenses({ ...rest, branchId: resolvedBranchId });
-    res.json({ data });
+    const result = await expenseService.listExpenses({ ...rest, branchId: resolvedBranchId });
+    res.json({ data: result.items, total: result.total });
   } catch (err) { next(err); }
 }
 

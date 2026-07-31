@@ -19,6 +19,7 @@ export type AuthContextValue = {
   selectedBranch: BranchInfo | null
   branches: BranchInfo[]
   needsBranchSelection: boolean
+  branchesLoading: boolean
   fetchBranches: () => Promise<void>
   selectBranch: (branchId: string) => Promise<void>
   clearBranch: () => void
@@ -28,6 +29,7 @@ export type AuthContextValue = {
   forgotPassword: (email: string) => Promise<string>
   resetPassword: (token: string, password: string) => Promise<string>
   clearError: () => void
+  updateUser: (user: AuthUser) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [permissions, setPermissions] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [branchesLoading, setBranchesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Restore session from localStorage on mount
@@ -124,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const fetchBranches = useCallback(async () => {
+    setBranchesLoading(true)
     try {
       const result = await api.getMyBranches()
       const branchList = result.branches
@@ -150,6 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? err.response?.data?.message ?? 'Unable to load branches.'
           : 'Unable to load branches.'
       setError(message)
+    } finally {
+      setBranchesLoading(false)
     }
   }, [selectedBranch])
 
@@ -212,6 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const updateUser = useCallback((updated: AuthUser) => {
+    localStorage.setItem('authUser', JSON.stringify(updated))
+    setUser(updated)
+  }, [])
+
   const clearError = useCallback(() => setError(null), [])
 
   const hasPermission = useCallback((code: string) => {
@@ -245,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasPermission,
       selectedBranch,
       branches,
+      branchesLoading,
       needsBranchSelection,
       fetchBranches,
       selectBranch,
@@ -254,12 +266,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       forgotPassword,
       resetPassword,
       clearError,
+      updateUser,
     }),
     [
       user, isLoading, error, permissions, hasPermission,
-      selectedBranch, branches, needsBranchSelection,
+      selectedBranch, branches, branchesLoading, needsBranchSelection,
       fetchBranches, selectBranch, clearBranch,
-      login, logout, forgotPassword, resetPassword, clearError,
+      login, logout, forgotPassword, resetPassword, clearError, updateUser,
     ],
   )
 

@@ -38,7 +38,7 @@ async function upsertSetting({ key, value, patch = {}, updated_by = null }) {
   // support legacy call upsertSetting({ key, value })
   if (key) patch[key] = value;
 
-  const keys = Object.keys(patch).filter(k => ALLOWED_COLUMNS.has(k));
+  const keys = Object.keys(patch).filter(k => ALLOWED_COLUMNS.has(k) && !['setting_id', 'created_at', 'updated_at'].includes(k));
   if (!keys.length) throw new Error('No valid fields provided for update');
 
   const existing = await getBusiness();

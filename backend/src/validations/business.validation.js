@@ -39,8 +39,15 @@ const upsertBusinessSettingValidation = [
   }),
 ];
 
+const bulkUpsertBusinessSettingValidation = [
+  body('patch')
+    .exists().withMessage('patch object is required')
+    .isObject({ min: 1 }).withMessage('patch must be an object with at least 1 key'),
+];
+
 module.exports = {
   updateBusinessValidation,
   upsertBusinessSettingValidation,
+  bulkUpsertBusinessSettingValidation,
   getBusinessValidation,
 };

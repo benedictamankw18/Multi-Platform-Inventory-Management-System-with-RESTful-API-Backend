@@ -6,6 +6,7 @@ const purchaseItemController = require('../controllers/purchaseItem.controller')
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const { body } = require('express-validator');
 const { createPurchaseValidation, updatePurchaseValidation, purchaseIdValidation, listPurchasesValidation } = require('../validations/purchase.validation');
 const { purchaseIdParam,
         createPurchaseItemValidation,
@@ -24,6 +25,12 @@ router.post('/:purchaseId/reactivate', authenticate, checkPermission('MANAGE_PUR
 router.post('/:purchaseId/submit', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, validate, purchaseController.submitPurchase);
 router.post('/:purchaseId/approve', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, validate, purchaseController.approvePurchase);
 router.post('/:purchaseId/receive', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, validate, purchaseController.receivePurchase);
+router.post('/:purchaseId/payments', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, [
+  body('amount').isFloat({ gt: 0 }).withMessage('amount must be a positive number'),
+  body('payment_method').optional().isString(),
+  body('payment_date').optional().isISO8601().toDate(),
+  body('reference_number').optional().isString(),
+], validate, purchaseController.recordPayment);
 
 // purchase order items
 router.post('/:purchaseId/items', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, createPurchaseItemValidation, validate, purchaseItemController.createPurchaseItem);

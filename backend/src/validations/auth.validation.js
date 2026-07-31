@@ -65,6 +65,36 @@ const resetPasswordValidation = [
 ];
 
 /**
+ * Update Profile Validation
+ */
+const updateProfileValidation = [
+    body("fullName")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("Full name cannot be empty."),
+
+    body("email")
+        .optional()
+        .trim()
+        .isEmail()
+        .withMessage("Valid email is required.")
+        .normalizeEmail(),
+
+    body("phone")
+        .optional({ values: "null" })
+        .trim()
+        .isLength({ max: 20 })
+        .withMessage("Phone number must be at most 20 characters."),
+
+    body("profilePhoto")
+        .optional({ values: "null" })
+        .trim()
+        .isURL()
+        .withMessage("Profile photo must be a valid URL."),
+];
+
+/**
  * Change Password Validation
  */
 const changePasswordValidation = [
@@ -88,5 +118,6 @@ module.exports = {
     refreshTokenValidation,
     forgotPasswordValidation,
     resetPasswordValidation,
-    changePasswordValidation
+    changePasswordValidation,
+    updateProfileValidation
 };

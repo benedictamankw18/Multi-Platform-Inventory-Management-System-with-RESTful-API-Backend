@@ -15,10 +15,11 @@ exports.getExpenseById = async (expense_id, client = db) => {
   return rows[0];
 };
 
-exports.listExpenses = async ({ branchId, fromDate, toDate, category, limit = 50, offset = 0 } = {}, client = db) => {
+exports.listExpenses = async ({ q, branchId, fromDate, toDate, category, limit = 50, offset = 0 } = {}, client = db) => {
   let base = `SELECT * FROM ${TABLE}`;
   const params = [];
   const where = [];
+  if (q) { params.push(`%${q}%`); where.push(`description ILIKE $${params.length}`); }
   if (branchId) { params.push(branchId); where.push(`branch_id = $${params.length}`); }
   if (category) { params.push(category); where.push(`category = $${params.length}`); }
   if (fromDate) { params.push(fromDate); where.push(`expense_date >= $${params.length}`); }
@@ -29,6 +30,20 @@ exports.listExpenses = async ({ branchId, fromDate, toDate, category, limit = 50
   base += ` ORDER BY expense_date DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
   const { rows } = await client.query(base, params);
   return rows;
+};
+
+exports.countExpenses = async ({ q, branchId, fromDate, toDate, category } = {}, client = db) => {
+  let base = `SELECT COUNT(*) FROM ${TABLE}`;
+  const params = [];
+  const where = [];
+  if (q) { params.push(`%${q}%`); where.push(`description ILIKE $${params.length}`); }
+  if (branchId) { params.push(branchId); where.push(`branch_id = $${params.length}`); }
+  if (category) { params.push(category); where.push(`category = $${params.length}`); }
+  if (fromDate) { params.push(fromDate); where.push(`expense_date >= $${params.length}`); }
+  if (toDate) { params.push(toDate); where.push(`expense_date <= $${params.length}`); }
+  if (where.length) base += ` WHERE ` + where.join(' AND ');
+  const { rows } = await client.query(base, params);
+  return parseInt(rows[0].count, 10);
 };
 
 exports.updateExpense = async (expense_id, patch, client = db) => {

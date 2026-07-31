@@ -206,6 +206,22 @@ async function createSale(payload, actor = null) {
       createdPayments.push(await insertPayment(saleId, payment, actorId, client));
     }
 
+    if (payload.customer_id) {
+      for (const payment of createdPayments) {
+        await client.query(
+          `INSERT INTO customer_payments (payment_id, customer_id, sale_id, amount, payment_method, payment_date)
+           VALUES ($1, $2, $3, $4, $5, now())`,
+          [
+            uuidv4(),
+            payload.customer_id,
+            saleId,
+            asNumber(payment.amount),
+            payment.payment_method || 'CASH',
+          ]
+        );
+      }
+    }
+
     await auditRepo.writeLog(actorId, 'CREATE_SALE', 'SALE', saleId, {
       invoice_number: saleRows[0].invoice_number,
       total_amount: totalAmount,

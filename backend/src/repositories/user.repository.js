@@ -43,6 +43,7 @@ exports.findUserById = async (userId, client = db) => {
   const query = `
     SELECT u.user_id, u.branch_id, u.role_id, u.full_name, u.username, u.email,
            u.phone, u.password_hash, u.is_active, u.last_login_at, u.created_at, u.updated_at,
+           u.profile_photo,
            r.role_name, b.branch_name
     FROM users u
     JOIN roles r ON r.role_id = u.role_id
@@ -133,7 +134,7 @@ exports.countUsers = async ({ q, branchId, roleId, isActive } = {}, client = db)
 // Update
 // ---------------------------------------------------------------------------
 
-exports.updateUser = async (userId, { fullName, email, branchId, phone } = {}, client = db) => {
+exports.updateUser = async (userId, { fullName, email, branchId, phone, profilePhoto } = {}, client = db) => {
   const fields = [];
   const values = [];
 
@@ -141,6 +142,7 @@ exports.updateUser = async (userId, { fullName, email, branchId, phone } = {}, c
   if (email !== undefined) { values.push(email); fields.push(`email = $${values.length}`); }
   if (branchId !== undefined) { values.push(branchId); fields.push(`branch_id = $${values.length}`); }
   if (phone !== undefined) { values.push(phone || null); fields.push(`phone = $${values.length}`); }
+  if (profilePhoto !== undefined) { values.push(profilePhoto || null); fields.push(`profile_photo = $${values.length}`); }
 
   if (fields.length === 0) {
     return exports.findUserById(userId, client);
@@ -150,7 +152,7 @@ exports.updateUser = async (userId, { fullName, email, branchId, phone } = {}, c
   const query = `
     UPDATE users SET ${fields.join(', ')}
     WHERE user_id = $${values.length} AND deleted_at IS NULL
-    RETURNING user_id, branch_id, role_id, full_name, username, email, phone, is_active, updated_at;
+    RETURNING user_id, branch_id, role_id, full_name, username, email, phone, profile_photo, is_active, updated_at;
   `;
 
   const { rows } = await client.query(query, values);

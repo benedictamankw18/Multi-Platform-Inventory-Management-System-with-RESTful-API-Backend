@@ -10,8 +10,8 @@ async function getSetting(key) {
 }
 
 async function upsertSetting(payload, performedBy) {
-  const { key, value, meta } = payload;
-  const saved = await businessRepo.upsertSetting({ key, value, meta, updated_by: performedBy });
+  const { key, value, meta, patch } = payload;
+  const saved = await businessRepo.upsertSetting({ key, value, meta, patch: patch || {}, updated_by: performedBy });
   try {
     if (auditRepo && typeof auditRepo.create === 'function') {
       auditRepo.create({ action: 'upsert_business_setting', resource_id: saved.id || null, meta: { key }, performed_by: performedBy });

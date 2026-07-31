@@ -18,11 +18,11 @@ async function getSyncLogById(syncId) {
   return rows[0] || null;
 }
 
-async function listSyncLogs({ entityType, status, deviceId, since, limit = 50, offset = 0 } = {}) {
+async function listSyncLogs({ entity, status, deviceId, since, limit = 50, offset = 0 } = {}) {
   let base = `SELECT * FROM ${TABLE}`;
   const params = [];
   const where = [];
-  if (entityType) { params.push(entityType); where.push(`entity_type = $${params.length}`); }
+  if (entity) { params.push(`%${entity}%`); where.push(`entity_type ILIKE $${params.length}`); }
   if (status) { params.push(status); where.push(`sync_status = $${params.length}`); }
   if (deviceId) { params.push(deviceId); where.push(`device_id = $${params.length}`); }
   if (since) { params.push(since); where.push(`created_at >= $${params.length}`); }

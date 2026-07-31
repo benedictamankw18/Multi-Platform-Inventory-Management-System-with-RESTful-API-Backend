@@ -13,6 +13,7 @@ export type AuthUser = {
   email: string | null
   role: string
   branchId: string | null
+  profilePhoto: string | null
 }
 
 export type LoginResponse = {
@@ -254,6 +255,48 @@ export async function selectBranch(branchId: string) {
 
 export async function getMyPermissions() {
   const { data } = await api.get<{ permissions: string[] }>('/auth/me/permissions')
+  return data
+}
+
+// ---- Profile (self-service) ------------------------------------------------
+
+export type UserProfile = {
+  userId: string
+  username: string
+  fullName: string
+  email: string | null
+  phone: string | null
+  profilePhoto: string | null
+  role: string
+  branchId: string | null
+  branchName: string | null
+  isActive: boolean
+  lastLoginAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getMyProfile() {
+  const { data } = await api.get<UserProfile>('/auth/me')
+  return data
+}
+
+export async function updateMyProfile(body: { fullName?: string; email?: string; phone?: string | null; profilePhoto?: string | null }) {
+  const { data } = await api.patch<UserProfile>('/auth/me/profile', body)
+  return data
+}
+
+export async function changeMyPassword(body: { currentPassword: string; newPassword: string }) {
+  const { data } = await api.post<{ message: string }>('/auth/me/change-password', body)
+  return data
+}
+
+export async function uploadProfilePhoto(file: File) {
+  const formData = new FormData()
+  formData.append('image', file)
+  const { data } = await api.post<UserProfile>('/auth/me/profile-photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
 
@@ -599,6 +642,25 @@ export async function deleteUnitOfMeasure(id: string) {
 
 // ---- Suppliers -------------------------------------------------------------
 
+export type Supplier = {
+  supplier_id: string
+  supplier_name: string
+  contact_name: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  is_active: boolean
+  company_registration_no: string | null
+  tax_number: string | null
+  website: string | null
+  bank_name: string | null
+  account_name: string | null
+  account_number: string | null
+  payment_terms: string | null
+  created_at: string
+  updated_at: string
+}
+
 export async function getSuppliers(params?: Record<string, unknown>) {
   const { data } = await api.post('/suppliers/search', params ?? {})
   return data
@@ -624,7 +686,36 @@ export async function deleteSupplier(id: string) {
   return data
 }
 
+export async function activateSupplier(id: string) {
+  const { data } = await api.post(`/suppliers/${id}/reactivate`)
+  return data
+}
+
+export async function getSupplierPayments(id: string) {
+  const { data } = await api.get(`/suppliers/${id}/payments`)
+  return data
+}
+
 // ---- Customers -------------------------------------------------------------
+
+export type Customer = {
+  customer_id: string
+  customer_type: 'WALK_IN' | 'RETAIL' | 'WHOLESALE'
+  business_name: string | null
+  contact_name: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  credit_limit: number
+  is_active: boolean
+  loyalty_points: number
+  tax_number: string | null
+  date_of_birth: string | null
+  gender: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
 
 export async function getCustomers(params?: Record<string, unknown>) {
   const { data } = await api.post('/customers/search', params ?? {})
@@ -648,6 +739,11 @@ export async function updateCustomer(id: string, body: Record<string, unknown>) 
 
 export async function deleteCustomer(id: string) {
   const { data } = await api.post(`/customers/${id}/deactivate`)
+  return data
+}
+
+export async function activateCustomer(id: string) {
+  const { data } = await api.post(`/customers/${id}/activate`)
   return data
 }
 
@@ -700,7 +796,41 @@ export async function getInventoryTransactions(params?: Record<string, unknown>)
   return data
 }
 
+export async function createInventoryTransaction(body: Record<string, unknown>) {
+  const { data } = await api.post('/inventory/transactions', body)
+  return data
+}
+
 // ---- Inventory Transfers ---------------------------------------------------
+
+export type InventoryTransfer = {
+  transfer_id: string
+  product_id: string
+  from_branch_id: string
+  to_branch_id: string
+  quantity: number
+  status: string
+  requested_by: string
+  approved_by: string | null
+  requested_at: string
+  approved_at: string | null
+  shipped_at: string | null
+  received_at: string | null
+  received_by: string | null
+  shipped_by: string | null
+  notes: string | null
+  transfer_number: string | null
+  created_at: string
+  updated_at: string
+  product_name?: string
+  sku?: string
+  from_branch_name?: string
+  to_branch_name?: string
+  requested_by_name?: string
+  approved_by_name?: string
+  shipped_by_name?: string
+  received_by_name?: string
+}
 
 export async function getInventoryTransfers(params?: Record<string, unknown>) {
   const { data } = await api.post('/inventory-transfers/search', params ?? {})
@@ -717,7 +847,77 @@ export async function approveInventoryTransfer(id: string) {
   return data
 }
 
+export async function shipInventoryTransfer(id: string) {
+  const { data } = await api.post(`/inventory-transfers/${id}/ship`)
+  return data
+}
+
+export async function receiveInventoryTransfer(id: string) {
+  const { data } = await api.post(`/inventory-transfers/${id}/receive`)
+  return data
+}
+
+export async function rejectInventoryTransfer(id: string) {
+  const { data } = await api.post(`/inventory-transfers/${id}/reject`)
+  return data
+}
+
+export async function getInventoryTransferById(id: string) {
+  const { data } = await api.get(`/inventory-transfers/${id}`)
+  return data
+}
+
+export async function activateInventoryTransfer(id: string) {
+  const { data } = await api.post(`/inventory-transfers/${id}/activate`)
+  return data
+}
+
+export async function deactivateInventoryTransfer(id: string) {
+  const { data } = await api.post(`/inventory-transfers/${id}/deactivate`)
+  return data
+}
+
 // ---- Purchase Orders -------------------------------------------------------
+
+export type PurchaseOrder = {
+  po_id: string
+  supplier_id: string
+  branch_id: string
+  created_by: string | null
+  order_date: string
+  expected_delivery_date: string | null
+  status: string
+  total_amount: number
+  notes: string | null
+  po_number: string
+  approved_date: string | null
+  approved_by: string | null
+  received_date: string | null
+  payment_status: string | null
+  shipping_cost: number
+  tax_amount: number
+  discount_amount: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type PurchaseOrderItem = {
+  po_item_id: string
+  po_id: string
+  product_id: string
+  uom_id: string
+  quantity_ordered: number
+  quantity_received: number
+  unit_cost: number
+  line_total: number
+  expiry_date: string | null
+  batch_number: string | null
+  serial_number: string | null
+  discount: number
+  created_at: string
+  updated_at: string
+}
 
 export async function getPurchases(params?: Record<string, unknown>) {
   const { data } = await api.post('/purchases/search', params ?? {})
@@ -736,6 +936,51 @@ export async function createPurchase(body: Record<string, unknown>) {
 
 export async function updatePurchase(id: string, body: Record<string, unknown>) {
   const { data } = await api.patch(`/purchases/${id}`, body)
+  return data
+}
+
+export async function deletePurchase(id: string) {
+  const { data } = await api.post(`/purchases/${id}/deactivate`)
+  return data
+}
+
+export async function submitPurchase(id: string) {
+  const { data } = await api.post(`/purchases/${id}/submit`)
+  return data
+}
+
+export async function approvePurchase(id: string) {
+  const { data } = await api.post(`/purchases/${id}/approve`)
+  return data
+}
+
+export async function receivePurchase(id: string) {
+  const { data } = await api.post(`/purchases/${id}/receive`)
+  return data
+}
+
+export async function getPurchaseItems(poId: string, params?: Record<string, unknown>) {
+  const { data } = await api.get(`/purchases/${poId}/items`, { params })
+  return data
+}
+
+export async function addPurchaseItem(poId: string, body: Record<string, unknown>) {
+  const { data } = await api.post(`/purchases/${poId}/items`, body)
+  return data
+}
+
+export async function updatePurchaseItem(poId: string, itemId: string, body: Record<string, unknown>) {
+  const { data } = await api.patch(`/purchases/${poId}/items/${itemId}`, body)
+  return data
+}
+
+export async function deletePurchaseItem(poId: string, itemId: string) {
+  const { data } = await api.delete(`/purchases/${poId}/items/${itemId}`)
+  return data
+}
+
+export async function createPurchasePayment(poId: string, body: Record<string, unknown>) {
+  const { data } = await api.post(`/purchases/${poId}/payments`, body)
   return data
 }
 
@@ -927,6 +1172,48 @@ export async function getProfitReport(params?: { startDate?: string; endDate?: s
   return data.data
 }
 
+export type AnnualSalesItem = {
+  year: string
+  transactions: number
+  total_sales: number
+}
+
+export async function getAnnualSales(year?: number, branchId?: string) {
+  const params: Record<string, string | number> = {}
+  if (year != null) params.year = year
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{ data: AnnualSalesItem[] }>('/reports/annual-sales', { params })
+  return data.data
+}
+
+export type InventoryReportItem = {
+  inventory_id: string
+  product_id: string
+  quantity_on_hand: number
+  available_quantity: number
+  reorder_level: number
+  product_name: string
+  uom_name: string
+}
+
+export async function getInventoryReport(branchId?: string) {
+  const params: Record<string, string> = {}
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{ data: InventoryReportItem[] }>('/reports/inventory', { params })
+  return data.data
+}
+
+export type PurchasesReportItem = {
+  date: string
+  purchases: number
+  total_purchased: number
+}
+
+export async function getPurchasesReport(params?: { startDate?: string; endDate?: string; branchId?: string }) {
+  const { data } = await api.get<{ data: PurchasesReportItem[] }>('/reports/purchases', { params })
+  return data.data
+}
+
 // ---- Notifications ---------------------------------------------------------
 
 export async function getNotifications(params?: Record<string, unknown>) {
@@ -939,7 +1226,59 @@ export async function markNotificationRead(id: string) {
   return data
 }
 
+export type NotificationItem = {
+  notification_id: string
+  branch_id: string | null
+  title: string | null
+  message: string | null
+  notification_type: string | null
+  priority: string | null
+  is_read: boolean
+  read_at: string | null
+  created_at: string | null
+  created_by: string | null
+  expires_at: string | null
+}
+
+export async function getMyNotifications(params?: Record<string, unknown>) {
+  const { data } = await api.get('/notifications/me', { params })
+  return data
+}
+
+export async function deleteNotification(id: string) {
+  const { data } = await api.delete(`/notifications/${id}`)
+  return data
+}
+
+export async function createNotification(body: Record<string, unknown>) {
+  const { data } = await api.post('/notifications', body)
+  return data
+}
+
+export async function lookupUsers(q: string) {
+  const { data } = await api.get('/users/lookup', { params: { q } })
+  return data
+}
+
 // ---- Expenses --------------------------------------------------------------
+
+export type Expense = {
+  expense_id: string
+  branch_id: string | null
+  recorded_by: string | null
+  category: string | null
+  description: string | null
+  amount: number | null
+  expense_date: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export type ExpenseCategory = {
+  category_id: string
+  category_name: string
+  description: string | null
+}
 
 export async function getExpenses(params?: Record<string, unknown>) {
   const { data } = await api.get('/expenses', { params })
@@ -973,15 +1312,34 @@ export async function createExpenseCategory(body: Record<string, unknown>) {
   return data
 }
 
+export async function updateExpenseCategory(id: string, body: Record<string, unknown>) {
+  const { data } = await api.put(`/expense-categories/${id}`, body)
+  return data
+}
+
+export async function deleteExpenseCategory(id: string) {
+  const { data } = await api.delete(`/expense-categories/${id}`)
+  return data
+}
+
 // ---- Business Settings -----------------------------------------------------
 
 export async function getBusinessSettings() {
   const { data } = await api.get('/business-settings')
-  return data
+  return data?.data?.[0] || {}
 }
 
 export async function updateBusinessSettings(body: Record<string, unknown>) {
-  const { data } = await api.put('/business-settings', body)
+  const { data } = await api.put('/business-settings', { patch: body })
+  return data
+}
+
+export async function uploadBusinessLogo(file: File) {
+  const formData = new FormData()
+  formData.append('image', file)
+  const { data } = await api.post('/business-settings/logo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
 
@@ -992,8 +1350,8 @@ export async function getSystemSettings() {
   return data
 }
 
-export async function updateSystemSettings(body: Record<string, unknown>) {
-  const { data } = await api.put('/system-settings', body)
+export async function updateSystemSettings(body: { key: string; value: unknown; type?: string; description?: string | null }) {
+  const { data } = await api.post('/system-settings', body)
   return data
 }
 
@@ -1035,10 +1393,45 @@ export async function syncPull(params?: Record<string, unknown>) {
   return data
 }
 
+export async function getSyncLogs(params?: Record<string, unknown>) {
+  const { data } = await api.get('/sync/logs', { params })
+  return data
+}
+
+// ---- Message Queue ---------------------------------------------------------
+
+export async function getMessageQueue(params?: Record<string, unknown>) {
+  const { data } = await api.get('/admin/queue', { params })
+  return data
+}
+
+// ---- SMS Balance ------------------------------------------------------------
+
+export type SmsBalance = {
+  balance: number | null
+  currency: string | null
+  checkedAt: string
+}
+
+export async function getSmsBalance() {
+  const { data } = await api.get<{ success: boolean; data: SmsBalance }>('/admin/sms/balance')
+  return data
+}
+
 // ---- Supplier Payments -----------------------------------------------------
 
-export async function getSupplierPayments(supplierId: string) {
-  const { data } = await api.get(`/supplier-payments/supplier/${supplierId}`)
+export type SupplierPayment = {
+  payment_id: string
+  supplier_id: string | null
+  po_id: string | null
+  amount: number | null
+  payment_method: string | null
+  payment_date: string | null
+  reference_number: string | null
+}
+
+export async function listSupplierPayments(params?: Record<string, unknown>) {
+  const { data } = await api.get('/supplier-payments', { params })
   return data
 }
 
@@ -1049,8 +1442,22 @@ export async function createSupplierPayment(body: Record<string, unknown>) {
 
 // ---- Customer Payments -----------------------------------------------------
 
+export type CustomerPayment = {
+  payment_id: string
+  customer_id: string | null
+  sale_id: string | null
+  amount: number | null
+  payment_method: string | null
+  payment_date: string | null
+}
+
 export async function getCustomerPayments(params?: Record<string, unknown>) {
   const { data } = await api.get('/customer-payments', { params })
+  return data
+}
+
+export async function getCustomerPaymentsByCustomer(id: string) {
+  const { data } = await api.get(`/customers/${id}/payments`)
   return data
 }
 

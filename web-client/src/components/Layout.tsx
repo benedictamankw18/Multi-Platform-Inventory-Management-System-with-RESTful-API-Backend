@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { getBusinessSettings, resolveImageUrl } from '../services/api'
+import ConfirmModal from './ConfirmModal'
 import './Layout.css'
 
 const navItems = [
@@ -8,6 +10,10 @@ const navItems = [
   { to: '/products', label: 'Products', icon: 'package', permission: 'VIEW_PRODUCTS' },
   { to: '/categories', label: 'Categories', icon: 'layers', permission: 'VIEW_CATEGORIES' },
   { to: '/inventory', label: 'Inventory', icon: 'box', permission: 'VIEW_INVENTORY' },
+  { to: '/inventory/movements', label: 'Stock Movements', icon: 'repeat', permission: 'MANAGE_INVENTORY' },
+  { to: '/inventory/history', label: 'Stock History', icon: 'clock', permission: 'VIEW_INVENTORY' },
+  { to: '/inventory/low-stock', label: 'Low Stock Alerts', icon: 'alert-triangle', permission: 'VIEW_INVENTORY' },
+  { to: '/transfers', label: 'Transfers', icon: 'repeat', permission: 'VIEW_INVENTORY' },
   { to: '/sales', label: 'Sales', icon: 'shopping-cart', permission: 'VIEW_SALES' },
   { to: '/pos', label: 'POS', icon: 'monitor', permission: 'CREATE_SALE' },
   { to: '/purchases', label: 'Purchase Orders', icon: 'truck', permission: 'VIEW_PURCHASES' },
@@ -19,8 +25,15 @@ const navItems = [
   { to: '/users', label: 'Users', icon: 'users', permission: 'MANAGE_USERS' },
   { to: '/roles', label: 'Roles', icon: 'shield', permission: 'MANAGE_USERS' },
   { to: '/notifications', label: 'Notifications', icon: 'bell', permission: '' },
-  { to: '/settings', label: 'Settings', icon: 'settings', permission: 'MANAGE_SETTINGS' },
+  { to: '/notifications/create', label: 'Create Notification', icon: 'send', permission: 'MANAGE_NOTIFICATIONS' },
+  { to: '/profile', label: 'My Profile', icon: 'user-circle', permission: '' },
   { to: '/audit', label: 'Audit Logs', icon: 'file-text', permission: 'VIEW_AUDIT_LOGS' },
+  { to: '/sync/logs', label: 'Sync Logs', icon: 'refresh-cw', permission: 'VIEW_AUDIT_LOGS' },
+  { to: '/price-history', label: 'Price History', icon: 'trending-up', permission: 'VIEW_PRODUCTS' },
+  { to: '/admin/queue', label: 'Message Queue', icon: 'inbox', permission: 'MANAGE_SETTINGS' },
+  { to: '/admin/sms-balance', label: 'SMS Balance', icon: 'message-square', permission: 'MANAGE_SETTINGS' },
+  { to: '/business-settings', label: 'Business Settings', icon: 'briefcase', permission: 'MANAGE_SETTINGS' },
+  { to: '/system-settings', label: 'System Settings', icon: 'sliders', permission: 'MANAGE_SETTINGS' },
 ] as const
 
 const iconMap: Record<string, string> = {
@@ -40,6 +53,19 @@ const iconMap: Record<string, string> = {
   bell: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
   settings: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
   'file-text': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  'arrow-down': 'M12 5v14m0 0l-6-6m6 6l6-6',
+  'arrow-up': 'M12 19V5m0 0l-6 6m6-6l6 6',
+  clock: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  'alert-triangle': 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z',
+  repeat: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+  'refresh-cw': 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
+  'trending-up': 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
+  inbox: 'M22 12H16l-2 3H10l-2-3H2M22 12v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6M22 12l-3-9H5l-3 9',
+  briefcase: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2',
+  sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+  'user-circle': 'M5.121 17.804A9 9 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0zm-3 5c-2.21 0-4.21.895-5.657 2.343m11.314 0A7.962 7.962 0 0112 19c-1.48 0-2.86.402-4.043 1.104M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  'message-square': 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
 }
 
 function Icon({ name }: { name: string }) {
@@ -57,6 +83,14 @@ export default function Layout() {
   const navigate = useNavigate()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
+
+  useEffect(() => {
+    const loadBiz = () => getBusinessSettings().then(setBiz).catch(() => {})
+    loadBiz()
+    window.addEventListener('business-settings-updated', loadBiz)
+    return () => window.removeEventListener('business-settings-updated', loadBiz)
+  }, [])
 
   const filteredNavItems = navItems.filter(item =>
     !item.permission || hasPermission(item.permission)
@@ -66,13 +100,17 @@ export default function Layout() {
     <div className="layout">
       <aside className={`sidebar${sidebarOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar__brand">
-          <div className="brand-mark brand-mark--small" aria-hidden="true">
-            <span className="brand-mark__layer brand-mark__layer--top" />
-            <span className="brand-mark__layer brand-mark__layer--base" />
-          </div>
+          {biz?.logo ? (
+            <img src={resolveImageUrl(biz.logo)} alt="" className="sidebar__logo" />
+          ) : (
+            <div className="brand-mark brand-mark--small" aria-hidden="true">
+              <span className="brand-mark__layer brand-mark__layer--top" />
+              <span className="brand-mark__layer brand-mark__layer--base" />
+            </div>
+          )}
           <div className="sidebar__brand-text">
-            <strong>Inventory</strong>
-            <span>Management</span>
+            <strong>{biz?.business_name || 'Inventory'}</strong>
+            {!biz?.business_name && <span>Management</span>}
           </div>
         </div>
 
@@ -113,12 +151,16 @@ export default function Layout() {
                 {selectedBranch.branch_name}
               </button>
             )}
-            <div className="layout__topbar-user">
+            <div className="layout__topbar-user" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
               <div className="layout__topbar-avatar">
-                {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                {user?.profilePhoto ? (
+                  <img src={resolveImageUrl(user.profilePhoto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                ) : (
+                  user?.username?.charAt(0)?.toUpperCase() || 'U'
+                )}
               </div>
               <div className="layout__topbar-user-info">
-                <strong>{user?.fullName || 'User'}</strong>
+                <strong>{user?.username || 'User'}</strong>
                 <span>{user?.role || 'Role'}</span>
               </div>
             </div>
@@ -134,27 +176,15 @@ export default function Layout() {
 
       {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
 
-      {showLogoutModal && (
-        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </div>
-            <h3>Sign out</h3>
-            <p>Are you sure you want to sign out of your account?</p>
-            <div className="modal__actions">
-              <button type="button" className="btn btn--ghost" onClick={() => setShowLogoutModal(false)}>
-                Cancel
-              </button>
-              <button type="button" className="btn btn--danger" onClick={logout}>
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={showLogoutModal}
+        title="Sign out"
+        message="Are you sure you want to sign out of your account?"
+        confirmLabel="Sign out"
+        variant="danger"
+        onConfirm={() => { setShowLogoutModal(false); logout() }}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   )
 }

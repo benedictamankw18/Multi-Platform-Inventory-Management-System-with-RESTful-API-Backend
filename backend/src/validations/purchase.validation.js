@@ -9,7 +9,12 @@ const createPurchaseValidation = [
   body('branch_id').isUUID().withMessage('branch_id is required and must be a UUID.'),
   body('po_number').trim().notEmpty().withMessage('po_number is required.').isLength({ max: 100 }),
   body('order_date').optional().isISO8601().toDate(),
-  body('expected_date').optional().isISO8601().toDate(),
+  body('expected_delivery_date').optional().isISO8601().toDate().custom((val, { req }) => {
+    if (val && req.body.order_date && new Date(val) <= new Date(req.body.order_date)) {
+      throw new Error('Expected delivery date must be after the order date.');
+    }
+    return true;
+  }),
   body('status').optional().isString().isLength({ max: 50 }),
   body('total_amount').optional().isFloat().withMessage('total_amount must be numeric.'),
 ];
@@ -20,9 +25,15 @@ const updatePurchaseValidation = [
   body('branch_id').optional().isUUID(),
   body('po_number').optional().trim().isLength({ max: 100 }),
   body('order_date').optional().isISO8601().toDate(),
-  body('expected_date').optional().isISO8601().toDate(),
+  body('expected_delivery_date').optional().isISO8601().toDate().custom((val, { req }) => {
+    if (val && req.body.order_date && new Date(val) <= new Date(req.body.order_date)) {
+      throw new Error('Expected delivery date must be after the order date.');
+    }
+    return true;
+  }),
   body('status').optional().isString().isLength({ max: 50 }),
   body('total_amount').optional().isFloat(),
+  body('payment_status').optional().isIn(['UNPAID', 'PARTIAL', 'PAID']).withMessage('payment_status must be UNPAID, PARTIAL, or PAID'),
   body('is_active').optional().isBoolean(),
 ];
 

@@ -180,13 +180,23 @@ export default function SalesPage() {
     setReceiptLoading(true)
     setShowReceipt(true)
     try {
-      const [receipt, settings] = await Promise.all([
-        getSaleReceipt(sale.sale_id),
-        getBusinessSettings().catch(() => ({})),
-      ])
+      // const [receipt, settings] = await Promise.all([
+      //   getSaleReceipt(sale.sale_id),
+      //   getBusinessSettings().catch(() => null),
+      // ])
+      const saleId = sale?.sale_id
+      if (saleId) {
+              const [receipt, settings] = await Promise.all([
+                getSaleReceipt(saleId).catch(() => null),
+                getBusinessSettings().catch(() => null),
+        ])
+
       setReceiptData(receipt)
-      const rows = settings?.data
-      if (Array.isArray(rows) && rows.length > 0) setBusinessInfo(rows[0])
+      const rows = settings?.data ?? settings
+      const row = Array.isArray(rows) ? rows[0] : rows
+      if (row) setBusinessInfo(row)
+      }
+
     } catch {
       /* receipt load failed */
     }
@@ -325,7 +335,7 @@ export default function SalesPage() {
       </div>
 
       <div className="glass-card">
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="search-input" style={{ flex: 1, marginBottom: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
             <input type="text" placeholder="Search by invoice #, customer, or cashier..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
@@ -359,9 +369,9 @@ export default function SalesPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={11}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
               ) : sales.length === 0 ? (
-                <tr><td colSpan={11}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" /></svg><p>No sales found.</p></div></td></tr>
+                <tr key="empty"><td colSpan={11}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" /></svg><p>No sales found.</p></div></td></tr>
               ) : sales.map((s) => (
                 <tr key={s.sale_id}>
                   <td><strong>{s.invoice_number ?? '—'}</strong></td>
@@ -405,7 +415,7 @@ export default function SalesPage() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
@@ -467,7 +477,7 @@ export default function SalesPage() {
         <div className="modal-overlay" onClick={closeView}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 750, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexShrink: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <h3 style={{ margin: 0 }}>Sale Details</h3>
                 <span className={`badge ${statusColor(viewSale.status)}`}>{viewSale.status}</span>
@@ -479,7 +489,7 @@ export default function SalesPage() {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexShrink: 0, flexWrap: 'wrap' }}>
               <button type="button" onClick={() => { closeView(); handlePrintReceipt(viewSale) }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
@@ -517,7 +527,7 @@ export default function SalesPage() {
                     {viewSale.sale_type}
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px 16px', fontSize: 13 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px 16px', fontSize: 13 }}>
                   <div><span style={{ color: 'var(--text-secondary)' }}>Customer</span><div style={{ fontWeight: 500, marginTop: 2 }}>{viewSale.customer_name || 'Walk-in'}</div></div>
                   <div><span style={{ color: 'var(--text-secondary)' }}>Cashier</span><div style={{ fontWeight: 500, marginTop: 2 }}>{viewSale.cashier_name || '—'}</div></div>
                   <div><span style={{ color: 'var(--text-secondary)' }}>Payment</span><div style={{ fontWeight: 500, marginTop: 2 }}>{viewSale.payment_status}</div></div>
@@ -525,7 +535,7 @@ export default function SalesPage() {
               </div>
 
               {/* Financial Summary Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: Number(viewSale.refunded_amount) > 0 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
                 <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.15)' }}>
                   <div style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>Total</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{Number(viewSale.total_amount).toFixed(2)}</div>
@@ -568,9 +578,9 @@ export default function SalesPage() {
                     </thead>
                     <tbody>
                       {viewLoading ? (
-                        <tr><td colSpan={7}><div className="skeleton skeleton--row" /></td></tr>
+                        <tr key="loading-items"><td colSpan={7}><div className="skeleton skeleton--row" /></td></tr>
                       ) : viewItems.length === 0 ? (
-                        <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>No items found</td></tr>
+                        <tr key="empty-items"><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>No items found</td></tr>
                       ) : viewItems.map((item, i) => (
                         <tr key={i}>
                           <td style={{ fontWeight: 500 }}>{item.product_name}</td>
@@ -722,7 +732,7 @@ export default function SalesPage() {
             )}
             <div className="receipt-row receipt-total-row"><span>TOTAL</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.total_amount ?? 0).toFixed(2)}</span></div>
             {Number(receiptData?.sale?.refunded_amount ?? 0) > 0 && (
-              <div className="receipt-row" style={{ color: '#d97706' }}><span>Refunded</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData.sale!.refunded_amount).toFixed(2)}</span></div>
+              <div className="receipt-row" style={{ color: '#000000' }}><span>Refunded</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData.sale!.refunded_amount).toFixed(2)}</span></div>
             )}
           </div>
 
@@ -746,9 +756,8 @@ export default function SalesPage() {
           )}
 
           {businessInfo.receipt_footer && (
-            <div className="receipt-footer">{businessInfo.receipt_footer}</div>
+            <div className="receipt-footer">{businessInfo.receipt_footer || 'Thank you for your business!'}</div>
           )}
-          <div className="receipt-thankyou">Thank you for your business!</div>
         </div>
       </div>
     </>

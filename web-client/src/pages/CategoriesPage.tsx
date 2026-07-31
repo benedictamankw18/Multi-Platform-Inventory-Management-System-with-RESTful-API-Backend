@@ -376,7 +376,7 @@ export default function CategoriesPage() {
           <h1>Categories</h1>
           <p className="page-subtitle">{total} categor{total !== 1 ? 'ies' : 'y'} total</p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {hasPermission('MANAGE_CATEGORIES') && (
           <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowImportMenu(!showImportMenu)}>Import</button>
@@ -443,9 +443,9 @@ export default function CategoriesPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={6}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
               ) : categories.length === 0 ? (
-                <tr><td colSpan={6}><div className="empty-state">
+                <tr key="empty"><td colSpan={6}><div className="empty-state">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
                   <p>No categories yet.</p>
                   <button type="button" className="btn btn--primary" style={{ marginTop: 8 }} onClick={openCreate}>Add Category</button>
@@ -482,7 +482,7 @@ export default function CategoriesPage() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ color: 'var(--secondary)', fontSize: 'var(--text-caption)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>

@@ -36,6 +36,7 @@ const auditRepo = require('../repositories/audit.repository');
 const userRepo = require('../repositories/user.repository');
 const jwtUtils = require('../utils/jwt.utils');
 const AppError = require('../utils/AppError');
+const notificationService = require('./notification.service');
 const { env } = require('process');
 
 const ACCESS_TOKEN_SECRET  = env.ACCESS_TOKEN_SECRET;
@@ -130,6 +131,17 @@ exports.login = async (usernameOrEmail, password) => {
 
   await auditRepo.writeLog(user.user_id, 'LOGIN', 'USER', user.user_id);
 
+    notificationService.createNotification({
+      title: 'New Login',
+      message: 'You logged in successfully.',
+      type: 'INFO',
+      priority: 'LOW',
+      user_id: user.user_id,
+      recipients: [user.user_id],
+      createdBy: user.user_id,
+      channels: ['in_app'],
+    }).catch((e) => console.error('notif error', e && e.message));
+
   return {
     accessToken,
     refreshToken,
@@ -140,6 +152,7 @@ exports.login = async (usernameOrEmail, password) => {
       email: user.email,
       role: user.role_name,
       branchId: user.branch_id,
+      profilePhoto: user.profile_photo,
     },
   };
 };
@@ -219,6 +232,17 @@ exports.logout = async ({ sessionId, userId } = {}) => {
   if (sessionId) {
     await authRepo.revokeSession(sessionId);
     await auditRepo.writeLog(userId, 'LOGOUT', 'USER', userId);
+
+    notificationService.createNotification({
+      title: 'Logged Out',
+      message: 'You logged out successfully.',
+      type: 'INFO',
+      priority: 'LOW',
+      user_id: userId,
+      recipients: [userId],
+      createdBy: userId,
+      channels: ['in_app'],
+    }).catch((e) => console.error('notif error', e && e.message));
   }
   return { message: 'Logged out successfully.' };
 };
@@ -256,6 +280,18 @@ exports.forgotPassword = async (email) => {
   } catch (e) {
     console.error('enqueue send error', e && e.message);
   }
+
+  notificationService.createNotification({
+    title: 'Password Reset Requested',
+    message: 'A password reset link has been sent to your email.',
+    type: 'INFO',
+    priority: 'LOW',
+    user_id: user.user_id,
+    recipients: [user.user_id],
+    createdBy: user.user_id,
+    channels: ['in_app'],
+  }).catch((e) => console.error('notif error', e && e.message));
+
   return { message: 'If an account exists, a reset email will be sent.' };
 };
 
@@ -276,6 +312,17 @@ exports.resetPassword = async (token, newPassword) => {
   // Revoke any existing sessions for this user
   await authRepo.revokeAllSessionsForUser(record.user_id);
   await auditRepo.writeLog(record.user_id, 'PASSWORD_RESET', 'USER', record.user_id);
+
+  notificationService.createNotification({
+    title: 'Password Reset',
+    message: 'Your password has been reset successfully.',
+    type: 'INFO',
+    priority: 'HIGH',
+    user_id: record.user_id,
+    recipients: [record.user_id],
+    createdBy: record.user_id,
+    channels: ['in_app', 'email', 'sms'],
+  }).catch((e) => console.error('reset password notif error', e && e.message));
 
   return { message: 'Password has been reset.' };
 };
@@ -354,6 +401,7 @@ exports.selectBranch = async (userId, branchId) => {
         email: updated.email,
         role: fullUser.role_name,
         branchId: branchId,
+        profilePhoto: updated.profile_photo,
       },
     };
   }
@@ -369,8 +417,134 @@ exports.selectBranch = async (userId, branchId) => {
       email: updated.email,
       role: fullUser.role_name,
       branchId: branchId,
+      profilePhoto: updated.profile_photo,
     },
   };
+};
+
+// ---------------------------------------------------------------------------
+// § Profile — get / update / change password
+// ---------------------------------------------------------------------------
+
+exports.getProfile = async (userId) => {
+  if (!userId) throw new AppError('User ID is required.', { status: 400 });
+  const user = await userRepo.findUserById(userId);
+  if (!user) throw new AppError('User not found.', { status: 404 });
+  return {
+    userId: user.user_id,
+    username: user.username,
+    fullName: user.full_name,
+    email: user.email,
+    phone: user.phone,
+    profilePhoto: user.profile_photo,
+    role: user.role_name,
+    branchId: user.branch_id,
+    branchName: user.branch_name,
+    isActive: user.is_active,
+    lastLoginAt: user.last_login_at,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+};
+
+exports.updateProfile = async (userId, { fullName, email, phone, profilePhoto } = {}) => {
+  if (!userId) throw new AppError('User ID is required.', { status: 400 });
+
+  const current = await userRepo.findUserById(userId);
+  if (!current) throw new AppError('User not found.', { status: 404 });
+
+  if (email !== undefined) {
+    const existing = await userRepo.findUserByEmail(email);
+    if (existing && existing.user_id !== userId) {
+      throw new AppError('Email is already in use by another account.', { status: 409 });
+    }
+  }
+
+  const updated = await userRepo.updateUser(userId, { fullName, email, phone, profilePhoto });
+  if (!updated) throw new AppError('Failed to update profile.', { status: 500 });
+
+  await auditRepo.writeLog(userId, 'UPDATE_PROFILE', 'USER', userId);
+
+  const changes = []
+  const fieldMap = [
+    { key: 'fullName', label: 'full name', old: current.full_name, new: fullName },
+    { key: 'email', label: 'email', old: current.email, new: email },
+    { key: 'phone', label: 'phone number', old: current.phone, new: phone },
+    { key: 'profilePhoto', label: 'profile photo', old: current.profile_photo, new: profilePhoto },
+  ]
+
+  for (const f of fieldMap) {
+    if (f.new === undefined) continue
+    const oldStr = f.old || '(none)'
+    const newStr = f.new || '(none)'
+    if (oldStr === newStr) continue
+    if (f.key === 'profilePhoto') {
+      changes.push('profile photo has been updated')
+    } else {
+      changes.push(`${f.label} from ${oldStr} to ${newStr}`)
+    }
+  }
+
+  let message
+  if (changes.length === 0) {
+    message = 'Your profile information has been updated.'
+  } else if (changes.length === 1) {
+    message = `Your ${changes[0]}.`
+  } else {
+    const summary = changes.slice(1).map((c) => c.split(' from ')[0]).join(' and ')
+    const firstLabel = changes[0].split(' from ')[0]
+    message = `Your ${firstLabel} and ${summary} have been updated: ${changes.join(', ')}.`
+  }
+
+  notificationService.createNotification({
+    title: 'Profile Updated',
+    message,
+    type: 'INFO',
+    priority: 'LOW',
+    user_id: userId,
+    recipients: [userId],
+    createdBy: userId,
+    channels: ['in_app', 'email', 'sms'],
+  }).catch((e) => console.error('profile update notif error', e && e.message));
+
+  return exports.getProfile(userId);
+};
+
+exports.changePassword = async (userId, currentPassword, newPassword) => {
+  if (!userId || !currentPassword || !newPassword) {
+    throw new AppError('User ID, current password, and new password are required.', { status: 400 });
+  }
+
+  const user = await userRepo.findUserById(userId);
+  if (!user) throw new AppError('User not found.', { status: 404 });
+
+  const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!passwordMatches) {
+    throw new AppError('Current password is incorrect.', { code: 'INVALID_PASSWORD', status: 401 });
+  }
+
+  const same = await bcrypt.compare(newPassword, user.password_hash);
+  if (same) {
+    throw new AppError('New password must be different from current password.', { status: 400 });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await userRepo.updatePassword(userId, passwordHash);
+  await authRepo.revokeAllSessionsForUser(userId);
+  await auditRepo.writeLog(userId, 'CHANGE_PASSWORD', 'USER', userId);
+
+  notificationService.createNotification({
+    title: 'Password Changed',
+    message: 'Your password has been changed successfully.',
+    type: 'INFO',
+    priority: 'HIGH',
+    user_id: userId,
+    recipients: [userId],
+    createdBy: userId,
+    channels: ['in_app', 'email', 'sms'],
+  }).catch((e) => console.error('change password notif error', e && e.message));
+
+  return { message: 'Password changed successfully. Please log in again.' };
 };
 
 // ---------------------------------------------------------------------------

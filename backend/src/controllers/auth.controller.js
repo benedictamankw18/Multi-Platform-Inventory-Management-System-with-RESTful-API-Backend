@@ -225,3 +225,72 @@ exports.getMyPermissions = async (req, res) => {
     return handleError(res, err);
   }
 };
+
+// ---------------------------------------------------------------------------
+// GET /api/auth/me
+// Returns the logged-in user's full profile
+// ---------------------------------------------------------------------------
+
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+    const result = await authService.getProfile(userId);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// PATCH /api/auth/me/profile
+// Updates profile fields: fullName, email, phone, profilePhoto
+// ---------------------------------------------------------------------------
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+    const { fullName, email, phone, profilePhoto } = req.body;
+    const result = await authService.updateProfile(userId, { fullName, email, phone, profilePhoto });
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/me/change-password
+// Body: { currentPassword, newPassword }
+// ---------------------------------------------------------------------------
+
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/me/profile-photo
+// Upload a profile photo file
+// ---------------------------------------------------------------------------
+
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    const userId = req.user && req.user.sub;
+    if (!userId) return res.status(401).json({ message: 'Authentication required.' });
+    if (!req.file) return res.status(400).json({ message: 'No image file provided.' });
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const result = await authService.updateProfile(userId, { profilePhoto: imageUrl });
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
