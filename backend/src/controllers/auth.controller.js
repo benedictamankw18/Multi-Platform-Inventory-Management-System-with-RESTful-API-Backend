@@ -64,7 +64,11 @@ exports.login = async (req, res) => {
   try {
     const { usernameOrEmail, username, password } = req.body;
     const identifier = usernameOrEmail || username;
-    const result = await authService.login(identifier, password);
+    const result = await authService.login(identifier, password, {
+      device: req.headers['x-device-id'] || null,
+      userAgent: req.headers['user-agent'] || null,
+      ipAddress: req.ip,
+    });
 
     setRefreshCookie(res, result.refreshToken);
 

@@ -73,6 +73,25 @@ function clearTokens() {
 }
 
 // ---------------------------------------------------------------------------
+// Device identity: a persistent UUID identifying this install. Sent on every
+// request as X-Device-Id so the backend can attribute rate-limit counters to
+// (user, device, login, session) instead of the shared IP.
+// ---------------------------------------------------------------------------
+
+function getDeviceId(): string {
+  const KEY = 'deviceId'
+  let id = localStorage.getItem(KEY)
+  if (!id) {
+    id =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+    localStorage.setItem(KEY, id)
+  }
+  return id
+}
+
+// ---------------------------------------------------------------------------
 // Refresh-token logic with concurrent-request queue
 // ---------------------------------------------------------------------------
 
@@ -104,6 +123,7 @@ function redirectToLogin() {
 // ---------------------------------------------------------------------------
 
 api.interceptors.request.use((config) => {
+  config.headers['X-Device-Id'] = getDeviceId()
   const token = getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`

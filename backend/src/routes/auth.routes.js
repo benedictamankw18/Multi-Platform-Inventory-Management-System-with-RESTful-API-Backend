@@ -17,6 +17,7 @@ const authController = require('../controllers/auth.controller');
 const authenticate = require('../middleware/auth.middleware');
 const validate = require('../middleware/validation.middleware');
 const upload = require('../middleware/upload.middleware');
+const { loginLimiter } = require('../middleware/rateLimiter.middleware');
 
 const { loginValidation, refreshTokenValidation, forgotPasswordValidation, resetPasswordValidation, changePasswordValidation, updateProfileValidation } = require('../validations/auth.validation');
 
@@ -60,7 +61,7 @@ const { loginValidation, refreshTokenValidation, forgotPasswordValidation, reset
  *       '401':
  *         description: Invalid credentials
  */
-router.post('/login', loginValidation, validate, authController.login);
+router.post('/login', loginLimiter, loginValidation, validate, authController.login);
 
 /**
  * @openapi

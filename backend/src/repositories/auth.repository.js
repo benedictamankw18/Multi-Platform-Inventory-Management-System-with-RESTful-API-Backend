@@ -216,6 +216,18 @@ exports.createLoginHistory = async ({ loginId, userId, username, sessionId, succ
   return rows[0];
 };
 
+exports.findLoginBySessionId = async (sessionId, client = db) => {
+  const query = `
+    SELECT login_id, session_id
+    FROM login_history
+    WHERE session_id = $1
+    ORDER BY login_time DESC
+    LIMIT 1;
+  `;
+  const { rows } = await client.query(query, [sessionId]);
+  return rows[0] || null;
+};
+
 exports.listLoginHistoryForUser = async (userId, { limit = 50, offset = 0 } = {}, client = db) => {
   const query = `SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT $2 OFFSET $3;`;
   const { rows } = await client.query(query, [userId, limit, offset]);

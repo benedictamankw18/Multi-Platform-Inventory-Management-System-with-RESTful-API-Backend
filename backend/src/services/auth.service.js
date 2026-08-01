@@ -58,7 +58,7 @@ const REFRESH_TOKEN_TTL_MS = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function signAccessToken(user, sessionId) {
+function signAccessToken(user, sessionId, loginId) {
   return jwt.sign(
     {
       sub: user.user_id,
@@ -66,15 +66,16 @@ function signAccessToken(user, sessionId) {
       roleId: user.role_id,
       branchId: user.branch_id,
       sid: sessionId,
+      loginId: loginId || null,
     },
     ACCESS_TOKEN_SECRET,
     { expiresIn: ACCESS_TOKEN_TTL }
   );
 }
 
-function signRefreshToken(userId, sessionId, jti) {
+function signRefreshToken(userId, sessionId, jti, loginId) {
   return jwt.sign(
-    { sub: userId, sid: sessionId, jti },
+    { sub: userId, sid: sessionId, jti, loginId: loginId || null },
     REFRESH_TOKEN_SECRET,
     { expiresIn: `${REFRESH_TOKEN_TTL_DAYS}d` }
   );
@@ -94,7 +95,7 @@ function sessionInvalidError(message = 'Session is no longer valid. Please log i
 // § login                                                            (FR-001)
 // ---------------------------------------------------------------------------
 
-exports.login = async (usernameOrEmail, password) => {
+exports.login = async (usernameOrEmail, password, meta = {}) => {
   if (!usernameOrEmail || !password) {
     throw new AppError('Username and password are required.', { code: 'VALIDATION_ERROR', status: 400 });
   }
@@ -121,13 +122,29 @@ exports.login = async (usernameOrEmail, password) => {
   // without waiting for the JWT to expire on its own.
   const sessionId = crypto.randomUUID();
   const jti = crypto.randomUUID();
+  const loginId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
   await authRepo.createSession({ sessionId, userId: user.user_id, tokenIdentifier: jti, expiresAt });
   await authRepo.updateLastLogin(user.user_id);
 
-  const accessToken = signAccessToken(user, sessionId);
-  const refreshToken = signRefreshToken(user.user_id, sessionId, jti);
+  // Attribute this login (and every request it makes) to a login_history row
+  // so the rate limiter can key on { user, device, login, session }.
+  await authRepo.createLoginHistory({
+    loginId,
+    userId: user.user_id,
+    username: user.username,
+    sessionId,
+    successful: true,
+    ipAddress: meta.ipAddress || null,
+    userAgent: meta.userAgent || null,
+    device: meta.device || null,
+    operatingSystem: meta.operatingSystem || null,
+    browser: meta.browser || null,
+  });
+
+  const accessToken = signAccessToken(user, sessionId, loginId);
+  const refreshToken = signRefreshToken(user.user_id, sessionId, jti, loginId);
 
   await auditRepo.writeLog(user.user_id, 'LOGIN', 'USER', user.user_id);
 
@@ -213,8 +230,16 @@ exports.refreshToken = async (token) => {
     branch_id: session.branch_id,
   };
 
-  const newAccessToken = signAccessToken(userForToken, session.session_id);
-  const newRefreshToken = signRefreshToken(session.user_id, session.session_id, newJti);
+  // Preserve the login attribution across token rotation. Tokens signed before
+  // loginId existed fall back to a lookup of the login_history row.
+  let loginId = payload.loginId || null;
+  if (!loginId) {
+    const login = await authRepo.findLoginBySessionId(session.session_id);
+    loginId = (login && login.login_id) || null;
+  }
+
+  const newAccessToken = signAccessToken(userForToken, session.session_id, loginId);
+  const newRefreshToken = signRefreshToken(session.user_id, session.session_id, newJti, loginId);
 
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
@@ -385,8 +410,12 @@ exports.selectBranch = async (userId, branchId) => {
     const newJti = crypto.randomUUID();
     await authRepo.rotateSessionToken(session.session_id, newJti);
 
-    const accessToken = signAccessToken(fullUser, session.session_id);
-    const refreshToken = signRefreshToken(userId, session.session_id, newJti);
+    // Keep the same login attribution across branch re-signing.
+    const login = await authRepo.findLoginBySessionId(session.session_id);
+    const loginId = (login && login.login_id) || null;
+
+    const accessToken = signAccessToken(fullUser, session.session_id, loginId);
+    const refreshToken = signRefreshToken(userId, session.session_id, newJti, loginId);
 
     await auditRepo.writeLog(userId, 'SELECT_BRANCH', 'USER', userId);
 
