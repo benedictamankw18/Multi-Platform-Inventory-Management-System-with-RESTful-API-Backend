@@ -195,7 +195,11 @@ export async function drainOutbox(
       }
     }
     await setMeta('lastSyncAt', new Date().toISOString())
-    void hydrateOfflineCache(api).catch(() => {})
+    // Only re-pull caches when something was actually replayed, otherwise an
+    // empty drain (e.g. app boot) fires N authenticated pulls for no reason.
+    if (processed > 0 || failed > 0) {
+      void hydrateOfflineCache(api).catch(() => {})
+    }
   } finally {
     emit('sync-state', { syncing: false })
     emit('sync-done', { processed, failed })
@@ -205,6 +209,8 @@ export async function drainOutbox(
 }
 
 export async function hydrateOfflineCache(api: AxiosInstance): Promise<number> {
+  // Nothing to hydrate while signed out — pulls would just 401.
+  if (!localStorage.getItem('accessToken')) return 0
   let hydrated = 0
   await Promise.allSettled(
     PULL_ENTITIES.map(async (entity) => {

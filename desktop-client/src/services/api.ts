@@ -96,8 +96,11 @@ function processQueue(error: unknown, token: string | null) {
 
 function redirectToLogin() {
   clearTokens()
-  // Use a full page reload so React state is cleanly reset
-  window.location.href = '/login'
+  // Guard against redirect loops: if we're already on the login screen, do nothing.
+  const current = window.location.hash.replace(/^#/, '') || '/'
+  if (current === '/login') return
+  // HashRouter-compatible navigation (works in dev and packaged file://)
+  window.location.hash = '#/login'
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +132,14 @@ api.interceptors.response.use(
     // Don't try to refresh if this IS the refresh endpoint
     if (originalRequest.url?.includes('/auth/refresh')) {
       redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    // A 401 on a request that never carried a token just means "not logged in".
+    // Reject without refresh or redirect, otherwise anonymous requests (e.g.
+    // the splash screen or offline sync pulls on the login page) reload the
+    // whole app in an infinite loop.
+    if (!originalRequest.headers?.Authorization) {
       return Promise.reject(error)
     }
 
