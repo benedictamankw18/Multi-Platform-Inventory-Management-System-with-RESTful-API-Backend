@@ -96,6 +96,7 @@ async function updateInventory(id, patch = {}) {
 
   if (!fields.length) return getInventoryById(id);
 
+  fields.push('updated_at = now()');
   values.push(id);
   const q = `UPDATE product_branch_inventory SET ${fields.join(', ')} WHERE inventory_id = $${idx} RETURNING *`;
   const { rows } = await client.query(q, values);

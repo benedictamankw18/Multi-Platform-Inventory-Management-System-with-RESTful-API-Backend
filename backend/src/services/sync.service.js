@@ -1,12 +1,23 @@
 const syncRepo = require('../repositories/sync.repository');
+const { resolveTable } = require('../repositories/sync.repository');
 const { v4: uuidv4 } = require('uuid');
+const AppError = require('../utils/AppError');
 const notificationService = require('./notification.service');
+
+function assertSupportedEntity(entity) {
+  try {
+    resolveTable(entity);
+  } catch (e) {
+    throw new AppError(e.message, { code: 'INVALID_ENTITY', status: 400 });
+  }
+}
 
 async function getLastSync(entity) {
   return syncRepo.getLastSync(entity);
 }
 
 async function pull(entity, since) {
+  assertSupportedEntity(entity);
   try {
     const sinceTs = since || '1970-01-01T00:00:00Z';
     const rows = await syncRepo.pullChanges(entity, sinceTs);
@@ -27,6 +38,7 @@ async function pull(entity, since) {
 
 async function push(entity, items) {
   if (!Array.isArray(items)) throw new Error('items must be an array');
+  assertSupportedEntity(entity);
   try {
     const result = await syncRepo.pushChanges(entity, items);
     const syncId = uuidv4();

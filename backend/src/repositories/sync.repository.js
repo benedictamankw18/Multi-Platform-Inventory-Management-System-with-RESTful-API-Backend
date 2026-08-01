@@ -2,6 +2,34 @@ const pool = require('../config/db');
 
 const TABLE = 'sync_logs';
 
+// URL/resource names (client-side) -> actual database tables.
+// Entities not in this list are rejected, which also blocks SQL injection
+// via the entity path parameter.
+const ENTITY_TABLE_MAP = {
+  products: 'products',
+  categories: 'categories',
+  suppliers: 'suppliers',
+  customers: 'customers',
+  branches: 'branches',
+  expenses: 'expenses',
+  'expense-categories': 'expense_categories',
+  purchases: 'purchase_orders',
+  sales: 'sales',
+  users: 'users',
+  roles: 'roles',
+  inventories: 'product_branch_inventory',
+  'inventory-transfers': 'inventory_transfers',
+  inventory: 'product_branch_inventory',
+  transfers: 'inventory_transfers',
+  notifications: 'notifications',
+};
+
+function resolveTable(entity) {
+  const table = ENTITY_TABLE_MAP[entity];
+  if (!table) throw new Error(`Unsupported sync entity: ${entity}`);
+  return table;
+}
+
 async function createSyncLog({ sync_id, device_id, local_transaction_id, entity_type, sync_status = 'PENDING', synced_at = null, error_message = null, retry_count = 0, sync_duration_ms = null } = {}) {
   const q = `
     INSERT INTO ${TABLE} (sync_id, device_id, local_transaction_id, entity_type, sync_status, synced_at, error_message, retry_count, sync_duration_ms, created_at, updated_at)
@@ -82,7 +110,8 @@ async function getPendingSyncs({ limit = 100, olderThanSeconds = null } = {}) {
 
 // Keep generic pull/push helpers for other entities — unchanged
 async function pullChanges(entity, since) {
-  const q = `SELECT * FROM ${entity} WHERE updated_at > $1 ORDER BY updated_at ASC`;
+  const table = resolveTable(entity);
+  const q = `SELECT * FROM "${table}" WHERE updated_at > $1 ORDER BY updated_at ASC`;
   const { rows } = await pool.query(q, [since]);
   return rows;
 }
@@ -91,10 +120,8 @@ async function pushChanges(entity, items) {
     const client = await pool.connect();
 
     try {
-        // Validate entity name to prevent SQL injection
-        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(entity)) {
-            throw new Error(`Invalid entity name: ${entity}`);
-        }
+        // Resolve entity to a real table via the allow-list to prevent SQL injection
+        const table = resolveTable(entity);
 
         if (!Array.isArray(items) || items.length === 0) {
             return {
@@ -139,7 +166,7 @@ async function pushChanges(entity, items) {
                     .join(", ");
 
                 sql = `
-                    INSERT INTO "${entity}"
+                    INSERT INTO "${table}"
                     (${insertColumns.map(c => `"${c}"`).join(", ")})
                     VALUES (${placeholders.join(", ")})
                     ON CONFLICT ("${idKey}")
@@ -147,7 +174,7 @@ async function pushChanges(entity, items) {
                 `;
             } else {
                 sql = `
-                    INSERT INTO "${entity}"
+                    INSERT INTO "${table}"
                     ("${idKey}")
                     VALUES ($1)
                     ON CONFLICT ("${idKey}")
@@ -203,4 +230,5 @@ module.exports = {
   pullChanges,
   getLastSync,
   pushChanges,
+  resolveTable,
 };
