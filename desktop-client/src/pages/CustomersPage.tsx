@@ -5,18 +5,22 @@ import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
-  getBranches,
-  createBranch,
-  updateBranch,
-  activateBranch,
-  deactivateBranch,
-  getUsers,
-  type BranchInfo,
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  activateCustomer,
+  getCustomerPaymentsByCustomer,
+  type Customer,
+  type CustomerPayment,
 } from '../services/api'
 
 type ModalMode = 'import' | 'view' | null
 
-const TEMPLATE_HEADERS = ['Branch Name', 'Address', 'City', 'Country', 'Postal Code', 'Phone', 'Email']
+const CUSTOMER_TYPES = ['WALK_IN', 'RETAIL', 'WHOLESALE'] as const
+const GENDERS = ['Male', 'Female', 'Other'] as const
+
+const TEMPLATE_HEADERS = ['Business Name', 'Contact Name', 'Phone', 'Email', 'Address', 'Customer Type', 'Credit Limit', 'Tax Number', 'Gender', 'Notes']
 
 function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
@@ -30,32 +34,37 @@ function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
 function normalizeHeader(name: string): string {
   const lower = name.trim().toLowerCase()
   const map: Record<string, string> = {
-    'branch name': 'Branch Name', name: 'Branch Name', branch: 'Branch Name',
-    address: 'Address',
-    city: 'City',
-    country: 'Country',
-    'postal code': 'Postal Code', zipcode: 'Postal Code', zip: 'Postal Code',
+    'business name': 'Business Name', name: 'Business Name', 'customer name': 'Business Name',
+    'contact name': 'Contact Name', contact: 'Contact Name',
     phone: 'Phone', telephone: 'Phone', mobile: 'Phone',
     email: 'Email',
+    address: 'Address',
+    'customer type': 'Customer Type', type: 'Customer Type',
+    'credit limit': 'Credit Limit', credit: 'Credit Limit',
+    'tax number': 'Tax Number', tax: 'Tax Number',
+    gender: 'Gender',
+    notes: 'Notes', note: 'Notes',
   }
   return map[lower] || name.trim()
 }
 
-export default function BranchesPage() {
+export default function CustomersPage() {
   const { toast } = useToast()
   const { hasPermission } = useAuth()
-  const [items, setItems] = useState<BranchInfo[]>([])
+  const [items, setItems] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<BranchInfo | null>(null)
+  const [editing, setEditing] = useState<Customer | null>(null)
   const [formError, setFormError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const [modal, setModal] = useState<ModalMode>(null)
-  const [viewing, setViewing] = useState<BranchInfo | null>(null)
+  const [viewing, setViewing] = useState<Customer | null>(null)
+  const [viewPayments, setViewPayments] = useState<CustomerPayment[]>([])
+  const [viewPaymentsLoading, setViewPaymentsLoading] = useState(false)
   const [importRows, setImportRows] = useState<Record<string, unknown>[]>([])
   const [importFileName, setImportFileName] = useState('')
   const [importing, setImporting] = useState(false)
@@ -67,19 +76,20 @@ export default function BranchesPage() {
   const [showImportMenu, setShowImportMenu] = useState(false)
   const importMenuRef = useRef<HTMLDivElement>(null)
 
-  // Form fields
-  const [branchName, setBranchName] = useState('')
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState('')
-  const [postalCode, setPostalCode] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
-  const [geoLoading, setGeoLoading] = useState(false)
-  const [managerId, setManagerId] = useState('')
-  const [users, setUsers] = useState<Array<{ user_id: string; full_name: string }>>([])
+  const [form, setForm] = useState({
+    customer_type: 'WALK_IN',
+    business_name: '',
+    contact_name: '',
+    phone: '',
+    email: '',
+    address: '',
+    credit_limit: '',
+    tax_number: '',
+    date_of_birth: '',
+    gender: '',
+    notes: '',
+    loyalty_points: '',
+  })
 
   const limit = 25
 
@@ -88,8 +98,8 @@ export default function BranchesPage() {
     try {
       const body: Record<string, unknown> = { page, limit }
       if (search) body.q = search
-      const res = await getBranches(body)
-      const data = Array.isArray(res) ? res : res?.data ?? res?.branches ?? []
+      const res = await getCustomers(body)
+      const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
       setItems(data)
       setTotal(res?.total ?? data.length)
     } catch {
@@ -110,48 +120,15 @@ export default function BranchesPage() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  useEffect(() => {
-    getUsers({ limit: 1000 }).then((res) => {
-      const data = Array.isArray(res) ? res : res?.data ?? res?.users ?? []
-      setUsers(data)
-    }).catch(() => {})
-  }, [])
-
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
-  function resetForm() {
-    setBranchName('')
-    setAddress('')
-    setCity('')
-    setCountry('')
-    setPostalCode('')
-    setPhone('')
-    setEmail('')
-    setLatitude('')
-    setLongitude('')
-    setManagerId('')
-    setFormError('')
+  function set(key: string, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  function handleGetLocation() {
-    if (!navigator.geolocation) {
-      toast('Geolocation is not supported by your browser', 'error')
-      return
-    }
-    setGeoLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude.toFixed(7))
-        setLongitude(pos.coords.longitude.toFixed(7))
-        setGeoLoading(false)
-        toast('Location captured', 'success')
-      },
-      () => {
-        setGeoLoading(false)
-        toast('Unable to get location. Please enter manually.', 'error')
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
+  function resetForm() {
+    setForm({ customer_type: 'WALK_IN', business_name: '', contact_name: '', phone: '', email: '', address: '', credit_limit: '', tax_number: '', date_of_birth: '', gender: '', notes: '', loyalty_points: '' })
+    setFormError('')
   }
 
   function openCreate() {
@@ -160,18 +137,22 @@ export default function BranchesPage() {
     setShowForm(true)
   }
 
-  function openEdit(b: BranchInfo) {
-    setEditing(b)
-    setBranchName(b.branch_name)
-    setAddress(b.address ?? '')
-    setCity(b.city ?? '')
-    setCountry(b.country ?? '')
-    setPostalCode(b.postal_code ?? '')
-    setPhone(b.phone ?? '')
-    setEmail(b.email ?? '')
-    setLatitude(b.latitude != null ? String(b.latitude) : '')
-    setLongitude(b.longitude != null ? String(b.longitude) : '')
-    setManagerId(b.manager_id ?? '')
+  function openEdit(c: Customer) {
+    setEditing(c)
+    setForm({
+      customer_type: c.customer_type || 'WALK_IN',
+      business_name: c.business_name ?? '',
+      contact_name: c.contact_name ?? '',
+      phone: c.phone ?? '',
+      email: c.email ?? '',
+      address: c.address ?? '',
+      credit_limit: c.credit_limit != null ? String(c.credit_limit) : '',
+      tax_number: c.tax_number ?? '',
+      date_of_birth: c.date_of_birth ? c.date_of_birth.slice(0, 10) : '',
+      gender: c.gender ?? '',
+      notes: c.notes ?? '',
+      loyalty_points: c.loyalty_points != null ? String(c.loyalty_points) : '',
+    })
     setFormError('')
     setShowForm(true)
   }
@@ -182,9 +163,14 @@ export default function BranchesPage() {
     resetForm()
   }
 
-  function openView(b: BranchInfo) {
-    setViewing(b)
+  function openView(c: Customer) {
+    setViewing(c)
     setModal('view')
+    setViewPaymentsLoading(true)
+    getCustomerPaymentsByCustomer(c.customer_id)
+      .then((res) => setViewPayments(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []))
+      .catch(() => setViewPayments([]))
+      .finally(() => setViewPaymentsLoading(false))
   }
 
   function closeView() {
@@ -194,33 +180,46 @@ export default function BranchesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!branchName.trim()) {
-      setFormError('Branch name is required.')
+    if (!form.business_name.trim()) {
+      setFormError('Business name is required.')
       return
     }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setFormError('Please enter a valid email address.')
+      return
+    }
+    if (form.date_of_birth && new Date(form.date_of_birth) > new Date()) {
+      setFormError('Date of Birth cannot be in the future.')
       return
     }
     setFormError('')
     try {
-      const body: Record<string, unknown> = { branch_name: branchName.trim() }
-      if (address.trim()) body.address = address.trim()
-      if (city.trim()) body.city = city.trim()
-      if (country.trim()) body.country = country.trim()
-      if (postalCode.trim()) body.postal_code = postalCode.trim()
-      if (phone.trim()) body.phone = phone.trim()
-      if (email.trim()) body.email = email.trim()
-      if (latitude.trim()) { const v = parseFloat(latitude); if (!isNaN(v)) body.latitude = v }
-      if (longitude.trim()) { const v = parseFloat(longitude); if (!isNaN(v)) body.longitude = v }
-      if (managerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(managerId)) body.manager_id = managerId
-
       if (editing) {
-        await updateBranch(editing.branch_id, body)
-        toast('Branch updated', 'success')
+        const body: Record<string, unknown> = {
+          customer_type: form.customer_type,
+          business_name: form.business_name.trim(),
+          contact_name: form.contact_name.trim() || null,
+          phone: form.phone.trim() || null,
+          email: form.email.trim() || null,
+          address: form.address.trim() || null,
+          credit_limit: form.credit_limit ? Number(form.credit_limit) : 0,
+          tax_number: form.tax_number.trim() || null,
+          date_of_birth: form.date_of_birth || null,
+          gender: form.gender || null,
+          notes: form.notes.trim() || null,
+        }
+        await updateCustomer(editing.customer_id, body)
+        toast('Customer updated', 'success')
       } else {
-        await createBranch(body)
-        toast('Branch created', 'success')
+        const body: Record<string, unknown> = {
+          customer_name: form.business_name.trim(),
+          contact_person: form.contact_name.trim() || undefined,
+          phone: form.phone.trim() || undefined,
+          contact_email: form.email.trim() || undefined,
+          address: form.address.trim() || undefined,
+        }
+        await createCustomer(body)
+        toast('Customer created', 'success')
       }
       closeForm()
       load()
@@ -236,19 +235,19 @@ export default function BranchesPage() {
     }
   }
 
-  async function handleToggle(b: BranchInfo) {
-    setActionLoading(b.branch_id)
+  async function handleToggle(c: Customer) {
+    setActionLoading(c.customer_id)
     try {
-      if (b.is_active) {
-        await deactivateBranch(b.branch_id)
-        toast('Branch deactivated', 'success')
+      if (c.is_active) {
+        await deleteCustomer(c.customer_id)
+        toast('Customer deactivated', 'success')
       } else {
-        await activateBranch(b.branch_id)
-        toast('Branch activated', 'success')
+        await activateCustomer(c.customer_id)
+        toast('Customer activated', 'success')
       }
       load()
     } catch {
-      toast('Failed to update branch status', 'error')
+      toast('Failed to update customer status', 'error')
     }
     setActionLoading(null)
   }
@@ -290,30 +289,26 @@ export default function BranchesPage() {
 
     for (let i = 0; i < importRows.length; i++) {
       const row = importRows[i]
-      const name = String(row['Branch Name'] ?? '').trim()
+      const name = String(row['Business Name'] ?? '').trim()
       if (!name) {
-        failures.push({ row: i + 2, name: '(empty)', reason: 'Branch name is required' })
+        failures.push({ row: i + 2, name: '(empty)', reason: 'Business name is required' })
         done++
         setImportProgress({ done, total: importRows.length })
         continue
       }
 
       try {
-        const body: Record<string, unknown> = { branch_name: name }
-        const addr = String(row['Address'] ?? '').trim()
-        if (addr) body.address = addr
-        const c = String(row['City'] ?? '').trim()
-        if (c) body.city = c
-        const co = String(row['Country'] ?? '').trim()
-        if (co) body.country = co
-        const pc = String(row['Postal Code'] ?? '').trim()
-        if (pc) body.postal_code = pc
+        const body: Record<string, unknown> = { customer_name: name }
+        const contact = String(row['Contact Name'] ?? '').trim()
+        if (contact) body.contact_person = contact
         const ph = String(row['Phone'] ?? '').trim()
         if (ph) body.phone = ph
         const em = String(row['Email'] ?? '').trim()
-        if (em) body.email = em
+        if (em) body.contact_email = em
+        const addr = String(row['Address'] ?? '').trim()
+        if (addr) body.address = addr
 
-        await createBranch(body)
+        await createCustomer(body)
         done++
         setImportDone(done)
       } catch (err: unknown) {
@@ -329,7 +324,7 @@ export default function BranchesPage() {
     setImportFailures(failures)
     setImporting(false)
     if (failures.length === 0) {
-      toast(`Imported ${importRows.length} branch${importRows.length !== 1 ? 'es' : ''}`, 'success')
+      toast(`Imported ${importRows.length} customer${importRows.length !== 1 ? 's' : ''}`, 'success')
       setModal(null)
       load()
     }
@@ -337,29 +332,31 @@ export default function BranchesPage() {
 
   // ---- Export ----
 
-  async function fetchAllForExport(): Promise<BranchInfo[]> {
-    const res = await getBranches({ limit: 10000, page: 1 })
-    return Array.isArray(res) ? res : res?.data ?? res?.branches ?? []
+  async function fetchAllForExport(): Promise<Customer[]> {
+    const res = await getCustomers({ limit: 10000, page: 1 })
+    return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
   }
 
   function exportXLSX() {
     fetchAllForExport().then((data) => {
-      const rows = data.map((b) => ({
-        'Branch Name': b.branch_name,
-        Address: b.address ?? '',
-        City: b.city ?? '',
-        Country: b.country ?? '',
-        'Postal Code': b.postal_code ?? '',
-        Phone: b.phone ?? '',
-        Email: b.email ?? '',
-        Latitude: b.latitude ?? '',
-        Longitude: b.longitude ?? '',
-        Status: b.is_active ? 'Active' : 'Inactive',
+      const rows = data.map((c) => ({
+        'Business Name': c.business_name ?? '',
+        'Contact Name': c.contact_name ?? '',
+        Phone: c.phone ?? '',
+        Email: c.email ?? '',
+        Address: c.address ?? '',
+        Type: c.customer_type,
+        'Credit Limit': c.credit_limit ?? 0,
+        'Tax Number': c.tax_number ?? '',
+        Gender: c.gender ?? '',
+        'Loyalty Points': c.loyalty_points ?? 0,
+        Notes: c.notes ?? '',
+        Status: c.is_active ? 'Active' : 'Inactive',
       }))
       const ws = XLSX.utils.json_to_sheet(rows)
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Branches')
-      XLSX.writeFile(wb, `branches-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      XLSX.utils.book_append_sheet(wb, ws, 'Customers')
+      XLSX.writeFile(wb, `customers-${new Date().toISOString().slice(0, 10)}.xlsx`)
       setShowExportMenu(false)
       toast('Exported XLSX', 'success')
     }).catch(() => toast('Export failed', 'error'))
@@ -367,17 +364,18 @@ export default function BranchesPage() {
 
   function exportCSV() {
     fetchAllForExport().then((data) => {
-      const rows = data.map((b) => ({
-        'Branch Name': b.branch_name,
-        Address: b.address ?? '',
-        City: b.city ?? '',
-        Country: b.country ?? '',
-        'Postal Code': b.postal_code ?? '',
-        Phone: b.phone ?? '',
-        Email: b.email ?? '',
-        Latitude: b.latitude ?? '',
-        Longitude: b.longitude ?? '',
-        Status: b.is_active ? 'Active' : 'Inactive',
+      const rows = data.map((c) => ({
+        'Business Name': c.business_name ?? '',
+        'Contact Name': c.contact_name ?? '',
+        Phone: c.phone ?? '',
+        Email: c.email ?? '',
+        Address: c.address ?? '',
+        Type: c.customer_type,
+        'Credit Limit': c.credit_limit ?? 0,
+        'Tax Number': c.tax_number ?? '',
+        Gender: c.gender ?? '',
+        Notes: c.notes ?? '',
+        Status: c.is_active ? 'Active' : 'Inactive',
       }))
       const ws = XLSX.utils.json_to_sheet(rows)
       const csv = XLSX.utils.sheet_to_csv(ws)
@@ -385,7 +383,7 @@ export default function BranchesPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `branches-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`
       a.click()
       URL.revokeObjectURL(url)
       setShowExportMenu(false)
@@ -397,25 +395,25 @@ export default function BranchesPage() {
     fetchAllForExport().then((data) => {
       const doc = new jsPDF({ orientation: 'landscape' })
       doc.setFontSize(16)
-      doc.text('Branches Report', 14, 20)
+      doc.text('Customers Report', 14, 20)
       doc.setFontSize(10)
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
       autoTable(doc, {
         startY: 34,
-        head: [['Name', 'Address', 'City', 'Country', 'Phone', 'Email', 'Status']],
-        body: data.map((b) => [
-          b.branch_name,
-          b.address ?? '',
-          b.city ?? '',
-          b.country ?? '',
-          b.phone ?? '',
-          b.email ?? '',
-          b.is_active ? 'Active' : 'Inactive',
+        head: [['Business Name', 'Contact', 'Phone', 'Email', 'Type', 'Credit Limit', 'Status']],
+        body: data.map((c) => [
+          c.business_name ?? '',
+          c.contact_name ?? '',
+          c.phone ?? '',
+          c.email ?? '',
+          c.customer_type,
+          String(c.credit_limit ?? 0),
+          c.is_active ? 'Active' : 'Inactive',
         ]),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [37, 99, 235] },
       })
-      doc.save(`branches-${new Date().toISOString().slice(0, 10)}.pdf`)
+      doc.save(`customers-${new Date().toISOString().slice(0, 10)}.pdf`)
       setShowExportMenu(false)
       toast('Exported PDF', 'success')
     }).catch(() => toast('Export failed', 'error'))
@@ -424,22 +422,22 @@ export default function BranchesPage() {
   function downloadTemplate() {
     const ws = XLSX.utils.json_to_sheet([], { header: TEMPLATE_HEADERS })
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Branches Template')
-    XLSX.writeFile(wb, 'branches-template.xlsx')
+    XLSX.utils.book_append_sheet(wb, ws, 'Customers Template')
+    XLSX.writeFile(wb, 'customers-template.xlsx')
     setShowExportMenu(false)
   }
 
-  const showFormState = showForm
+  const TYPE_BADGE: Record<string, string> = { WALK_IN: 'info', RETAIL: 'success', WHOLESALE: 'warning' }
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Branches</h1>
-          <p className="page-subtitle">{total} branch{total !== 1 ? 'es' : ''} total</p>
+          <h1>Customers</h1>
+          <p className="page-subtitle">{total} customer{total !== 1 ? 's' : ''} total</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-          {hasPermission('MANAGE_BRANCHES') && (
+          {hasPermission('MANAGE_CUSTOMERS') && (
           <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowImportMenu(!showImportMenu)}>Import</button>
             {showImportMenu && (
@@ -453,7 +451,7 @@ export default function BranchesPage() {
             )}
           </div>
           )}
-          {hasPermission('MANAGE_BRANCHES') && (
+          {hasPermission('VIEW_CUSTOMERS') && (
           <div ref={exportRef} style={{ position: 'relative' }}>
             <button type="button" className="btn btn--ghost" onClick={() => setShowExportMenu(!showExportMenu)}>Export</button>
             {showExportMenu && (
@@ -479,8 +477,8 @@ export default function BranchesPage() {
             )}
           </div>
           )}
-          {hasPermission('MANAGE_BRANCHES') && (
-          <button type="button" className="btn btn--primary" onClick={openCreate}>+ Add Branch</button>
+          {hasPermission('MANAGE_CUSTOMERS') && (
+          <button type="button" className="btn btn--primary" onClick={openCreate}>+ Add Customer</button>
           )}
         </div>
       </div>
@@ -488,61 +486,61 @@ export default function BranchesPage() {
       <div className="glass-card">
         <div className="search-input" style={{ marginBottom: 16 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-          <input type="text" placeholder="Search by name..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
+          <input type="text" placeholder="Search by business name or contact..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
 
         {loading ? (
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Name</th><th>Address / City</th><th>Phone</th><th>Email</th><th>Manager</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <thead><tr><th>Business Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Type</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody><tr key="loading"><td colSpan={7}><div className="skeleton skeleton--row" /></td></tr></tbody>
             </table>
           </div>
         ) : items.length === 0 ? (
           <div className="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            <p>No branches yet.</p>
-            <button type="button" className="btn btn--primary" style={{ marginTop: 8 }} onClick={openCreate}>Add Branch</button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>
+            <p>No customers yet.</p>
+            <button type="button" className="btn btn--primary" style={{ marginTop: 8 }} onClick={openCreate}>Add Customer</button>
           </div>
         ) : (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Address / City</th>
+                  <th>Business Name</th>
+                  <th>Contact</th>
                   <th>Phone</th>
                   <th>Email</th>
-                  <th>Manager</th>
+                  <th>Type</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((b) => {
-                  const mgr = users.find((u) => u.user_id === b.manager_id)
-                  const fullAddr = [b.address, b.city, b.country].filter(Boolean).join(', ')
-                  return (
-                    <tr key={b.branch_id} style={{ opacity: b.is_active ? 1 : 0.5 }}>
-                      <td><strong>{b.branch_name}</strong></td>
-                      <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{fullAddr || '—'}</td>
-                      <td>{b.phone ? <a href={`tel:${b.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{b.phone}</a> : '—'}</td>
-                      <td>{b.email ? <a href={`mailto:${b.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>{b.email}</a> : '—'}</td>
-                      <td>{mgr?.full_name || '—'}</td>
-                      <td><span className={`badge ${b.is_active ? 'badge--success' : 'badge--danger'}`}>{b.is_active ? 'Active' : 'Inactive'}</span></td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <button type="button" className="btn btn--ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => openView(b)}>View</button>
-                          <button type="button" className="btn btn--ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => openEdit(b)}>Edit</button>
-                          <label className="branch-toggle" title={b.is_active ? 'Deactivate' : 'Activate'}>
-                            <input type="checkbox" checked={b.is_active} disabled={actionLoading === b.branch_id} onChange={() => handleToggle(b)} />
+                {items.map((c) => (
+                  <tr key={c.customer_id} style={{ opacity: c.is_active ? 1 : 0.5 }}>
+                    <td><strong>{c.business_name || '—'}</strong></td>
+                    <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{c.contact_name || '—'}</td>
+                    <td>{c.phone ? <a href={`tel:${c.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{c.phone}</a> : '—'}</td>
+                    <td>{c.email ? <a href={`mailto:${c.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>{c.email}</a> : '—'}</td>
+                    <td><span className={`badge badge--${TYPE_BADGE[c.customer_type] || 'info'}`}>{c.customer_type}</span></td>
+                    <td><span className={`badge ${c.is_active ? 'badge--success' : 'badge--danger'}`}>{c.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <button type="button" className="btn btn--ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => openView(c)}>View</button>
+                        {hasPermission('MANAGE_CUSTOMERS') && (
+                          <button type="button" className="btn btn--ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={() => openEdit(c)}>Edit</button>
+                        )}
+                        {hasPermission('MANAGE_CUSTOMERS') && (
+                          <label className="branch-toggle" title={c.is_active ? 'Deactivate' : 'Activate'}>
+                            <input type="checkbox" checked={c.is_active} disabled={actionLoading === c.customer_id} onChange={() => handleToggle(c)} />
                             <span className="branch-toggle__track"><span className="branch-toggle__thumb" /></span>
                           </label>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -560,78 +558,75 @@ export default function BranchesPage() {
       </div>
 
       {/* ---- Create / Edit Form Modal ---- */}
-      {showFormState && (
+      {showForm && (
         <div className="modal-overlay" onClick={closeForm}>
-          <div className="modal" style={{ maxWidth: 500, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 16 }}>{editing ? 'Edit Branch' : 'Add Branch'}</h3>
+          <div className="modal" style={{ maxWidth: 560, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 16 }}>{editing ? 'Edit Customer' : 'Add Customer'}</h3>
 
             {formError && <div className="auth-feedback auth-feedback--error" style={{ marginBottom: 12 }}>{formError}</div>}
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="field">
-                <span>Branch Name *</span>
-                <input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="e.g. Main Store" autoFocus />
-              </div>
-              <div className="field">
-                <span>Address</span>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto', maxHeight: '500px'}}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field">
-                  <span>City</span>
-                  <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
+                  <span>Customer Type *</span>
+                  <select value={form.customer_type} onChange={(e) => set('customer_type', e.target.value)}>
+                    {CUSTOMER_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                  </select>
                 </div>
                 <div className="field">
-                  <span>Country</span>
-                  <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" />
+                  <span>Gender</span>
+                  <select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+                    <option value="">—</option>
+                    {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="field">
-                <span>Postal Code</span>
-                <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="Postal code" />
+                <span>Business Name *</span>
+                <input value={form.business_name} onChange={(e) => set('business_name', e.target.value)} placeholder="e.g. Acme Corp" autoFocus />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <span>Contact Name</span>
+                <input value={form.contact_name} onChange={(e) => set('contact_name', e.target.value)} placeholder="Primary contact person" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                 <div className="field">
                   <span>Phone</span>
-                  <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" />
+                  <input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="Phone number" />
                 </div>
                 <div className="field">
                   <span>Email</span>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />
+                  <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="Email address" />
                 </div>
               </div>
               <div className="field">
-                <span>Manager</span>
-                <select value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-                  <option value="">— None —</option>
-                  {users.map((u) => (<option key={u.user_id} value={u.user_id}>{u.full_name}</option>))}
-                </select>
+                <span>Address</span>
+                <input value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Full address" />
               </div>
-              <div>
-                <button type="button" className="btn btn--secondary" onClick={handleGetLocation} disabled={geoLoading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-                  {geoLoading ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22" /><line x1="2" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22" y2="12" /></svg>
-                  )}
-                  {geoLoading ? 'Getting location…' : 'Get Current Location'}
-                </button>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="field">
-                    <span>Latitude</span>
-                    <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="e.g. 5.6037" />
-                  </div>
-                  <div className="field">
-                    <span>Longitude</span>
-                    <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="e.g. -0.1870" />
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+                <div className="field">
+                  <span>Credit Limit</span>
+                  <input type="number" step="0.01" min="0" value={form.credit_limit} onChange={(e) => set('credit_limit', e.target.value)} placeholder="0.00" />
                 </div>
+                <div className="field">
+                  <span>Tax Number</span>
+                  <input value={form.tax_number} onChange={(e) => set('tax_number', e.target.value)} placeholder="Optional" />
+                </div>
+                <div className="field">
+                  <span>Date of Birth</span>
+                  <input type="date" value={form.date_of_birth} onChange={(e) => set('date_of_birth', e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <span>Notes</span>
+                <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Additional notes" rows={2} style={{ resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                 <button type="button" className="btn btn--ghost" onClick={closeForm}>Cancel</button>
                 <button type="submit" className="btn btn--primary">{editing ? 'Save' : 'Create'}</button>
               </div>
             </form>
+            
           </div>
         </div>
       )}
@@ -640,7 +635,7 @@ export default function BranchesPage() {
       {modal === 'import' && (
         <div className="modal-overlay" onClick={() => { if (!importing) setModal(null) }}>
           <div className="modal" style={{ maxWidth: 600, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 16 }}>Import Branches — {importFileName}</h3>
+            <h3 style={{ marginBottom: 16 }}>Import Customers — {importFileName}</h3>
 
             {importing ? (
               <div>
@@ -667,9 +662,9 @@ export default function BranchesPage() {
                 <p style={{ marginBottom: 12 }}>Preview {importRows.length} rows to import:</p>
                 <div style={{ maxHeight: 250, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
                   <table className="data-table" style={{ fontSize: 13 }}>
-                    <thead><tr><th>#</th><th>Branch Name</th><th>Address</th><th>City</th><th>Country</th></tr></thead>
+                    <thead><tr><th>#</th><th>Business Name</th><th>Contact</th><th>Phone</th><th>Email</th></tr></thead>
                     <tbody>{importRows.map((r, i) => (
-                      <tr key={i}><td>{i + 1}</td><td>{String(r['Branch Name'] ?? '')}</td><td>{String(r['Address'] ?? '')}</td><td>{String(r['City'] ?? '')}</td><td>{String(r['Country'] ?? '')}</td></tr>
+                      <tr key={i}><td>{i + 1}</td><td>{String(r['Business Name'] ?? '')}</td><td>{String(r['Contact Name'] ?? '')}</td><td>{String(r['Phone'] ?? '')}</td><td>{String(r['Email'] ?? '')}</td></tr>
                     ))}</tbody>
                   </table>
                 </div>
@@ -685,20 +680,16 @@ export default function BranchesPage() {
 
       {/* ---- View Modal ---- */}
       {modal === 'view' && viewing && (() => {
-        const v = viewing
-        const mgr = users.find((u) => u.user_id === v.manager_id)
-        const fullAddr = [v.address, v.city, v.country].filter(Boolean).join(', ')
-        const mapHref = v.latitude != null && v.longitude != null
-          ? `https://www.google.com/maps?q=${v.latitude},${v.longitude}`
-          : fullAddr ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddr)}` : null
+        const c = viewing
         return (
           <div className="modal-overlay" onClick={closeView}>
             <div className="modal" style={{ maxWidth: 600, textAlign: 'left', padding: 0, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-5) var(--space-6)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <h3 style={{ margin: 0, fontSize: 'var(--text-h4)' }}>{v.branch_name}</h3>
-                  <span className={`badge ${v.is_active ? 'badge--success' : 'badge--danger'}`}>{v.is_active ? 'Active' : 'Inactive'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: 'var(--text-h4)' }}>{c.business_name || 'Customer'}</h3>
+                  <span className={`badge badge--${TYPE_BADGE[c.customer_type] || 'info'}`}>{c.customer_type?.replace('_', ' ')}</span>
+                  <span className={`badge ${c.is_active ? 'badge--success' : 'badge--danger'}`}>{c.is_active ? 'Active' : 'Inactive'}</span>
                 </div>
                 <button type="button" className="btn btn--ghost" onClick={closeView} style={{ flexShrink: 0, padding: '4px 8px' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -710,74 +701,113 @@ export default function BranchesPage() {
                 {/* Contact info card */}
                 <div style={{ background: 'var(--bg)', borderRadius: 8, padding: 'var(--space-5)', border: '1px solid var(--border)', marginBottom: 'var(--space-5)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: 'var(--text-body)' }}>
-                    {fullAddr && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        {mapHref ? (
-                          <a href={mapHref} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{fullAddr}</a>
-                        ) : (
-                          <span style={{ color: 'var(--text-primary)' }}>{fullAddr}</span>
-                        )}
-                      </div>
-                    )}
-                    {v.phone && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" /></svg>
-                        <a href={`tel:${v.phone}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{v.phone}</a>
-                      </div>
-                    )}
-                    {v.email && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
-                        <a href={`mailto:${v.email}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{v.email}</a>
-                      </div>
-                    )}
-                    {mgr && (
+                    {c.contact_name && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                        <span style={{ color: 'var(--text-primary)' }}>{mgr.full_name}</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{c.contact_name}</span>
                       </div>
                     )}
-                    {!fullAddr && !v.phone && !v.email && !mgr && (
+                    {c.phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" /></svg>
+                        <a href={`tel:${c.phone}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{c.phone}</a>
+                      </div>
+                    )}
+                    {c.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                        <a href={`mailto:${c.email}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{c.email}</a>
+                      </div>
+                    )}
+                    {c.address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span style={{ color: 'var(--text-primary)' }}>{c.address}</span>
+                      </div>
+                    )}
+                    {!c.contact_name && !c.phone && !c.email && !c.address && (
                       <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-caption)' }}>No contact information available</span>
                     )}
                   </div>
                 </div>
 
                 {/* Details grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>City</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{v.city || '—'}</div>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Credit Limit</span>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{c.credit_limit ?? 0}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Country</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{v.country || '—'}</div>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Loyalty Points</span>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{c.loyalty_points ?? 0}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Postal Code</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{v.postal_code || '—'}</div>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Tax Number</span>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{c.tax_number || '—'}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Coordinates</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>
-                      {v.latitude != null && v.longitude != null ? `${v.latitude}, ${v.longitude}` : '—'}
-                    </div>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Date of Birth</span>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : '—'}</div>
+                  </div>
+                  <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Gender</span>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: 'var(--text-primary)' }}>{c.gender || '—'}</div>
                   </div>
                 </div>
 
+                {/* Notes */}
+                {c.notes && (
+                  <div style={{ background: 'var(--bg)', borderRadius: 8, padding: 'var(--space-4)', border: '1px solid var(--border)', marginBottom: 'var(--space-5)' }}>
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)', display: 'block', marginBottom: 4 }}>Notes</span>
+                    <div style={{ fontSize: 'var(--text-body)', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.notes}</div>
+                  </div>
+                )}
+
+                {/* Payment History */}
+                <div style={{ background: 'var(--bg)', borderRadius: 8, padding: 'var(--space-4)', border: '1px solid var(--border)', marginBottom: 'var(--space-5)' }}>
+                  <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)', display: 'block', marginBottom: 8 }}>Payment History</span>
+                  {viewPaymentsLoading ? (
+                    <div className="skeleton skeleton--row" />
+                  ) : viewPayments.length === 0 ? (
+                    <span style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)' }}>No payments yet.</span>
+                  ) : (
+                    <div className="table-wrap">
+                      <table className="data-table" style={{ fontSize: 13 }}>
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th style={{ textAlign: 'right' }}>Amount</th>
+                            <th>Method</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewPayments.map((p) => (
+                            <tr key={p.payment_id}>
+                              <td style={{ whiteSpace: 'nowrap' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.amount != null ? Number(p.amount).toFixed(2) : '—'}</td>
+                              <td>{p.payment_method || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
                 {/* Timestamps */}
-                {v.created_at && (
+                {c.created_at && (
                   <div style={{ paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border)', fontSize: 'var(--text-caption)', color: 'var(--text-secondary)' }}>
-                    Created: {new Date(v.created_at).toLocaleDateString()}
-                    {v.updated_at && <span> &middot; Updated: {new Date(v.updated_at).toLocaleDateString()}</span>}
+                    Created: {new Date(c.created_at).toLocaleDateString()}
+                    {c.updated_at && <span> &middot; Updated: {new Date(c.updated_at).toLocaleDateString()}</span>}
                   </div>
                 )}
               </div>
 
               {/* Footer */}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: 'var(--space-4) var(--space-6)', borderTop: '1px solid var(--border)' }}>
-                <button type="button" className="btn btn--ghost" onClick={() => { closeView(); openEdit(v) }}>Edit</button>
+                {hasPermission('MANAGE_CUSTOMERS') && (
+                  <button type="button" className="btn btn--ghost" onClick={() => { closeView(); openEdit(c) }}>Edit</button>
+                )}
                 <button type="button" className="btn btn--ghost" onClick={closeView}>Close</button>
               </div>
             </div>

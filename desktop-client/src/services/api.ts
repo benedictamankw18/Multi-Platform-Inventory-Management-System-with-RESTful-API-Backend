@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { setupOfflineSupport } from './offline'
 
 export const isAxiosError = axios.isAxiosError
 
@@ -1400,6 +1401,26 @@ export async function getSyncLogs(params?: Record<string, unknown>) {
   return data
 }
 
+export async function getEntityLastSync(entity: string) {
+  const { data } = await api.get(`/sync/${entity}/last`)
+  return data
+}
+
+export async function pullEntityChanges(entity: string, since?: string) {
+  const { data } = await api.get(`/sync/${entity}/pull`, { params: since ? { since } : {} })
+  return data
+}
+
+export async function pushEntityChanges(entity: string, items: unknown[]) {
+  const { data } = await api.post(`/sync/${entity}/push`, { items })
+  return data
+}
+
+export async function retrySync(syncId: string) {
+  const { data } = await api.post('/sync/retry', { sync_id: syncId })
+  return data
+}
+
 // ---- Message Queue ---------------------------------------------------------
 
 export async function getMessageQueue(params?: Record<string, unknown>) {
@@ -1474,6 +1495,8 @@ export async function healthCheck() {
   const { data } = await api.get('/health')
   return data as { success: boolean; message: string }
 }
+
+setupOfflineSupport(api)
 
 export default api
 

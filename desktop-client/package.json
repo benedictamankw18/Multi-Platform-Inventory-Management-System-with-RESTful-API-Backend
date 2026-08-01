@@ -1,26 +1,70 @@
 {
   "name": "desktop-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Inventory Manager desktop app (renderer-only; requires the API backend at localhost:8040)",
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k -n renderer,desktop -c blue,green \"npm:dev:renderer\" \"npm:dev:desktop\"",
+    "dev:renderer": "vite",
+    "dev:desktop": "wait-on http://127.0.0.1:5173 && electron .",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
-    "electron": "^42.5.0",
+    "axios": "^1.18.1",
+    "idb": "^8.0.0",
+    "jsbarcode": "^3.12.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "qrcode": "^1.5.4",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/jsbarcode": "^3.11.4",
     "@types/node": "^24.13.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^9.0.0",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
     "oxlint": "^1.69.0",
     "typescript": "~6.0.2",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.inventorymanager.desktop",
+    "productName": "Inventory Manager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "dist/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Inventory Manager"
+    }
   }
 }
