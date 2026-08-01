@@ -57,7 +57,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "build/icon.png"
+      "icon": "src/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
