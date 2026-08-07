@@ -1,7 +1,11 @@
 const { v4: uuidv4 } = require('uuid');
+const pool = require('../config/db');
 const purchaseRepo = require('../repositories/purchase.repository');
+const purchaseItemRepo = require('../repositories/purchaseItem.repository');
 const supplierPaymentRepo = require('../repositories/supplierPayment.repository');
 const auditRepo = require('../repositories/audit.repository');
+const inventoryService = require('./inventory.service');
+const AppError = require('../utils/AppError');
 
 async function createPurchase({ supplier_id, order_number, order_date, branch_id, expected_delivery_date, status, total_amount, createdBy }) {
   const id = uuidv4();
@@ -77,13 +81,64 @@ async function approvePurchase(id, approverId) {
 
 async function receivePurchase(id, receiverId) {
   const now = new Date();
-  const updated = await purchaseRepo.updatePurchaseOrder(id, { status: 'RECEIVED', received_date: now });
+  const client = await pool.connect();
   try {
-    await auditRepo.writeLog(receiverId, 'receive_purchase', 'PURCHASE', id);
-  } catch (e) {
-    console.error('audit error', e.message);
+    await client.query('BEGIN');
+
+    const po = await purchaseRepo.getPurchaseOrderById(id, client);
+    if (!po) throw new AppError('Purchase order not found.', { status: 404 });
+
+    if (po.status === 'RECEIVED') {
+      await client.query('COMMIT');
+      return po;
+    }
+
+    if (po.status !== 'APPROVED') {
+      throw new AppError('Only approved purchase orders can be received.', { status: 409 });
+    }
+
+    const items = await purchaseItemRepo.listItemsByPurchase(id, { limit: 10000 }, client);
+    const stocked = [];
+    for (const item of items) {
+      const qty = Number(item.quantity_received > 0 ? item.quantity_received : item.quantity_ordered);
+      if (!(qty > 0)) continue;
+      await inventoryService.createTransaction({
+        product_id: item.product_id,
+        branch_id: po.branch_id,
+        quantity: qty,
+        type: 'in',
+        reference_type: 'PURCHASE',
+        reference_id: po.po_id,
+        unit_cost: item.unit_cost,
+        notes: `PO receipt ${po.po_number || id}`,
+        performedBy: receiverId,
+        client,
+      });
+      if (Number(item.quantity_received) !== qty) {
+        await purchaseItemRepo.updatePurchaseItem(item.po_item_id, { quantity_received: qty }, client);
+      }
+      stocked.push({ product_id: item.product_id, quantity: qty });
+    }
+
+    const updated = await purchaseRepo.updatePurchaseOrder(id, { status: 'RECEIVED', received_date: now }, client);
+    await client.query('COMMIT');
+
+    try {
+      await auditRepo.writeLog(receiverId, 'receive_purchase', 'PURCHASE', id, { stocked });
+    } catch (e) {
+      console.error('audit error', e.message);
+    }
+    return updated;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (e) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    client.release();
   }
-  return updated;
 }
 
 async function recordPayment(id, { amount, payment_method, payment_date, reference_number }, performedBy) {

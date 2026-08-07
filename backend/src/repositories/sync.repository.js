@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
 
 const TABLE = 'sync_logs';
 
@@ -22,6 +23,23 @@ const ENTITY_TABLE_MAP = {
   inventory: 'product_branch_inventory',
   transfers: 'inventory_transfers',
   notifications: 'notifications',
+};
+
+// Branch-scoped pull filters: which column(s) narrow an entity's rows to a
+// single branch. Tables not listed are global reference data (products,
+// categories, suppliers, customers, branches, users, roles, expense
+// categories) and are never filtered by branch. The column names come from
+// this allow-list only, so the branch filter can never introduce SQL
+// injection via the entity path parameter.
+const BRANCH_SCOPE_MAP = {
+  product_branch_inventory: ['branch_id'],
+  sales: ['branch_id'],
+  purchase_orders: ['branch_id'],
+  expenses: ['branch_id'],
+  inventory_transfers: ['from_branch_id', 'to_branch_id'],
+  // Notifications may target a specific branch OR the whole org (branch_id
+  // is nullable) — always keep the system-wide rows.
+  notifications: ['branch_id'],
 };
 
 function resolveTable(entity) {
@@ -108,11 +126,54 @@ async function getPendingSyncs({ limit = 100, olderThanSeconds = null } = {}) {
   return rows;
 }
 
+// ---- Idempotency key ledger ------------------------------------------------
+// Reuses the existing (device_id, local_transaction_id) UNIQUE constraint so a
+// replayed client mutation can never be applied twice on the server.
+
+async function getSyncLogByDeviceAndKey(deviceId, key) {
+  const q = `SELECT * FROM ${TABLE} WHERE device_id = $1 AND local_transaction_id = $2 LIMIT 1`;
+  const { rows } = await pool.query(q, [deviceId, key]);
+  return rows[0] || null;
+}
+
+async function claimIdempotencyKey(deviceId, key, entity) {
+  const syncId = uuidv4();
+  const q = `
+    INSERT INTO ${TABLE} (sync_id, device_id, local_transaction_id, entity_type, sync_status, synced_at, error_message, retry_count, sync_duration_ms, created_at, updated_at)
+    VALUES ($1,$2,$3,$4,'PENDING', NULL, NULL, 0, NULL, now(), now())
+    ON CONFLICT (device_id, local_transaction_id) DO NOTHING
+    RETURNING *`;
+  const { rows } = await pool.query(q, [syncId, deviceId, key, entity]);
+  return rows[0] || null;
+}
+
+async function deleteSyncLog(syncId) {
+  const q = `DELETE FROM ${TABLE} WHERE sync_id = $1`;
+  await pool.query(q, [syncId]);
+}
+
 // Keep generic pull/push helpers for other entities — unchanged
-async function pullChanges(entity, since) {
+async function pullChanges(entity, since, branchId) {
   const table = resolveTable(entity);
-  const q = `SELECT * FROM "${table}" WHERE updated_at > $1 ORDER BY updated_at ASC`;
-  const { rows } = await pool.query(q, [since]);
+  const scopeCols = BRANCH_SCOPE_MAP[table];
+
+  // Branch-scoped entity without a branch to scope to → return nothing rather
+  // than leak every branch's rows.
+  if (scopeCols && !branchId) return [];
+
+  let filter = '';
+  const values = [since];
+  if (scopeCols) {
+    const orClauses = scopeCols.map((col, i) => `"${col}" = $${i + 2}`).join(' OR ');
+    if (table === 'notifications') {
+      filter = `AND (${orClauses} OR "branch_id" IS NULL)`;
+    } else {
+      filter = `AND (${orClauses})`;
+    }
+    values.push(...scopeCols.map(() => branchId));
+  }
+  const q = `SELECT * FROM "${table}" WHERE updated_at > $1 ${filter} ORDER BY updated_at ASC`;
+  const { rows } = await pool.query(q, values);
   return rows;
 }
 
@@ -227,6 +288,9 @@ module.exports = {
   incrementRetry,
   updateSyncLog,
   getPendingSyncs,
+  getSyncLogByDeviceAndKey,
+  claimIdempotencyKey,
+  deleteSyncLog,
   pullChanges,
   getLastSync,
   pushChanges,

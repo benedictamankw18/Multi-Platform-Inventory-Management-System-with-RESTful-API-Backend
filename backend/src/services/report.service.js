@@ -1,7 +1,7 @@
 const expenseRepo = require('../repositories/expense.repository');
 
 async function generateReport({ report_type, from, to, filters = {}, page = 1, limit = 100 } = {}) {
-  // Support expenses report via existing repository; other report types return empty dataset for now.
+  // Support expenses + movement reports via existing repositories; other report types return empty dataset for now.
   if (report_type === 'expenses') {
     const query = {
       branchId: filters.branchId || filters.branch_id || null,
@@ -17,6 +17,18 @@ async function generateReport({ report_type, from, to, filters = {}, page = 1, l
       columns: rows.length ? Object.keys(rows[0]) : [],
       rows,
     };
+  }
+
+  if (report_type === 'movement') {
+    const rows = await reportRepo.stockMovements({
+      startDate: from || null,
+      endDate: to || null,
+      branchId: filters.branchId || filters.branch_id || null,
+      productId: filters.productId || null,
+      transactionType: filters.transactionType || null,
+      groupBy: filters.groupBy || 'product',
+    });
+    return { columns: rows.length ? Object.keys(rows[0]) : [], rows };
   }
 
   // Generic empty response for unsupported types
@@ -99,6 +111,11 @@ async function branchPerformance(startDate, endDate) {
   return cacheWrap(key, () => reportRepo.branchPerformance(startDate, endDate), 300);
 }
 
+async function stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy = 'product' } = {}) {
+  const key = `reports:stockMovements:${branchId || 'all'}:${productId || 'all'}:${transactionType || 'all'}:${groupBy}:${startDate || 'any'}:${endDate || 'any'}`;
+  return cacheWrap(key, () => reportRepo.stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy }), 300);
+}
+
 module.exports = {
   dailySales,
   monthlySales,
@@ -109,6 +126,7 @@ module.exports = {
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  stockMovements,
   generateReport,
   objectArrayToCsv,
 };

@@ -6,6 +6,7 @@ const purchaseItemController = require('../controllers/purchaseItem.controller')
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const { body } = require('express-validator');
 const { createPurchaseValidation, updatePurchaseValidation, purchaseIdValidation, listPurchasesValidation } = require('../validations/purchase.validation');
 const { purchaseIdParam,
@@ -14,7 +15,7 @@ const { purchaseIdParam,
     } = require('../validations/purchaseItem.validation');
 
 
-router.post('/', authenticate, checkPermission('MANAGE_PURCHASES'), createPurchaseValidation, validate, purchaseController.createPurchase);
+router.post('/', authenticate, checkPermission('MANAGE_PURCHASES'), createPurchaseValidation, validate, idempotency('purchases'), purchaseController.createPurchase);
 router.post('/search', authenticate, checkPermission('VIEW_PURCHASES'), listPurchasesValidation, validate, purchaseController.listPurchases);
 router.get('/:purchaseId', authenticate, checkPermission('VIEW_PURCHASES'), purchaseIdValidation, validate, purchaseController.getPurchaseById);
 router.patch('/:purchaseId', authenticate, checkPermission('MANAGE_PURCHASES'), purchaseIdValidation, updatePurchaseValidation, validate, purchaseController.updatePurchase);

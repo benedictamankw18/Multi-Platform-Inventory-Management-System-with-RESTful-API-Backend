@@ -17,6 +17,7 @@ const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 
 const {
   createRoleValidation,
@@ -37,7 +38,7 @@ router.get('/statistics', roleController.getRoleStatistics);
 
 // --- Collection ---
 router.get('/', listRolesQueryValidation, validate, roleController.getAllRoles);
-router.post('/', createRoleValidation, validate, roleController.createRole);
+router.post('/', createRoleValidation, validate, idempotency('roles'), roleController.createRole);
 
 // --- Single role ---
 router.get('/:id', roleIdValidation, validate, roleController.getRoleById);

@@ -25,7 +25,7 @@ const paginationValidation = [
   query('limit').optional().isInt({ min: 1 }),
 ];
 
-const ALLOWED_TYPES = ['sales', 'purchases', 'inventory', 'expenses', 'customers', 'suppliers'];
+const ALLOWED_TYPES = ['sales', 'purchases', 'inventory', 'expenses', 'customers', 'suppliers', 'movement'];
 
 const reportQueryValidation = [
   query('report_type')

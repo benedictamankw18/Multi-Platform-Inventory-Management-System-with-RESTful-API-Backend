@@ -164,4 +164,9 @@ app.use(notFound);
 // ---------------------------------------------------------------------------
 app.use(errorHandler);
 
+// Fire-and-forget preload of the GeoLite2 database so the first login isn't
+// blocked by the one-time download; failures degrade to null per lookup.
+const geoip = require('./utils/geoip.utils');
+geoip.warmUpGeoip().catch(() => {});
+
 module.exports = app;

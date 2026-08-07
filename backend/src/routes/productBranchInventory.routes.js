@@ -5,6 +5,7 @@ const productBranchInventoryController = require('../controllers/productBranchIn
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const {
   createInventoryRecordValidation,
   listInventoryRecordsValidation,
@@ -17,7 +18,7 @@ const {
 router.use(authenticate);
 
 router.get('/', listInventoryRecordsValidation, validate, productBranchInventoryController.listInventoryRecords);
-router.post('/', createInventoryRecordValidation, validate, productBranchInventoryController.createInventoryRecord);
+router.post('/', createInventoryRecordValidation, validate, idempotency('inventory'), productBranchInventoryController.createInventoryRecord);
 router.put('/:inventory_id', updateInventoryRecordValidation, validate, productBranchInventoryController.updateInventoryRecord);
 router.get('/:inventory_id', getInventoryByIdValidation, validate, productBranchInventoryController.getInventoryById);
 router.get('/product/:product_id/branch/:branch_id', getInventoryByProductAndBranchValidation, validate, productBranchInventoryController.getInventoryByProductAndBranch);

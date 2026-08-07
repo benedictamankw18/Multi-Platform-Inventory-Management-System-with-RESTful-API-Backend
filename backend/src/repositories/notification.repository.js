@@ -210,19 +210,42 @@ async function deleteNotification(notificationId) {
     return rows[0] || null;
 }
 
-async function findRecentLowStock(branchId, productId, hours = 24) {
+async function findRecentLowStock(branchId, productName, hours = 24) {
     const q = `
         SELECT notification_id
         FROM notifications
         WHERE branch_id = $1
           AND notification_type = 'LOW_STOCK'
-          AND message ILIKE '%' || $2 || '%'
+          AND message ILIKE '%"' || $2 || '"%'
           AND created_at >= NOW() - INTERVAL '1 hour' * $3
           AND deleted_at IS NULL
         LIMIT 1
     `;
-    const { rows } = await client.query(q, [branchId, productId, hours]);
+    const { rows } = await client.query(q, [branchId, productName, hours]);
     return rows[0] || null;
+}
+
+async function listLowStockCandidates() {
+    const q = `
+        SELECT
+            i.inventory_id,
+            i.product_id,
+            i.branch_id,
+            i.quantity_on_hand,
+            i.reorder_level,
+            p.product_name,
+            p.minimum_stock,
+            b.branch_name
+        FROM product_branch_inventory i
+        INNER JOIN products p ON p.product_id = i.product_id
+        INNER JOIN branches b ON b.branch_id = i.branch_id
+        WHERE p.is_active = TRUE
+          AND COALESCE(NULLIF(i.reorder_level, 0), p.minimum_stock, 0) > 0
+          AND i.quantity_on_hand <= COALESCE(NULLIF(i.reorder_level, 0), p.minimum_stock)
+        ORDER BY b.branch_name, p.product_name
+    `;
+    const { rows } = await client.query(q);
+    return rows || [];
 }
 
 async function findUsersWithPermissionAtBranch(permissionNames, branchId) {
@@ -280,4 +303,5 @@ module.exports = {
   findUsersWithPermissionAtBranch,
   findUsersWithPermission,
   findRecentSyncFailure,
+  listLowStockCandidates,
 };

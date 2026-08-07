@@ -16,11 +16,11 @@ async function getLastSync(entity) {
   return syncRepo.getLastSync(entity);
 }
 
-async function pull(entity, since) {
+async function pull(entity, since, branchId) {
   assertSupportedEntity(entity);
   try {
     const sinceTs = since || '1970-01-01T00:00:00Z';
-    const rows = await syncRepo.pullChanges(entity, sinceTs);
+    const rows = await syncRepo.pullChanges(entity, sinceTs, branchId);
     const syncId = uuidv4();
     const localTransactionId = uuidv4();
     const deviceId = uuidv4();

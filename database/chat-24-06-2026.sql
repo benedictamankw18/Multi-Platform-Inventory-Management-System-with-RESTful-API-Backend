@@ -231,6 +231,7 @@ VALUES
     ('low_stock_threshold', '10', 'Minimum stock level'),
     ('jwt_expiry', '1d', 'JWT expiration period'),
     ('receipt_header', 'My Inventory System', 'Receipt header message'),
+    ('printer_type', '58mm', 'The printer type'),
     ('default_payment_method', 'CASH', 'Default payment method for sales'),
     ('enable_notifications', 'true', 'Enable or disable notifications'),
     ('default_language', 'en', 'Default language for the system'),

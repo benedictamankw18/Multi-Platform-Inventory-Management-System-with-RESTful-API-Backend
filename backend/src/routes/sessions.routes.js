@@ -9,6 +9,7 @@ const { param } = require('express-validator');
 router.use(authenticate);
 
 router.get('/', sessionsController.listMySessions);
+router.get('/login-history', sessionsController.listMyLoginHistory);
 router.delete('/:id', [param('id').isUUID()], validate, sessionsController.revokeSession);
 
 module.exports = router;

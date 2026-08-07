@@ -5,11 +5,12 @@ const customerController = require('../controllers/customer.controller');
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const { createCustomerValidation, updateCustomerValidation, customerIdValidation, listCustomersValidation } = require('../validations/customer.validation');
 const customerPaymentController = require('../controllers/customerPayment.controller');
 const { customerIdParam } = require('../validations/customerPayment.validation');
 
-router.post('/', authenticate, checkPermission('MANAGE_CUSTOMERS'), createCustomerValidation, validate, customerController.createCustomer);
+router.post('/', authenticate, checkPermission('MANAGE_CUSTOMERS'), createCustomerValidation, validate, idempotency('customers'), customerController.createCustomer);
 router.post('/search', authenticate, checkPermission('VIEW_CUSTOMERS'), listCustomersValidation, validate, customerController.listCustomers);
 router.get('/:customerId', authenticate, checkPermission('VIEW_CUSTOMERS'), customerIdValidation, validate, customerController.getCustomerById);
 router.patch('/:customerId', authenticate, checkPermission('MANAGE_CUSTOMERS'), customerIdValidation, updateCustomerValidation, validate, customerController.updateCustomer);

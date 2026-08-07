@@ -13,6 +13,7 @@ import {
   getBranchPerformance,
   getInventoryReport,
   getPurchasesReport,
+  getStockMovements,
   type DailySalesData,
   type MonthlySalesDay,
   type AnnualSalesItem,
@@ -22,9 +23,11 @@ import {
   type BranchPerfItem,
   type InventoryReportItem,
   type PurchasesReportItem,
+  type StockMovementItem,
+  type StockMovementDay,
 } from '../services/api'
 
-type Tab = 'overview' | 'sales' | 'profit' | 'inventory' | 'purchases' | 'best-selling' | 'branches'
+type Tab = 'overview' | 'sales' | 'profit' | 'inventory' | 'purchases' | 'best-selling' | 'branches' | 'stock-movements'
 
 export default function ReportsPage() {
   const { selectedBranch } = useAuth()
@@ -81,9 +84,19 @@ export default function ReportsPage() {
   const [showBpExport, setShowBpExport] = useState(false)
   const bpExportRef = useRef<HTMLDivElement>(null)
 
+  // Stock Movements
+  const [smStart, setSmStart] = useState(`${new Date().getFullYear()}-01-01`)
+  const [smEnd, setSmEnd] = useState(new Date().toISOString().slice(0, 10))
+  const [smGroupBy, setSmGroupBy] = useState<'product' | 'day'>('product')
+  const [smData, setSmData] = useState<StockMovementItem[] | StockMovementDay[]>([])
+  const [smLoading, setSmLoading] = useState(false)
+  const [showSmExport, setShowSmExport] = useState(false)
+  const smExportRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (bpExportRef.current && !bpExportRef.current.contains(e.target as Node)) setShowBpExport(false)
+      if (smExportRef.current && !smExportRef.current.contains(e.target as Node)) setShowSmExport(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -142,6 +155,77 @@ export default function ReportsPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10)
+
+  const smRows = smGroupBy === 'product'
+    ? (smData as StockMovementItem[]).map((r) => ({
+        Product: r.product_name || '—',
+        SKU: r.sku || '',
+        'Stock In': Number(r.stock_in),
+        'Stock Out': Number(r.stock_out),
+        Adjustment: Number(r.adjustment),
+        'Transfer In': Number(r.transfer_in),
+        'Transfer Out': Number(r.transfer_out),
+        Sales: Number(r.sale),
+        Net: Number(r.net),
+      }))
+    : (smData as StockMovementDay[]).map((r) => ({
+        Date: new Date(r.date).toLocaleDateString(),
+        Transactions: r.transactions,
+        'Total In': Number(r.total_in),
+        'Total Out': Number(r.total_out),
+        Net: Number(r.net),
+      }))
+
+  function exportSmXLSX() {
+    const ws = XLSX.utils.json_to_sheet(smRows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Stock Movements')
+    XLSX.writeFile(wb, `stock-movements-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    setShowSmExport(false)
+  }
+
+  function exportSmCSV() {
+    const ws = XLSX.utils.json_to_sheet(smRows)
+    const csv = XLSX.utils.sheet_to_csv(ws)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `stock-movements-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowSmExport(false)
+  }
+
+  function exportSmPDF() {
+    const doc = new jsPDF({ orientation: 'landscape' })
+    doc.setFontSize(16)
+    doc.text('Stock Movements Report', 14, 20)
+    doc.setFontSize(10)
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
+    const head = smGroupBy === 'product'
+      ? [['Product', 'SKU', 'Stock In', 'Stock Out', 'Adjustment', 'Transfer In', 'Transfer Out', 'Sales', 'Net']]
+      : [['Date', 'Transactions', 'Total In', 'Total Out', 'Net']]
+    const body = smGroupBy === 'product'
+      ? (smData as StockMovementItem[]).map((r) => [
+          r.product_name || '—', r.sku || '',
+          String(Number(r.stock_in)), String(Number(r.stock_out)), String(Number(r.adjustment)),
+          String(Number(r.transfer_in)), String(Number(r.transfer_out)), String(Number(r.sale)), String(Number(r.net)),
+        ])
+      : (smData as StockMovementDay[]).map((r) => [
+          new Date(r.date).toLocaleDateString(), String(r.transactions),
+          String(Number(r.total_in)), String(Number(r.total_out)), String(Number(r.net)),
+        ])
+    autoTable(doc, {
+      startY: 34,
+      head,
+      body,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+    })
+    doc.save(`stock-movements-${new Date().toISOString().slice(0, 10)}.pdf`)
+    setShowSmExport(false)
+  }
 
   // ---- Overview ----
   const loadOverview = useCallback(async () => {
@@ -255,6 +339,19 @@ export default function ReportsPage() {
 
   useEffect(() => { if (tab === 'branches') loadBranchPerf() }, [tab, bpStart, bpEnd, loadBranchPerf])
 
+  // ---- Stock Movements ----
+  const loadStockMovements = useCallback(async () => {
+    setSmLoading(true)
+    if (smStart > smEnd) { setSmData([]); setSmLoading(false); return }
+    try {
+      const d = await getStockMovements({ startDate: smStart, endDate: smEnd, branchId: resolvedBranch, groupBy: smGroupBy })
+      setSmData(d)
+    } catch { setSmData([]) }
+    setSmLoading(false)
+  }, [smStart, smEnd, smGroupBy, resolvedBranch])
+
+  useEffect(() => { if (tab === 'stock-movements') loadStockMovements() }, [tab, smStart, smEnd, smGroupBy, loadStockMovements])
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'sales', label: 'Sales' },
@@ -263,6 +360,7 @@ export default function ReportsPage() {
     { key: 'purchases', label: 'Purchases' },
     { key: 'best-selling', label: 'Best Selling' },
     { key: 'branches', label: 'Branches' },
+    { key: 'stock-movements', label: 'Stock Movements' },
   ]
 
   function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
@@ -586,6 +684,106 @@ export default function ReportsPage() {
                     <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.total_sales).toFixed(2)}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== STOCK MOVEMENTS ============================== */}
+      {tab === 'stock-movements' && (
+        <div className="glass-card">
+          <FilterBar>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>From</span>
+            <input type="date" className="input" style={{ width: 'auto' }} value={smStart} onChange={(e) => setSmStart(e.target.value)} />
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>To</span>
+            <input type="date" className="input" style={{ width: 'auto' }} value={smEnd} onChange={(e) => setSmEnd(e.target.value)} />
+            <select className="input" style={{ width: 'auto' }} value={smGroupBy} onChange={(e) => setSmGroupBy(e.target.value as 'product' | 'day')}>
+              <option value="product">By Product</option>
+              <option value="day">By Day</option>
+            </select>
+          </FilterBar>
+
+          {smStart > smEnd && <div className="alert alert--error" style={{ marginBottom: 'var(--space-4)', color: 'var(--error)' }}>Start date must be before end date.</div>}
+
+          {smGroupBy === 'product' && smData.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 'var(--space-4)' }}>
+              <KpiCard label="Total Stock In" value={Number((smData as StockMovementItem[]).reduce((s, r) => s + Number(r.stock_in) + Number(r.transfer_in) + Number(r.adjustment), 0)).toFixed(2)} accent="var(--success, #16a34a)" />
+              <KpiCard label="Total Stock Out" value={Number((smData as StockMovementItem[]).reduce((s, r) => s + Number(r.stock_out) + Number(r.transfer_out) + Number(r.sale), 0)).toFixed(2)} accent="var(--danger, #ef4444)" />
+              <KpiCard label="Net Movement" value={Number((smData as StockMovementItem[]).reduce((s, r) => s + Number(r.net), 0)).toFixed(2)} accent="var(--primary)" />
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-3)' }}>
+            <div ref={smExportRef} style={{ position: 'relative' }}>
+              <button type="button" className="btn btn--ghost" style={{ fontSize: 12 }} onClick={() => setShowSmExport(!showSmExport)} disabled={smData.length === 0}>Export</button>
+              {showSmExport && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 160, padding: 'var(--space-1)' }}>
+                  <button type="button" style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, borderRadius: 4 }} onClick={exportSmXLSX}>Export XLSX</button>
+                  <button type="button" style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, borderRadius: 4 }} onClick={exportSmCSV}>Export CSV</button>
+                  <button type="button" style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, borderRadius: 4 }} onClick={exportSmPDF}>Export PDF</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  {smGroupBy === 'product' ? (
+                    <>
+                      <th>Product</th>
+                      <th>SKU</th>
+                      <th style={{ textAlign: 'right' }}>Stock In</th>
+                      <th style={{ textAlign: 'right' }}>Stock Out</th>
+                      <th style={{ textAlign: 'right' }}>Adjustment</th>
+                      <th style={{ textAlign: 'right' }}>Transfer In</th>
+                      <th style={{ textAlign: 'right' }}>Transfer Out</th>
+                      <th style={{ textAlign: 'right' }}>Sales</th>
+                      <th style={{ textAlign: 'right' }}>Net</th>
+                    </>
+                  ) : (
+                    <>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>Transactions</th>
+                      <th style={{ textAlign: 'right' }}>Total In</th>
+                      <th style={{ textAlign: 'right' }}>Total Out</th>
+                      <th style={{ textAlign: 'right' }}>Net</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {smLoading ? (
+                  <SkeletonRows cols={smGroupBy === 'product' ? 9 : 5} />
+                ) : smData.length === 0 ? (
+                  <EmptyRow cols={smGroupBy === 'product' ? 9 : 5} />
+                ) : smGroupBy === 'product' ? (
+                  (smData as StockMovementItem[]).map((r) => (
+                    <tr key={r.product_id}>
+                      <td>{r.product_name || '—'}</td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{r.sku || ''}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.stock_in)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.stock_out)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.adjustment)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.transfer_in)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.transfer_out)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.sale)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace', color: Number(r.net) >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #ef4444)' }}>{Number(r.net)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  (smData as StockMovementDay[]).map((r) => (
+                    <tr key={r.date}>
+                      <td>{new Date(r.date).toLocaleDateString()}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{r.transactions}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--success, #16a34a)' }}>{Number(r.total_in)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--danger, #ef4444)' }}>{Number(r.total_out)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.net)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

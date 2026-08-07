@@ -5,6 +5,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import JsBarcode from 'jsbarcode'
 import {
   searchProducts,
   createProduct,
@@ -18,9 +19,7 @@ import {
   getProductImages,
   deleteProductImage,
   setProductImagePrimary,
-  updateInventoryEntry,
   getInventory,
-  createInventoryEntry,
   resolveImageUrl,
   viewProduct,
   viewProductImages,
@@ -33,6 +32,13 @@ import {
 type ModalMode = 'create' | 'edit' | 'view' | 'import' | null
 
 type Supplier = { supplier_id: string; supplier_name: string }
+
+function generateBarcode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 13; i += 1) code += chars[Math.floor(Math.random() * chars.length)]
+  return code
+}
 
 const emptyForm = {
   sku: '', product_name: '', description: '', barcode: '', brand: '', model: '', manufacturer: '',
@@ -50,6 +56,10 @@ export default function ProductsPage() {
   const { selectedBranch, hasPermission } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
+  const [showLabels, setShowLabels] = useState(false)
+  const [labelSelection, setLabelSelection] = useState<Record<string, boolean>>({})
+  const [labelCopies, setLabelCopies] = useState(1)
+  const [labelSize, setLabelSize] = useState<'40x25' | '58x40'>('40x25')
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -70,7 +80,6 @@ export default function ProductsPage() {
   const [existingImages, setExistingImages] = useState<ProductImage[]>([])
   const [primaryIdx, setPrimaryIdx] = useState(0)
   const [prevPrimaryId, setPrevPrimaryId] = useState<string | null>(null)
-  const [existingInventoryId, setExistingInventoryId] = useState<string | null>(null)
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [importRows, setImportRows] = useState<Record<string, unknown>[]>([])
@@ -146,7 +155,6 @@ export default function ProductsPage() {
     setExistingImages([])
     setPrimaryIdx(0)
     setPrevPrimaryId(null)
-    setExistingInventoryId(null)
     setImagesToDelete([])
     setModal('create')
   }
@@ -175,7 +183,7 @@ export default function ProductsPage() {
       serial_number_required: p.serial_number_required ?? false,
       expiry_required: p.expiry_required ?? false,
       track_inventory: p.track_inventory ?? true,
-      branch_id: '',
+      branch_id: selectedBranch?.branch_id ?? '',
       quantity_on_hand: '',
       reorder_level: '',
       reorder_quantity: '',
@@ -199,7 +207,6 @@ export default function ProductsPage() {
       const data = Array.isArray(res) ? res : res?.data ?? []
       if (data.length > 0) {
         const inv = data[0]
-        setExistingInventoryId(inv.inventory_id)
         setForm((f) => ({
           ...f,
           branch_id: inv.branch_id ?? '',
@@ -233,8 +240,12 @@ export default function ProductsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.sku.trim() || !form.product_name.trim()) {
-      setFormError('SKU and product name are required.')
+    if (!form.sku.trim() || !form.product_name.trim() || !form.base_uom_id) {
+      setFormError('SKU, product name and UoM are required.')
+      return
+    }
+    if (form.retail_price.trim() === '' && form.wholesale_price.trim() === '') {
+      setFormError('Retail price or wholesale price is required.')
       return
     }
     setFormError('')
@@ -269,24 +280,21 @@ export default function ProductsPage() {
         if (form.wholesale_uom_id) body.wholesale_uom_id = form.wholesale_uom_id
         if (form.wholesale_conversion_factor) body.wholesale_conversion_factor = num(form.wholesale_conversion_factor)
         if (form.wholesale_min_qty) body.wholesale_min_qty = num(form.wholesale_min_qty)
+        if (form.branch_id) {
+          body.branch_id = form.branch_id
+          body.quantity = num(form.quantity_on_hand) ?? 0
+          body.reorder_level = num(form.reorder_level) ?? 0
+          body.reorder_quantity = num(form.reorder_quantity) ?? 0
+          body.reserved_quantity = num(form.reserved_quantity)
+          body.damaged_quantity = num(form.damaged_quantity)
+          body.expired_quantity = num(form.expired_quantity)
+          body.available_quantity = num(form.available_quantity)
+        }
         const product = await createProduct(body)
         const existingCount = existingImages.length
         for (let i = 0; i < newImages.length; i++) {
           const isPrimary = existingCount + i === primaryIdx
           await uploadProductImage(product.product_id, newImages[i].file, isPrimary)
-        }
-        if (form.branch_id) {
-          await createInventoryEntry({
-            product_id: product.product_id,
-            branch_id: form.branch_id,
-            quantity: num(form.quantity_on_hand) ?? 0,
-            reorder_level: num(form.reorder_level) ?? 0,
-            reorder_quantity: num(form.reorder_quantity) ?? 0,
-            reserved_quantity: num(form.reserved_quantity),
-            damaged_quantity: num(form.damaged_quantity),
-            expired_quantity: num(form.expired_quantity),
-            available_quantity: num(form.available_quantity),
-          })
         }
       } else if (editing) {
         if (form.category_id) body.category_id = form.category_id
@@ -295,6 +303,16 @@ export default function ProductsPage() {
         if (form.wholesale_uom_id) body.wholesale_uom_id = form.wholesale_uom_id
         if (form.wholesale_conversion_factor) body.wholesale_conversion_factor = num(form.wholesale_conversion_factor)
         if (form.wholesale_min_qty) body.wholesale_min_qty = num(form.wholesale_min_qty)
+        if (form.branch_id) {
+          body.branch_id = form.branch_id
+          body.quantity = num(form.quantity_on_hand) ?? 0
+          body.reorder_level = num(form.reorder_level) ?? 0
+          body.reorder_quantity = num(form.reorder_quantity) ?? 0
+          body.reserved_quantity = num(form.reserved_quantity)
+          body.damaged_quantity = num(form.damaged_quantity)
+          body.expired_quantity = num(form.expired_quantity)
+          body.available_quantity = num(form.available_quantity)
+        }
         await updateProduct(editing.product_id, body)
         if (prevPrimaryId) {
           const newPrimaryExistingIdx = primaryIdx < existingImages.length ? primaryIdx : -1
@@ -311,30 +329,15 @@ export default function ProductsPage() {
         for (const id of imagesToDelete) {
           await deleteProductImage(id)
         }
-        if (form.branch_id) {
-          const inventoryPayload = {
-            product_id: editing.product_id,
-            branch_id: form.branch_id,
-            quantity: num(form.quantity_on_hand) ?? 0,
-            reorder_level: num(form.reorder_level) ?? 0,
-            reorder_quantity: num(form.reorder_quantity) ?? 0,
-            reserved_quantity: num(form.reserved_quantity),
-            damaged_quantity: num(form.damaged_quantity),
-            expired_quantity: num(form.expired_quantity),
-            available_quantity: num(form.available_quantity),
-          }
-          if (existingInventoryId) {
-            await updateInventoryEntry(existingInventoryId, inventoryPayload)
-          } else {
-            await createInventoryEntry(inventoryPayload)
-          }
-        }
       }
       setModal(null)
       load()
       toast('Product saved successfully', 'success')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Save failed'
+      const msg =
+        (err as { response?: { data?: { message?: string; errors?: { msg?: string }[] } } }).response?.data?.errors?.[0]?.msg ??
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+        (err instanceof Error ? err.message : 'Save failed')
       setFormError(msg)
       toast(msg, 'error')
     }
@@ -466,16 +469,11 @@ export default function ProductsPage() {
           const uom = uoms.find((u) => (u.abbreviation || u.uom_name).toLowerCase() === String(row['Base UoM']).toLowerCase())
           if (uom) body.base_uom_id = uom.uom_id
         }
-        const product = await createProduct(body)
         if (selectedBranch?.branch_id) {
-          try {
-            await createInventoryEntry({
-              product_id: product.product_id,
-              branch_id: selectedBranch.branch_id,
-              quantity: 0,
-            })
-          } catch { /* inventory creation failed, but product was created */ }
+          body.branch_id = selectedBranch.branch_id
+          body.quantity = 0
         }
+        await createProduct(body)
         imported++
       } catch (err: unknown) {
         let reason = 'Unknown error'
@@ -610,6 +608,70 @@ export default function ProductsPage() {
     setLightboxIndex(null)
   }
 
+  function openLabels() {
+    const sel: Record<string, boolean> = {}
+    products.forEach((p) => { if (p.barcode) sel[p.product_id] = true })
+    setLabelSelection(sel)
+    setLabelCopies(1)
+    setShowLabels(true)
+  }
+
+  function toggleLabel(id: string) {
+    setLabelSelection((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function toggleAllLabels() {
+    const withBarcode = products.filter((p) => p.barcode)
+    const allSelected = withBarcode.length > 0 && withBarcode.every((p) => labelSelection[p.product_id])
+    const next: Record<string, boolean> = { ...labelSelection }
+    withBarcode.forEach((p) => { next[p.product_id] = !allSelected })
+    setLabelSelection(next)
+  }
+
+  const selectedForLabels = products.filter((p) => labelSelection[p.product_id] && p.barcode)
+
+  function printLabels() {
+    const selected = selectedForLabels
+    if (selected.length === 0) {
+      toast('Select at least one product with a barcode.', 'error')
+      return
+    }
+    const copies = Math.min(Math.max(labelCopies, 1), 100)
+    const sheet = document.createElement('div')
+    sheet.className = 'label-print-sheet'
+    for (const p of selected) {
+      for (let i = 0; i < copies; i++) {
+        const cell = document.createElement('div')
+        cell.className = `label label--${labelSize}`
+        const name = document.createElement('div')
+        name.className = 'label-name'
+        name.textContent = p.product_name
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+        cell.appendChild(name)
+        cell.appendChild(svg)
+        sheet.appendChild(cell)
+        try {
+          JsBarcode(svg, String(p.barcode), {
+            format: 'CODE128',
+            displayValue: true,
+            fontSize: 12,
+            width: 2,
+            height: 40,
+            margin: 2,
+          })
+        } catch { /* invalid barcode value — skip */ }
+      }
+    }
+    document.body.appendChild(sheet)
+    const cleanup = () => { if (sheet.parentNode) sheet.parentNode.removeChild(sheet) }
+    window.addEventListener('afterprint', cleanup, { once: true })
+    setTimeout(() => {
+      window.print()
+      setTimeout(cleanup, 1000)
+    }, 50)
+  }
+
   const Section = ({ title }: { title: string }) => (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
       <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</span>
@@ -663,6 +725,12 @@ export default function ProductsPage() {
               </div>
             )}
           </div>
+          )}
+          {hasPermission('EXPORT_PRODUCTS') && (
+          <button type="button" className="btn btn--ghost" onClick={openLabels}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: '-2px' }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg>
+            Print Labels
+          </button>
           )}
           {hasPermission('CREATE_PRODUCT') && (
           <button type="button" className="btn btn--primary" onClick={openCreate}>+ Add Product</button>
@@ -1008,7 +1076,21 @@ export default function ProductsPage() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-                <div className="field"><span>Barcode</span><input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder="Optional" /></div>
+                <div className="field"><span>Barcode</span>
+                  <div style={{ position: 'relative' }}>
+                    <input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder="Optional" style={{ paddingRight: 34 }} />
+                    <button
+                      type="button"
+                      title="Generate barcode"
+                      onClick={() => set('barcode', generateBarcode())}
+                      style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: 'var(--radius-button)', padding: 0 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10" /><path d="M1 14l4.64 4.36A9 9 0 0020.49 15" /></svg>
+                    </button>
+                  </div>
+                </div>
                 <div className="field"><span>Brand</span><input value={form.brand} onChange={(e) => set('brand', e.target.value)} placeholder="Optional" /></div>
                 <div className="field"><span>Model</span><input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="Optional" /></div>
               </div>
@@ -1196,6 +1278,70 @@ export default function ProductsPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ---- Print Labels Modal ---- */}
+      {showLabels && (
+        <div className="modal-overlay" onClick={() => setShowLabels(false)}>
+          <div className="modal" style={{ maxWidth: 640, textAlign: 'left', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 4 }}>Print Barcode Labels</h3>
+            <p className="page-subtitle" style={{ marginBottom: 'var(--space-4)' }}>Select products to print {labelSize === '40x25' ? '40 × 25 mm' : '58 × 40 mm'} labels for.</p>
+
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+              <button type="button" className="btn btn--ghost" onClick={toggleAllLabels}>Select all on page</button>
+              <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>{selectedForLabels.length} selected</span>
+            </div>
+
+            <div className="table-wrap" style={{ maxHeight: 280, overflowY: 'auto', marginBottom: 'var(--space-4)' }}>
+              <table className="data-table" style={{ minWidth: 0 }}>
+                <thead>
+                  <tr>
+                    <th style={{ fontSize: 'var(--text-caption)', width: 40 }} />
+                    <th style={{ fontSize: 'var(--text-caption)' }}>SKU</th>
+                    <th style={{ fontSize: 'var(--text-caption)' }}>Product</th>
+                    <th style={{ fontSize: 'var(--text-caption)' }}>Barcode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.length === 0 && (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>No products on this page.</td></tr>
+                  )}
+                  {products.map((p) => (
+                    <tr key={p.product_id}>
+                      <td>
+                        <input type="checkbox" checked={!!labelSelection[p.product_id]} disabled={!p.barcode} onChange={() => toggleLabel(p.product_id)} />
+                      </td>
+                      <td style={{ fontSize: 'var(--text-small)', whiteSpace: 'nowrap' }}>{p.sku}</td>
+                      <td style={{ fontSize: 'var(--text-small)', wordBreak: 'break-word' }}>{p.product_name}</td>
+                      <td style={{ fontSize: 'var(--text-small)', color: p.barcode ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.barcode ?? 'no barcode'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 'var(--space-4)' }}>
+              <div className="field">
+                <span>Copies per label</span>
+                <input type="number" min={1} max={100} value={labelCopies} onChange={(e) => setLabelCopies(Math.min(Math.max(Number(e.target.value) || 1, 1), 100))} />
+              </div>
+              <div className="field">
+                <span>Label size</span>
+                <select value={labelSize} onChange={(e) => setLabelSize(e.target.value as '40x25' | '58x40')}>
+                  <option value="40x25">40 × 25 mm</option>
+                  <option value="58x40">58 × 40 mm</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="dialog__actions">
+              <button type="button" className="btn btn--ghost" onClick={() => setShowLabels(false)}>Cancel</button>
+              <button type="button" className="btn btn--primary" onClick={printLabels}>
+                Print {selectedForLabels.length * labelCopies} Label{selectedForLabels.length * labelCopies !== 1 ? 's' : ''}
+              </button>
+            </div>
           </div>
         </div>
       )}

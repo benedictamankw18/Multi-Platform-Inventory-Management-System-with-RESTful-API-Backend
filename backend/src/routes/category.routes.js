@@ -5,10 +5,11 @@ const categoryController = require('../controllers/category.controller');
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const upload = require('../middleware/upload.middleware');
 const { createCategoryValidation, updateCategoryValidation, categoryIdValidation, listCategoriesValidation } = require('../validations/category.validation');
 
-router.post('/', authenticate, checkPermission('MANAGE_CATEGORIES'), createCategoryValidation, validate, categoryController.createCategory);
+router.post('/', authenticate, checkPermission('MANAGE_CATEGORIES'), createCategoryValidation, validate, idempotency('categories'), categoryController.createCategory);
 router.post('/search', authenticate, checkPermission('VIEW_CATEGORIES'), listCategoriesValidation, validate, categoryController.listCategories);
 router.get('/:categoryId', authenticate, checkPermission('VIEW_CATEGORIES'), categoryIdValidation, validate, categoryController.getCategoryById);
 router.patch('/:categoryId', authenticate, checkPermission('MANAGE_CATEGORIES'), categoryIdValidation, updateCategoryValidation, validate, categoryController.updateCategory);

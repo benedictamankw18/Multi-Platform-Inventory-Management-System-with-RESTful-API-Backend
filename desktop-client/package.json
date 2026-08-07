@@ -9,6 +9,7 @@
     "dev": "concurrently -k -n renderer,desktop -c blue,green \"npm:dev:renderer\" \"npm:dev:desktop\"",
     "dev:renderer": "vite",
     "dev:desktop": "wait-on http://127.0.0.1:5173 && electron .",
+    "rebuild": "electron-rebuild -f -w node-hid",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -21,6 +22,7 @@
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "node-hid": "^3.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -28,6 +30,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@types/jsbarcode": "^3.11.4",
     "@types/node": "^24.13.2",
     "@types/qrcode": "^1.5.6",

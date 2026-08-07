@@ -8,6 +8,7 @@ import {
   deleteNotification,
   type NotificationItem,
 } from '../services/api'
+import { notifyNotificationsChanged } from '../hooks/useUnreadNotifications'
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -89,6 +90,7 @@ export default function NotificationsPage() {
       await markNotificationRead(id)
       toast('Marked as read', 'success')
       load()
+      notifyNotificationsChanged()
     } catch {
       toast('Failed to mark as read', 'error')
     }
@@ -101,6 +103,7 @@ export default function NotificationsPage() {
       await deleteNotification(id)
       toast('Notification deleted', 'success')
       load()
+      notifyNotificationsChanged()
     } catch {
       toast('Failed to delete notification', 'error')
     }
@@ -115,6 +118,7 @@ export default function NotificationsPage() {
       await Promise.all(unread.map((n) => markNotificationRead(n.notification_id)))
       toast(`${unread.length} marked as read`, 'success')
       load()
+      notifyNotificationsChanged()
     } catch {
       toast('Failed to mark all as read', 'error')
     }

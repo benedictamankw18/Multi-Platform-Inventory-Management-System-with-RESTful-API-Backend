@@ -15,9 +15,11 @@ import {
   getSupplierPayments,
   createSupplierPayment,
   getBusinessSettings,
+  getSystemSetting,
   resolveImageUrl,
   type Supplier,
 } from '../services/api'
+import { printReceipt } from '../services/printService'
 
 type SupplierPayment = {
   payment_id: string
@@ -110,7 +112,8 @@ export default function SuppliersPage() {
   const [lastPayment, setLastPayment] = useState<SupplierPayment | null>(null)
   const [receiptBusinessInfo, setReceiptBusinessInfo] = useState<BusinessInfo>({})
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
-  const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm')
+  const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
+  const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
 
   const [form, setForm] = useState({
     supplier_name: '',
@@ -146,6 +149,15 @@ export default function SuppliersPage() {
   }, [page, search])
 
   useEffect(() => { load() }, [load])
+
+  // Default paper size comes from the printer_type system setting
+  useEffect(() => {
+    getSystemSetting('printer_type')
+      .then((v) => { if (v === '58mm' || v === '80mm') setPrinterType(v) })
+      .catch(() => {})
+  }, [])
+
+  const effectivePaperSize = paperSize ?? printerType
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -1045,8 +1057,8 @@ export default function SuppliersPage() {
                   onClick={() => setPaperSize(s)}
                   style={{
                     padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)',
-                    background: paperSize === s ? 'var(--primary)' : 'transparent',
-                    color: paperSize === s ? '#fff' : 'var(--text)',
+                    background: effectivePaperSize === s ? 'var(--primary)' : 'transparent',
+                    color: effectivePaperSize === s ? '#fff' : 'var(--text)',
                     fontSize: 12, cursor: 'pointer'
                   }}
                 >{s}</button>
@@ -1056,7 +1068,7 @@ export default function SuppliersPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => void printReceipt()}
                 className="btn btn--ghost"
                 style={{ textAlign: 'center', flex: 1, padding: '12px 0', fontSize: 15, border: '1px solid var(--border)' }}
               >
@@ -1077,7 +1089,7 @@ export default function SuppliersPage() {
 
       {/* ---- Hidden Receipt (printed via window.print) ---- */}
       <div id="receipt-print">
-        <div className={`receipt receipt-${paperSize === '58mm' ? '58' : '80'}`}>
+        <div className={`receipt receipt-${effectivePaperSize === '58mm' ? '58' : '80'}`}>
           <div className="receipt-header">
             {receiptBusinessInfo.logo && (
               <img src={resolveImageUrl(receiptBusinessInfo.logo) ?? undefined} alt="" className="receipt-logo" />
@@ -1127,7 +1139,7 @@ export default function SuppliersPage() {
 
           <div className="receipt-barcode">
             {qrDataUrl ? (
-              <img src={qrDataUrl} style={{ width: paperSize === '58mm' ? 80 : 120, height: 'auto' }} />
+              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
             ) : null}
           </div>
 

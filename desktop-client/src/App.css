@@ -1080,3 +1080,46 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Print Barcode Labels ---- */
+.label-print-sheet {
+  display: none;
+  width: 100%;
+  padding: 5mm;
+  box-sizing: border-box;
+  background: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.label-print-sheet .label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #ccc;
+  box-sizing: border-box;
+  margin: 2mm;
+  padding: 2mm;
+  page-break-inside: avoid;
+  text-align: center;
+}
+
+.label-print-sheet .label--40x25 { width: 38mm; height: 23mm; }
+.label-print-sheet .label--58x40 { width: 56mm; height: 38mm; }
+
+.label-print-sheet .label-name {
+  max-width: 100%;
+  font-size: 2.6mm;
+  font-weight: 600;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media print {
+  body > #root { display: none !important; }
+  .label-print-sheet { display: block !important; padding: 5mm; }
+  .label-print-sheet .label { border: none; }
+  @page { size: auto; margin: 0; }
+}

@@ -5,10 +5,11 @@ const supplierPaymentController = require('../controllers/supplierPayment.contro
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const { createSupplierPaymentValidation, paymentIdValidation, updateSupplierPaymentValidation, listSupplierPaymentsValidation } = require('../validations/supplierPayment.validation');
 
 router.get('/', authenticate, checkPermission('VIEW_SUPPLIERS'), supplierPaymentController.listAllPayments);
-router.post('/', authenticate, createSupplierPaymentValidation, validate, supplierPaymentController.createSupplierPayment);
+router.post('/', authenticate, createSupplierPaymentValidation, validate, idempotency('supplier-payments'), supplierPaymentController.createSupplierPayment);
 router.get('/:paymentId', authenticate, paymentIdValidation, validate, supplierPaymentController.getPaymentById);
 router.put('/:paymentId', authenticate, paymentIdValidation, updateSupplierPaymentValidation, validate, supplierPaymentController.updatePayment);
 router.delete('/:paymentId', authenticate, paymentIdValidation, validate, supplierPaymentController.deletePayment);

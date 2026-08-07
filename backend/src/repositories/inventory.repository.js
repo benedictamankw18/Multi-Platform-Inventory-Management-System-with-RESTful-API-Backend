@@ -9,10 +9,11 @@ const ALLOWED_TRAN_FIELDS = new Set([
 ]);
 
 // Create a transaction matching the DB schema
-async function createTransaction({ transaction_id, product_id, branch_id, transaction_type, quantity, reference_type = null, reference_id = null, performed_by = null, notes = null, previous_quantity = null, new_quantity = null, unit_cost = null, transaction_reference = null, device_id = null }) {
+async function createTransaction({ transaction_id, product_id, branch_id, transaction_type, quantity, reference_type = null, reference_id = null, performed_by = null, notes = null, previous_quantity = null, new_quantity = null, unit_cost = null, transaction_reference = null, device_id = null }, txClient = null) {
+  const db = txClient || client;
   const q = `INSERT INTO ${TRAN_TABLE} (transaction_id, product_id, branch_id, transaction_type, quantity, reference_type, reference_id, performed_by, notes, previous_quantity, new_quantity, unit_cost, transaction_reference, device_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`;
   const values = [transaction_id, product_id, branch_id, transaction_type, quantity, reference_type, reference_id, performed_by, notes, previous_quantity, new_quantity, unit_cost, transaction_reference, device_id];
-  const { rows } = await client.query(q, values);
+  const { rows } = await db.query(q, values);
   return rows[0];
 }
 

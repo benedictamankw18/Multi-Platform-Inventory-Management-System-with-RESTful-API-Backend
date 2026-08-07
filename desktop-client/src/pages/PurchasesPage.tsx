@@ -1097,7 +1097,7 @@ export default function PurchasesPage() {
               <div style={{ marginBottom: 'var(--space-3)' }}>
                 <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Search Product *</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" className="input" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearchProducts()} placeholder="Search by name or SKU..." />
+                  <input type="text" className="input" data-scan="true" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearchProducts()} placeholder="Search by name or SKU..." />
                   <button type="button" className="btn btn--ghost" onClick={handleSearchProducts} disabled={productSearchLoading}>Search</button>
                 </div>
                 {productResults.length > 0 && (

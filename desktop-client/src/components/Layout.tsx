@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useOffline } from '../contexts/OfflineContext'
+import { useUnreadNotifications } from '../hooks/useUnreadNotifications'
 import { getBusinessSettings, resolveImageUrl } from '../services/api'
 import ConfirmModal from './ConfirmModal'
 import './Layout.css'
@@ -83,6 +84,7 @@ function Icon({ name }: { name: string }) {
 export default function Layout() {
   const { user, logout, selectedBranch, clearBranch, hasPermission } = useAuth()
   const { isOnline, pendingCount } = useOffline()
+  const { unreadCount } = useUnreadNotifications()
   const navigate = useNavigate()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -131,6 +133,9 @@ export default function Layout() {
                 >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
+                  {item.to === '/notifications' && unreadCount > 0 && (
+                    <span className="sidebar__badge">{unreadCount >= 50 ? '50+' : unreadCount}</span>
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -163,6 +168,14 @@ export default function Layout() {
                 {selectedBranch.branch_name}
               </button>
             )}
+            <button type="button" className="layout__topbar-bell" onClick={() => navigate('/notifications')} title="Notifications">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={iconMap.bell} />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="layout__topbar-bell__badge">{unreadCount >= 50 ? '50+' : unreadCount}</span>
+              )}
+            </button>
             <div className="layout__topbar-user" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
               <div className="layout__topbar-avatar">
                 {user?.profilePhoto ? (

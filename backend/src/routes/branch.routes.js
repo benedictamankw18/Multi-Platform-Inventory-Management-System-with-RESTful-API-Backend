@@ -5,6 +5,7 @@ const branchController = require('../controllers/branch.controller');
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const {
   createBranchValidation,
   updateBranchValidation,
@@ -14,7 +15,7 @@ const {
 } = require('../validations/branch.validation');
 
 router.get('/', authenticate, checkPermission('VIEW_BRANCHES'), listBranchesValidation, validate, branchController.listBranches);
-router.post('/', authenticate, checkPermission('MANAGE_BRANCHES'), createBranchValidation, validate, branchController.createBranch);
+router.post('/', authenticate, checkPermission('MANAGE_BRANCHES'), createBranchValidation, validate, idempotency('branches'), branchController.createBranch);
 router.get('/search', authenticate, checkPermission('VIEW_BRANCHES'), listBranchesValidation, validate, branchController.searchBranches);
 router.post('/:id/activate', authenticate, checkPermission('MANAGE_BRANCHES'), idValidation, validate, branchController.activateBranch);
 router.post('/:id/deactivate', authenticate, checkPermission('MANAGE_BRANCHES'), idValidation, validate, branchController.deactivateBranch);

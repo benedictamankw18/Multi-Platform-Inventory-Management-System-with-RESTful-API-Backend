@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { setupOfflineSupport } from './offline'
 
 export const isAxiosError = axios.isAxiosError
 
@@ -78,7 +79,7 @@ function clearTokens() {
 // (user, device, login, session) instead of the shared IP.
 // ---------------------------------------------------------------------------
 
-function getDeviceId(): string {
+export function getDeviceId(): string {
   const KEY = 'deviceId'
   let id = localStorage.getItem(KEY)
   if (!id) {
@@ -1236,6 +1237,32 @@ export async function getPurchasesReport(params?: { startDate?: string; endDate?
   return data.data
 }
 
+export type StockMovementItem = {
+  product_id: string
+  product_name: string | null
+  sku: string | null
+  stock_in: number
+  stock_out: number
+  adjustment: number
+  transfer_in: number
+  transfer_out: number
+  sale: number
+  net: number
+}
+
+export type StockMovementDay = {
+  date: string
+  total_in: number
+  total_out: number
+  net: number
+  transactions: number
+}
+
+export async function getStockMovements(params?: { startDate?: string; endDate?: string; branchId?: string; productId?: string; transactionType?: string; groupBy?: 'product' | 'day' }) {
+  const { data } = await api.get<{ data: StockMovementItem[] | StockMovementDay[] }>('/reports/stock-movements', { params })
+  return data.data
+}
+
 // ---- Notifications ---------------------------------------------------------
 
 export async function getNotifications(params?: Record<string, unknown>) {
@@ -1377,10 +1404,20 @@ export async function updateSystemSettings(body: { key: string; value: unknown; 
   return data
 }
 
+export async function getSystemSetting(key: string): Promise<unknown> {
+  const res = await getSystemSettings()
+  return (Array.isArray(res?.data) ? res.data.find((s: { key: string }) => s.key === key) : undefined)?.value
+}
+
 // ---- Sessions --------------------------------------------------------------
 
 export async function getSessions(params?: Record<string, unknown>) {
   const { data } = await api.get('/sessions', { params })
+  return data
+}
+
+export async function getLoginHistory(params?: Record<string, unknown>) {
+  const { data } = await api.get('/sessions/login-history', { params })
   return data
 }
 
@@ -1417,6 +1454,26 @@ export async function syncPull(params?: Record<string, unknown>) {
 
 export async function getSyncLogs(params?: Record<string, unknown>) {
   const { data } = await api.get('/sync/logs', { params })
+  return data
+}
+
+export async function getEntityLastSync(entity: string) {
+  const { data } = await api.get(`/sync/${entity}/last`)
+  return data
+}
+
+export async function pullEntityChanges(entity: string, since?: string) {
+  const { data } = await api.get(`/sync/${entity}/pull`, { params: since ? { since } : {} })
+  return data
+}
+
+export async function pushEntityChanges(entity: string, items: unknown[]) {
+  const { data } = await api.post(`/sync/${entity}/push`, { items })
+  return data
+}
+
+export async function retrySync(syncId: string) {
+  const { data } = await api.post('/sync/retry', { sync_id: syncId })
   return data
 }
 
@@ -1494,6 +1551,8 @@ export async function healthCheck() {
   const { data } = await api.get('/health')
   return data as { success: boolean; message: string }
 }
+
+setupOfflineSupport(api)
 
 export default api
 

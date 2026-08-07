@@ -1,10 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { OfflineProvider } from './contexts/OfflineContext'
 import Layout from './components/Layout'
 import AuthScreen from './components/AuthScreen'
 import SplashScreen from './components/SplashScreen'
 import { ToastProvider } from './contexts/ToastContext'
 import DashboardPage from './pages/DashboardPage'
+import SyncPage from './pages/SyncPage'
 import ProductsPage from './pages/ProductsPage'
 import CategoriesPage from './pages/CategoriesPage'
 import InventoryPage from './pages/InventoryPage'
@@ -121,6 +123,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="sync" element={<SyncPage />} />
         <Route path="products" element={<PermissionRoute permission="VIEW_PRODUCTS"><ProductsPage /></PermissionRoute>} />
         <Route path="categories" element={<PermissionRoute permission="VIEW_CATEGORIES"><CategoriesPage /></PermissionRoute>} />
         <Route path="inventory" element={<PermissionRoute permission="VIEW_INVENTORY"><InventoryPage /></PermissionRoute>} />
@@ -158,11 +161,13 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
-      </AuthProvider>
+      <OfflineProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AppRoutes />
+          </ToastProvider>
+        </AuthProvider>
+      </OfflineProvider>
     </BrowserRouter>
   )
 }

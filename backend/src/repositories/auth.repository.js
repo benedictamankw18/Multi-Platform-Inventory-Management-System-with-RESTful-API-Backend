@@ -75,14 +75,24 @@ exports.getSessionById = async (sessionId, client = db) => {
 // ---------------------------------------------------------------------------
 exports.listSessionsForUser = async (userId, { limit = 50, offset = 0 } = {}, client = db) => {
   const query = `
-    SELECT s.session_id, s.user_id, s.token_identifier, s.issued_at, s.expires_at, s.last_activity_at, s.revoked
+    SELECT s.session_id, s.user_id, s.token_identifier, s.issued_at, s.expires_at, s.last_activity_at, s.revoked, s.created_at, s.updated_at
     FROM user_sessions s
     WHERE s.user_id = $1
-    ORDER BY s.issued_at DESC
+    ORDER BY s.revoked ASC, s.issued_at DESC
     LIMIT $2 OFFSET $3;
   `;
   const { rows } = await client.query(query, [userId, limit, offset]);
   return rows;
+};
+
+exports.countSessionsForUser = async (userId, client = db) => {
+  const query = `
+    SELECT COUNT(*)::int AS total
+    FROM user_sessions
+    WHERE user_id = $1;
+  `;
+  const { rows } = await client.query(query, [userId]);
+  return rows[0] ? rows[0].total : 0;
 };
 
 exports.rotateSessionToken = async (sessionId, newTokenIdentifier, client = db) => {

@@ -36,6 +36,7 @@ const auditRepo = require('../repositories/audit.repository');
 const userRepo = require('../repositories/user.repository');
 const jwtUtils = require('../utils/jwt.utils');
 const AppError = require('../utils/AppError');
+const geoip = require('../utils/geoip.utils');
 const notificationService = require('./notification.service');
 const { env } = require('process');
 
@@ -130,6 +131,7 @@ exports.login = async (usernameOrEmail, password, meta = {}) => {
 
   // Attribute this login (and every request it makes) to a login_history row
   // so the rate limiter can key on { user, device, login, session }.
+  const location = await geoip.resolveLocation(meta.ipAddress);
   await authRepo.createLoginHistory({
     loginId,
     userId: user.user_id,
@@ -141,6 +143,7 @@ exports.login = async (usernameOrEmail, password, meta = {}) => {
     device: meta.device || null,
     operatingSystem: meta.operatingSystem || null,
     browser: meta.browser || null,
+    location,
   });
 
   const accessToken = signAccessToken(user, sessionId, loginId);
@@ -357,6 +360,14 @@ exports.resetPassword = async (token, newPassword) => {
 // ---------------------------------------------------------------------------
 exports.listSessionsForUser = async (userId, opts = {}) => {
   return authRepo.listSessionsForUser(userId, opts);
+};
+
+exports.countSessionsForUser = async (userId) => {
+  return authRepo.countSessionsForUser(userId);
+};
+
+exports.listLoginHistoryForUser = async (userId, opts = {}) => {
+  return authRepo.listLoginHistoryForUser(userId, opts);
 };
 
 exports.revokeSessionById = async (sessionId, actorId = null) => {

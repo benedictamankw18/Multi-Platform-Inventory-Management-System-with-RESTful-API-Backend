@@ -23,6 +23,7 @@ router.get('/low-stock', authenticate, checkPermission('VIEW_REPORTS'), rangeVal
 router.get('/purchases', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.purchasesReport);
 router.get('/best-selling', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.bestSellingProducts);
 router.get('/branch-performance', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.branchPerformance);
+router.get('/stock-movements', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.stockMovements);
 router.get('/', authenticate, checkPermission('VIEW_REPORTS'), reportQueryValidation, validate, reportController.listReports);
 router.get('/export', authenticate, checkPermission('VIEW_REPORTS'), reportQueryValidation, validate, reportController.exportReport);
 

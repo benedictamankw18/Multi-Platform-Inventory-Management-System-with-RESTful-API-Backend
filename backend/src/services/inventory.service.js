@@ -66,12 +66,12 @@ async function activateInventory(id, performedBy) {
   return activated;
 }
 
-async function createTransaction({ product_id, branch_id, quantity, type, reference_type = null, reference_id = null, notes = null, performedBy = null } = {}) {
+async function createTransaction({ product_id, branch_id, quantity, type, reference_type = null, reference_id = null, notes = null, performedBy = null, unit_cost = null, client = null } = {}) {
   const typeMap = { in: 'STOCK_IN', out: 'STOCK_OUT', adjustment: 'ADJUSTMENT' };
   const transaction_type = typeMap[type];
   if (!transaction_type) throw new Error('Invalid transaction type');
 
-  let pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, branch_id);
+  let pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, branch_id, client);
   const previous_quantity = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
 
   if (type === 'out' && previous_quantity < Number(quantity)) {
@@ -86,13 +86,13 @@ async function createTransaction({ product_id, branch_id, quantity, type, refere
   else new_quantity = previous_quantity + Number(quantity);
 
   const transaction_id = uuidv4();
-  const created = await inventoryRepo.createTransaction({ transaction_id, product_id, branch_id, transaction_type, quantity, reference_type, reference_id, performed_by: performedBy, notes, previous_quantity, new_quantity });
+  const created = await inventoryRepo.createTransaction({ transaction_id, product_id, branch_id, transaction_type, quantity, reference_type, reference_id, performed_by: performedBy, notes, previous_quantity, new_quantity, unit_cost }, client);
 
   if (pbi) {
-    await productBranchInventoryRepo.updateInventory(pbi.inventory_id, { quantity_on_hand: new_quantity, available_quantity: new_quantity });
+    await productBranchInventoryRepo.updateInventory(pbi.inventory_id, { quantity_on_hand: new_quantity, available_quantity: new_quantity }, client);
   } else {
     const inventory_id = uuidv4();
-    await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id, branch_id, quantity_on_hand: new_quantity, available_quantity: new_quantity });
+    await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id, branch_id, quantity_on_hand: new_quantity, available_quantity: new_quantity }, client);
   }
 
   try {

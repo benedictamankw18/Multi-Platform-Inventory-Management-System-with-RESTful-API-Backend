@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import * as api from '../services/api'
 import type { AuthUser, BranchInfo } from '../services/api'
+import apiClient from '../services/api'
+import { hydrateOfflineCache } from '../services/offline'
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -178,6 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store selected branch
       localStorage.setItem('selectedBranch', JSON.stringify(result.branch))
       setSelectedBranch(result.branch)
+      // Re-hydrate the offline cache so branch-scoped pulls swap to the newly
+      // selected branch's data (getSelectedBranchId reads this localStorage key).
+      void hydrateOfflineCache(apiClient).catch(() => {})
     } catch (err) {
       const message =
         api.isAxiosError(err)

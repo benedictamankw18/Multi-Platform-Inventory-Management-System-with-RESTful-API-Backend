@@ -73,10 +73,11 @@ async function inventoryReport(branchId) {
   const params = [];
   const branchFilter = branchId ? `WHERE i.branch_id = $${params.push(branchId)}` : '';
   const q = `
-    SELECT i.inventory_id, i.product_id, i.quantity_on_hand, i.available_quantity, i.reorder_level, i.reorder_level, p.product_name, u.uom_name
+    SELECT i.inventory_id, i.product_id, i.quantity_on_hand, i.available_quantity, i.reorder_level, i.reorder_level, p.product_name, p.sku, b.branch_name, u.uom_name
     FROM product_branch_inventory i
     LEFT JOIN products p ON i.product_id = p.product_id
     LEFT JOIN units_of_measure u ON p.base_uom_id = u.uom_id
+    LEFT JOIN branches b ON i.branch_id = b.branch_id
     ${branchFilter}
     ORDER BY p.product_name NULLS LAST
   `;
@@ -87,11 +88,13 @@ async function inventoryReport(branchId) {
 async function lowStock(branchId) {
   const params = [];
   const branchFilter = branchId ? `AND i.branch_id = $${params.push(branchId)}` : '';
+  const threshold = 'COALESCE(NULLIF(i.reorder_level, 0), p.minimum_stock)';
   const q = `
-    SELECT i.inventory_id, i.product_id, i.quantity_on_hand, i.available_quantity, i.reorder_level, i.reorder_level, p.product_name
+    SELECT i.inventory_id, i.product_id, i.quantity_on_hand, i.available_quantity, i.reorder_level, p.product_name, p.sku, b.branch_name
     FROM product_branch_inventory i
     LEFT JOIN products p ON i.product_id = p.product_id
-    WHERE (i.quantity_on_hand <= p.minimum_stock OR i.available_quantity <= p.minimum_stock)
+    LEFT JOIN branches b ON i.branch_id = b.branch_id
+    WHERE (i.quantity_on_hand <= ${threshold} OR i.available_quantity <= ${threshold})
     ${branchFilter}
     ORDER BY i.available_quantity ASC
   `;
@@ -159,6 +162,49 @@ async function profit({ startDate, endDate }, branchId) {
   return { revenue: Number(salesRes.rows[0].revenue || 0), cost: Number(purchasesRes.rows[0].cost || 0), profit: Number((salesRes.rows[0].revenue || 0) - (purchasesRes.rows[0].cost || 0)) };
 }
 
+async function stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy = 'product' } = {}) {
+  const params = [startDate, endDate];
+  const where = [`it.created_at >= $1 AND it.created_at < ($2::date + interval '1 day')`];
+  if (branchId) where.push(`it.branch_id = $${params.push(branchId)}`);
+  if (productId) where.push(`it.product_id = $${params.push(productId)}`);
+  if (transactionType) where.push(`it.transaction_type = $${params.push(transactionType)}`);
+  const whereSql = ` WHERE ${where.join(' AND ')}`;
+
+  if (groupBy === 'day') {
+    const q = `
+      SELECT DATE(it.created_at) as date,
+        COALESCE(SUM(CASE WHEN it.transaction_type IN ('STOCK_IN','TRANSFER_IN','ADJUSTMENT') THEN it.quantity ELSE 0 END),0) as total_in,
+        COALESCE(SUM(CASE WHEN it.transaction_type IN ('STOCK_OUT','TRANSFER_OUT','SALE') THEN it.quantity ELSE 0 END),0) as total_out,
+        COALESCE(SUM(CASE WHEN it.transaction_type IN ('STOCK_IN','TRANSFER_IN','ADJUSTMENT') THEN it.quantity ELSE -it.quantity END),0) as net,
+        COUNT(*) as transactions
+      FROM inventory_transactions it
+      ${whereSql}
+      GROUP BY DATE(it.created_at)
+      ORDER BY DATE(it.created_at)
+    `;
+    const { rows } = await client.query(q, params);
+    return rows || [];
+  }
+
+  const q = `
+    SELECT it.product_id, p.product_name, p.sku,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'STOCK_IN' THEN it.quantity ELSE 0 END),0) as stock_in,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'STOCK_OUT' THEN it.quantity ELSE 0 END),0) as stock_out,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'ADJUSTMENT' THEN it.quantity ELSE 0 END),0) as adjustment,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'TRANSFER_IN' THEN it.quantity ELSE 0 END),0) as transfer_in,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'TRANSFER_OUT' THEN it.quantity ELSE 0 END),0) as transfer_out,
+      COALESCE(SUM(CASE WHEN it.transaction_type = 'SALE' THEN it.quantity ELSE 0 END),0) as sale,
+      COALESCE(SUM(CASE WHEN it.transaction_type IN ('STOCK_IN','TRANSFER_IN','ADJUSTMENT') THEN it.quantity ELSE -it.quantity END),0) as net
+    FROM inventory_transactions it
+    LEFT JOIN products p ON p.product_id = it.product_id
+    ${whereSql}
+    GROUP BY it.product_id, p.product_name, p.sku
+    ORDER BY net DESC, p.product_name ASC NULLS LAST
+  `;
+  const { rows } = await client.query(q, params);
+  return rows || [];
+}
+
 module.exports = {
   dailySales,
   monthlySales,
@@ -170,4 +216,5 @@ module.exports = {
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  stockMovements,
 };

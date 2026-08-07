@@ -461,6 +461,7 @@ export default function TransfersPage() {
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     placeholder="Search by name, SKU, or barcode"
+                    data-scan="true"
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleProductSearch() } }}
                     style={{ flex: 1 }}
                   />

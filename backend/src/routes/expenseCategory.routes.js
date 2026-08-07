@@ -5,10 +5,11 @@ const expenseCategoryController = require('../controllers/expenseCategory.contro
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const { createExpenseCategoryValidation, updateExpenseCategoryValidation, categoryIdValidation, listExpenseCategoriesValidation } = require('../validations/expenseCategory.validation');
 
 router.get('/', authenticate, checkPermission('VIEW_EXPENSES'), listExpenseCategoriesValidation, validate, expenseCategoryController.listExpenseCategories);
-router.post('/', authenticate, checkPermission('MANAGE_EXPENSES'), createExpenseCategoryValidation, validate, expenseCategoryController.createExpenseCategory);
+router.post('/', authenticate, checkPermission('MANAGE_EXPENSES'), createExpenseCategoryValidation, validate, idempotency('expense-categories'), expenseCategoryController.createExpenseCategory);
 router.get('/:categoryId', authenticate, checkPermission('VIEW_EXPENSES'), categoryIdValidation, validate, expenseCategoryController.getExpenseCategoryById);
 router.put('/:categoryId', authenticate, checkPermission('MANAGE_EXPENSES'), categoryIdValidation, updateExpenseCategoryValidation, validate, expenseCategoryController.updateExpenseCategory);
 router.delete('/:categoryId', authenticate, checkPermission('MANAGE_EXPENSES'), categoryIdValidation, validate, expenseCategoryController.deleteExpenseCategory);

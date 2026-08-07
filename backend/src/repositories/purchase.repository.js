@@ -27,9 +27,10 @@ async function createPurchaseOrder({ po_id, supplier_id, branch_id, created_by =
   return rows[0];
 }
 
-async function getPurchaseOrderById(po_id) {
+async function getPurchaseOrderById(po_id, txClient = null) {
+  const db = txClient || client;
   const q = `SELECT * FROM ${TABLE} WHERE po_id = $1`;
-  const { rows } = await client.query(q, [po_id]);
+  const { rows } = await db.query(q, [po_id]);
   return rows[0];
 }
 
@@ -61,7 +62,8 @@ async function listPurchaseOrders({ q: search, supplierId, status, branchId, lim
   return rows;
 }
 
-async function updatePurchaseOrder(po_id, patch) {
+async function updatePurchaseOrder(po_id, patch, txClient = null) {
+  const db = txClient || client;
   const fields = [];
   const params = [];
   let idx = 1;
@@ -70,10 +72,10 @@ async function updatePurchaseOrder(po_id, patch) {
     params.push(patch[key]);
     idx++;
   }
-  if (!fields.length) return getPurchaseOrderById(po_id);
+  if (!fields.length) return getPurchaseOrderById(po_id, txClient);
   params.push(po_id);
   const q = `UPDATE ${TABLE} SET ${fields.join(', ')} WHERE po_id = $${idx} RETURNING *`;
-  const { rows } = await client.query(q, params);
+  const { rows } = await db.query(q, params);
   return rows[0];
 }
 

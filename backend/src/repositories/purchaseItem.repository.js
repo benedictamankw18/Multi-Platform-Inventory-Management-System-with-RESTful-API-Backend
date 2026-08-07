@@ -28,13 +28,15 @@ async function getPurchaseItemById(po_item_id) {
   return rows[0];
 }
 
-async function listItemsByPurchase(po_id, { limit = 100, offset = 0 } = {}) {
+async function listItemsByPurchase(po_id, { limit = 100, offset = 0 } = {}, txClient = null) {
+  const db = txClient || client;
   const q = `SELECT * FROM ${TABLE} WHERE po_id = $1 ORDER BY created_at ASC LIMIT $2 OFFSET $3`;
-  const { rows } = await client.query(q, [po_id, limit, offset]);
+  const { rows } = await db.query(q, [po_id, limit, offset]);
   return rows;
 }
 
-async function updatePurchaseItem(po_item_id, patch) {
+async function updatePurchaseItem(po_item_id, patch, txClient = null) {
+  const db = txClient || client;
   const allowed = [
     'product_id',
     'uom_id',
@@ -60,7 +62,7 @@ async function updatePurchaseItem(po_item_id, patch) {
   if (!fields.length) return getPurchaseItemById(po_item_id);
   params.push(po_item_id);
   const q = `UPDATE ${TABLE} SET ${fields.join(', ')}, updated_at = now() WHERE po_item_id = $${idx} RETURNING *`;
-  const { rows } = await client.query(q, params);
+  const { rows } = await db.query(q, params);
   return rows[0];
 }
 

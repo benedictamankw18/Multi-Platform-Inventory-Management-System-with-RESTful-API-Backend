@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useOffline } from '../contexts/OfflineContext'
+import { useUnreadNotifications } from '../hooks/useUnreadNotifications'
 import { getBusinessSettings, resolveImageUrl } from '../services/api'
 import ConfirmModal from './ConfirmModal'
 import './Layout.css'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: 'home', permission: 'VIEW_DASHBOARD' },
+  { to: '/sync', label: 'Sync & Offline', icon: 'refresh-cw', permission: '' },
   { to: '/products', label: 'Products', icon: 'package', permission: 'VIEW_PRODUCTS' },
   { to: '/categories', label: 'Categories', icon: 'layers', permission: 'VIEW_CATEGORIES' },
   { to: '/inventory', label: 'Inventory', icon: 'box', permission: 'VIEW_INVENTORY' },
@@ -80,10 +83,12 @@ function Icon({ name }: { name: string }) {
 
 export default function Layout() {
   const { user, logout, selectedBranch, clearBranch, hasPermission } = useAuth()
+  const { isOnline, pendingCount } = useOffline()
   const navigate = useNavigate()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
+  const { unreadCount } = useUnreadNotifications()
 
   useEffect(() => {
     const loadBiz = () => getBusinessSettings().then(setBiz).catch(() => {})
@@ -128,6 +133,9 @@ export default function Layout() {
                 >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
+                  {item.to === '/notifications' && unreadCount > 0 && (
+                    <span className="sidebar__badge">{unreadCount >= 50 ? '50+' : unreadCount}</span>
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -145,12 +153,29 @@ export default function Layout() {
             )}
           </button>
           <div className="layout__topbar-right">
+            <button
+              type="button"
+              className={`sync-pill${isOnline ? ' sync-pill--online' : ' sync-pill--offline'}`}
+              onClick={() => navigate('/sync')}
+              title={isOnline ? 'Online — sync is up to date' : `Offline — ${pendingCount} change(s) pending sync`}
+            >
+              <span className="sync-pill__dot" />
+              {isOnline ? 'Online' : `Offline${pendingCount ? ` · ${pendingCount}` : ''}`}
+            </button>
             {selectedBranch && (
               <button type="button" className="layout__topbar-branch" onClick={() => { clearBranch(); navigate('/select-branch') }} title="Switch branch">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M19 12H5m7-7l-7 7 7 7" /></svg>
                 {selectedBranch.branch_name}
               </button>
             )}
+            <button type="button" className="layout__topbar-bell" onClick={() => navigate('/notifications')} title="Notifications">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={iconMap.bell} />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="layout__topbar-bell__badge">{unreadCount >= 50 ? '50+' : unreadCount}</span>
+              )}
+            </button>
             <div className="layout__topbar-user" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
               <div className="layout__topbar-avatar">
                 {user?.profilePhoto ? (

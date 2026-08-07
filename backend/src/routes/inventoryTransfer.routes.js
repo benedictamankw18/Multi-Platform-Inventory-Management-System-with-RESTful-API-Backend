@@ -5,9 +5,10 @@ const transferController = require('../controllers/inventoryTransfer.controller'
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const { createTransferValidation, updateTransferValidation, transferIdValidation, listTransfersValidation } = require('../validations/inventoryTransfer.validation');
 
-router.post('/', authenticate, checkPermission('MANAGE_INVENTORY'), createTransferValidation, validate, transferController.createTransfer);
+router.post('/', authenticate, checkPermission('MANAGE_INVENTORY'), createTransferValidation, validate, idempotency('inventory-transfers'), transferController.createTransfer);
 router.post('/search', authenticate, checkPermission('VIEW_INVENTORY'), listTransfersValidation, validate, transferController.listTransfers);
 router.get('/:transferId', authenticate, checkPermission('VIEW_INVENTORY'), transferIdValidation, validate, transferController.getTransferById);
 router.patch('/:transferId', authenticate, checkPermission('MANAGE_INVENTORY'), transferIdValidation, updateTransferValidation, validate, transferController.updateTransfer);

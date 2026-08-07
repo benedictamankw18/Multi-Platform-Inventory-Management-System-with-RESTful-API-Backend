@@ -1,7 +1,51 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { getMyProfile, updateMyProfile, changeMyPassword, uploadProfilePhoto, resolveImageUrl } from '../services/api'
+import { getMyProfile, updateMyProfile, changeMyPassword, uploadProfilePhoto, resolveImageUrl, getSessions, getLoginHistory, revokeSession } from '../services/api'
 import type { UserProfile } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+
+type UserSession = {
+  session_id: string
+  user_id: string
+  token_identifier: string
+  issued_at: string
+  expires_at: string
+  last_activity_at: string
+  revoked: boolean
+  created_at: string
+  updated_at: string
+}
+
+type LoginHistoryItem = {
+  login_id: string
+  user_id: string | null
+  username: string | null
+  session_id: string | null
+  login_time: string
+  logout_time: string | null
+  ip_address: string | null
+  user_agent: string | null
+  device: string | null
+  operating_system: string | null
+  browser: string | null
+  successful: boolean
+  failure_reason: string | null
+  location: string | null
+  created_at: string
+}
+
+function getCurrentSessionId(): string | null {
+  const raw = localStorage.getItem('accessToken')
+  if (!raw) return null
+  try {
+    const part = raw.split('.')[1]
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded)) as { sid?: string }
+    return payload.sid ?? null
+  } catch {
+    return null
+  }
+}
 
 export default function UserProfilePage() {
   const { updateUser } = useAuth()
@@ -25,6 +69,31 @@ export default function UserProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [sessions, setSessions] = useState<UserSession[]>([])
+  const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([])
+
+  const SESSION_PAGE_SIZE = 10
+  const [sessionPage, setSessionPage] = useState(1)
+  const [sessionTotal, setSessionTotal] = useState(0)
+  const [sessionLoading, setSessionLoading] = useState(false)
+
+  const fmt = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : '-')
+
+  const loadSessions = useCallback(async (page: number) => {
+    setSessionLoading(true)
+    try {
+      const res = await getSessions({ page, limit: SESSION_PAGE_SIZE })
+      setSessions(res?.sessions ?? [])
+      setSessionTotal(Number(res?.total ?? 0))
+      setSessionPage(page)
+    } catch {
+      setSessions([])
+      setSessionTotal(0)
+    } finally {
+      setSessionLoading(false)
+    }
+  }, [])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -36,8 +105,15 @@ export default function UserProfilePage() {
     } catch {
       setMessage({ type: 'error', text: 'Failed to load profile.' })
     }
+    await loadSessions(1)
+    try {
+      const res = await getLoginHistory()
+      setLoginHistory(res?.loginHistory ?? [])
+    } catch {
+      setLoginHistory([])
+    }
     setLoading(false)
-  }, [])
+  }, [loadSessions])
 
   useEffect(() => { load() }, [load])
 
@@ -96,6 +172,19 @@ export default function UserProfilePage() {
     }
     setUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const currentSessionId = getCurrentSessionId()
+
+  const handleRevoke = async (sessionId: string) => {
+    try {
+      await revokeSession(sessionId)
+      await loadSessions(sessionPage)
+      setMessage({ type: 'success', text: 'Session revoked.' })
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to revoke session.'
+      setMessage({ type: 'error', text: msg })
+    }
   }
 
   if (loading) {
@@ -262,6 +351,119 @@ export default function UserProfilePage() {
               {profile?.isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Active Sessions */}
+      <div className="glass-card" style={{ marginTop: 'var(--space-4)' }}>
+        <h3 style={{ color: '#0119b4', margin: '0 0 20px', fontSize: '0.95rem' }}>Active Sessions</h3>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Issued</th>
+                <th>Last Active</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="empty-state"><p>No sessions found.</p></div>
+                  </td>
+                </tr>
+              ) : sessions.map((s) => {
+                const isCurrent = s.session_id === currentSessionId
+                return (
+                  <tr key={s.session_id}>
+                    <td>{fmt(s.issued_at)}</td>
+                    <td>{fmt(s.last_activity_at)}</td>
+                    <td>{fmt(s.expires_at)}</td>
+                    <td>
+                      <span className={`badge badge--${s.revoked ? 'danger' : 'success'}`}>
+                        {s.revoked ? 'Revoked' : isCurrent ? 'Active (current)' : 'Active'}
+                      </span>
+                    </td>
+                    <td>{fmt(s.created_at)}</td>
+                    <td>{fmt(s.updated_at)}</td>
+                    <td>
+                      {!s.revoked && !isCurrent && (
+                        <button type="button" className="btn btn--secondary" style={{ fontSize: 12, padding: '2px 10px' }} onClick={() => handleRevoke(s.session_id)}>
+                          Revoke
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-3)', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            {sessionTotal} session{sessionTotal === 1 ? '' : 's'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button type="button" className="btn btn--secondary" style={{ fontSize: 12, padding: '4px 12px' }} disabled={sessionPage <= 1 || sessionLoading} onClick={() => loadSessions(sessionPage - 1)}>
+              Previous
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Page {sessionPage} of {Math.max(1, Math.ceil(sessionTotal / SESSION_PAGE_SIZE))}
+            </span>
+            <button type="button" className="btn btn--secondary" style={{ fontSize: 12, padding: '4px 12px' }} disabled={sessionPage >= Math.max(1, Math.ceil(sessionTotal / SESSION_PAGE_SIZE)) || sessionLoading} onClick={() => loadSessions(sessionPage + 1)}>
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Login History */}
+      <div className="glass-card" style={{ marginTop: 'var(--space-4)' }}>
+        <h3 style={{ color: '#0119b4', margin: '0 0 20px', fontSize: '0.95rem' }}>Login History</h3>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Device</th>
+                <th>OS</th>
+                <th>Browser</th>
+                <th>IP</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loginHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state"><p>No login history found.</p></div>
+                  </td>
+                </tr>
+              ) : loginHistory.map((h) => (
+                <tr key={h.login_id}>
+                  <td>{fmt(h.login_time)}</td>
+                  <td>{h.device || '-'}</td>
+                  <td>{h.operating_system || '-'}</td>
+                  <td>{h.browser || '-'}</td>
+                  <td>{h.ip_address || '-'}</td>
+                  <td>{h.location || '-'}</td>
+                  <td>
+                    <span className={`badge badge--${h.successful ? 'success' : 'danger'}`}>
+                      {h.successful ? 'Success' : 'Failed'}
+                    </span>
+                  </td>
+                  <td>{h.failure_reason || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

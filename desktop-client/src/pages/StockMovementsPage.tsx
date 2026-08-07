@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useScanner } from '../services/scanner'
 import {
   getInventoryTransactions,
   searchProducts,
@@ -243,6 +244,13 @@ export default function StockMovementsPage() {
     }
     setModalSearching(false)
   }, [toast, modal, selectedBranch])
+
+  // Route global barcode scans straight into the stock-in/out lookup.
+  const handleScan = useCallback((code: string) => {
+    setModalSearch(code)
+    lookupProduct(code)
+  }, [lookupProduct])
+  useScanner(handleScan)
 
   async function fetchModalStock(productId: string) {
     if (!selectedBranch) return

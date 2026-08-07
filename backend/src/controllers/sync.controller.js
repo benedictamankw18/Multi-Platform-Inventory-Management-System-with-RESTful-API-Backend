@@ -15,8 +15,12 @@ async function getLastSync(req, res, next) {
 async function pull(req, res, next) {
   try {
     const { entity } = req.params;
-    const { since } = req.query;
-    const rows = await syncService.pull(entity, since);
+    const { since, branchId } = req.query;
+    // Mirror inventory.controller.js: explicit query param wins, then fall
+    // back to the authenticated user's JWT branch. Null means "no branch" —
+    // branch-scoped entities return an empty set rather than all branches.
+    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
+    const rows = await syncService.pull(entity, since, resolvedBranchId);
     res.json({ data: rows });
   } catch (err) {
     next(err);

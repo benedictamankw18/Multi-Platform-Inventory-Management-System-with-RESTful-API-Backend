@@ -7,7 +7,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   getSales, getSaleById, getSaleReceipt, getBusinessSettings,
-  resolveImageUrl, voidSale, refundSale, type Sale,
+  getSystemSetting, resolveImageUrl, voidSale, refundSale, type Sale,
 } from '../services/api'
 
 type ReceiptItem = {
@@ -64,7 +64,8 @@ export default function SalesPage() {
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
   const [receiptLoading, setReceiptLoading] = useState(false)
-  const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm')
+  const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
+  const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({})
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
@@ -96,6 +97,15 @@ export default function SalesPage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  // Default paper size comes from the printer_type system setting
+  useEffect(() => {
+    getSystemSetting('printer_type')
+      .then((v) => { if (v === '58mm' || v === '80mm') setPrinterType(v) })
+      .catch(() => {})
+  }, [])
+
+  const effectivePaperSize = paperSize ?? printerType
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -641,8 +651,8 @@ export default function SalesPage() {
                   {(['80mm', '58mm'] as const).map((s) => (
                     <button key={s} type="button" onClick={() => setPaperSize(s)}
                       style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)',
-                        background: paperSize === s ? 'var(--primary)' : 'transparent',
-                        color: paperSize === s ? '#fff' : 'var(--text)', fontSize: 12, cursor: 'pointer' }}>{s}</button>
+                        background: effectivePaperSize === s ? 'var(--primary)' : 'transparent',
+                        color: effectivePaperSize === s ? '#fff' : 'var(--text)', fontSize: 12, cursor: 'pointer' }}>{s}</button>
                   ))}
                 </div>
 
@@ -659,7 +669,7 @@ export default function SalesPage() {
       </div>
 
       <div id="receipt-print">
-        <div className={`receipt receipt-${paperSize === '58mm' ? '58' : '80'}`}>
+        <div className={`receipt receipt-${effectivePaperSize === '58mm' ? '58' : '80'}`}>
           <div className="receipt-header">
             {businessInfo.logo && (
               <img src={resolveImageUrl(businessInfo.logo) ?? undefined} alt="" className="receipt-logo" />
@@ -689,7 +699,7 @@ export default function SalesPage() {
           </div>
 
           <div className="receipt-section receipt-items-section">
-            {paperSize === '58mm' ? (
+            {effectivePaperSize === '58mm' ? (
               (receiptData?.sale?.items ?? []).map((item, i) => {
                 const lt = Number(item.quantity) * Number(item.unit_price) - Number(item.line_discount || 0) + Number(item.tax_amount || 0)
                 return (
@@ -752,7 +762,7 @@ export default function SalesPage() {
 
           {qrDataUrl && (
             <div className="receipt-barcode">
-              <img src={qrDataUrl} style={{ width: paperSize === '58mm' ? 80 : 120, height: 'auto' }} />
+              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
             </div>
           )}
 

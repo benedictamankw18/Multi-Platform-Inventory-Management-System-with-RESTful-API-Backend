@@ -22,6 +22,7 @@ const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/role.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 
 const {
   createUserValidation,
@@ -68,7 +69,7 @@ const ADMIN_ROLES = ['Administrator', 'Business Owner'];
  *       '400':
  *         description: Validation error
  */
-router.post('/', authenticate, checkPermission('MANAGE_USERS'), createUserValidation, validate, userController.createUser);
+router.post('/', authenticate, checkPermission('MANAGE_USERS'), createUserValidation, validate, idempotency('users'), userController.createUser);
 /**
  * @openapi
  * /users:

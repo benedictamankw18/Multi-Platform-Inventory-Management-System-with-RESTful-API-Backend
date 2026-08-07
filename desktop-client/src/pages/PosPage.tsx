@@ -3,6 +3,9 @@ import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useOffline } from '../contexts/OfflineContext'
+import { useScanner } from '../services/scanner'
+import { printReceipt } from '../services/printService'
 import ConfirmModal from '../components/ConfirmModal'
 import {
   searchProducts,
@@ -10,11 +13,23 @@ import {
   getSaleReceipt,
   getBusinessSettings,
   getCustomers,
+  getSystemSetting,
+  getDeviceId,
   resolveImageUrl,
   type Product,
   type Customer,
   type Sale,
 } from '../services/api'
+import {
+  getPulledCache,
+  offlineSalesAll,
+  removeOfflineSale,
+  saveOfflineSale,
+  getMeta,
+  type OfflineSale,
+} from '../services/offlineStore'
+import api from '../services/api'
+import { refreshInventoriesCatalog, refreshProductsCatalog } from '../services/offline'
 
 type CartItem = {
   product: Product
@@ -91,6 +106,41 @@ function computeLineItem(product: Product, quantity: number, unitPrice: number) 
   return { unit_price: unitPrice, line_discount: lineDiscount, tax_amount: taxAmount }
 }
 
+const MAX_QUANTITY = 1000000
+const MAX_SALE_AMOUNT = 9999999999.99
+
+function validateSaleAmounts(
+  items: { quantity: number; unit_price: number; line_discount: number; tax_amount: number }[],
+  totals: Record<string, number>,
+  payments: { amount: number }[],
+): string | null {
+  for (const item of items) {
+    if (!Number.isFinite(item.quantity) || item.quantity < 0 || item.quantity > MAX_QUANTITY) {
+      return `Invalid quantity (${item.quantity}) — must be between 0 and ${MAX_QUANTITY}`
+    }
+    for (const [label, v] of [
+      ['unit_price', item.unit_price],
+      ['line_discount', item.line_discount],
+      ['tax_amount', item.tax_amount],
+    ] as const) {
+      if (!Number.isFinite(v) || v < 0 || v > MAX_SALE_AMOUNT) {
+        return `Invalid ${label} (${v}) — must be between 0 and ${MAX_SALE_AMOUNT}`
+      }
+    }
+  }
+  for (const payment of payments) {
+    if (!Number.isFinite(payment.amount) || payment.amount < 0 || payment.amount > MAX_SALE_AMOUNT) {
+      return `Invalid payment amount (${payment.amount}) — must be between 0 and ${MAX_SALE_AMOUNT}`
+    }
+  }
+  for (const [label, v] of Object.entries(totals)) {
+    if (!Number.isFinite(v) || v < 0 || v > MAX_SALE_AMOUNT) {
+      return `Invalid ${label} (${v}) — must be between 0 and ${MAX_SALE_AMOUNT}`
+    }
+  }
+  return null
+}
+
 function formatPrice(n: number, currency = 'GHS'): string {
   return `${currency} ${n.toFixed(2)}`
 }
@@ -123,7 +173,8 @@ export default function PosPage() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({})
   const [autoPrinting, setAutoPrinting] = useState(false)
-  const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm')
+  const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
+  const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [savedCarts, setSavedCarts] = useState<SavedCart[]>(() => {
     try { return JSON.parse(localStorage.getItem('pos_saved_carts') || '[]') } catch { return [] }
@@ -132,6 +183,10 @@ export default function PosPage() {
   const [saveNote, setSaveNote] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
   const [showSavedCartsModal, setShowSavedCartsModal] = useState(false)
+  const [offlineSales, setOfflineSales] = useState<OfflineSale[]>([])
+  const [showOfflineSalesModal, setShowOfflineSalesModal] = useState(false)
+  const [offlineSearchMessage, setOfflineSearchMessage] = useState<string | null>(null)
+  const { isOnline } = useOffline()
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -167,7 +222,7 @@ export default function PosPage() {
       // Auto-print after barcode renders
       if (!autoPrinting) {
         setAutoPrinting(true)
-        setTimeout(() => window.print(), 400)
+        setTimeout(() => { void printReceipt() }, 400)
       }
     } catch { /* invalid value for barcode — skip */ }
   }, [receiptData, autoPrinting])
@@ -184,6 +239,59 @@ export default function PosPage() {
     QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
   }, [receiptData, businessInfo.currency])
 
+  // Default paper size comes from the printer_type system setting
+  useEffect(() => {
+    getSystemSetting('printer_type')
+      .then((v) => { if (v === '58mm' || v === '80mm') setPrinterType(v) })
+      .catch(() => {})
+  }, [])
+
+  const loadOfflineSales = useCallback(async () => {
+    try {
+      setOfflineSales(await offlineSalesAll())
+    } catch {
+      setOfflineSales([])
+    }
+  }, [])
+
+  // Warm business settings so offline receipts have a header, and load the
+  // local offline-sales ledger so pending items surface after a restart.
+  useEffect(() => {
+    getBusinessSettings()
+      .then((res) => {
+        const bizRows = res?.data ?? res
+        const biz = Array.isArray(bizRows) ? bizRows[0] : bizRows
+        if (biz) setBusinessInfo(biz)
+      })
+      .catch(() => {})
+    void loadOfflineSales()
+  }, [loadOfflineSales])
+
+  // Keep a full local product catalog + branch inventory so search keeps
+  // working while offline. Runs on mount and whenever we come back online.
+  useEffect(() => {
+    if (!isOnline) return
+    let cancelled = false
+    void (async () => {
+      const fresh = async (key: string) => {
+        const sinceVal = await getMeta(key)
+        const sinceTs = typeof sinceVal === 'string' ? new Date(sinceVal).getTime() : 0
+        return Number.isFinite(sinceTs) && Date.now() - sinceTs < 5 * 60 * 1000
+      }
+      const productsStale = !(await fresh('sync:pull:products'))
+      const inventoriesStale = !(await fresh('sync:pull:inventories'))
+      if (!cancelled) {
+        await Promise.allSettled([
+          productsStale ? refreshProductsCatalog(api) : Promise.resolve(),
+          inventoriesStale ? refreshInventoriesCatalog(api) : Promise.resolve(),
+        ])
+      }
+    })()
+    return () => { cancelled = true }
+  }, [isOnline])
+
+  const effectivePaperSize = paperSize ?? printerType
+
   const handleSearch = useCallback((value: string) => {
     setSearchQuery(value)
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
@@ -191,20 +299,17 @@ export default function PosPage() {
     if (!value.trim()) {
       setSearchResults([])
       setShowDropdown(false)
+      setOfflineSearchMessage(null)
       return
     }
 
     searchTimeout.current = setTimeout(async () => {
       setSearching(true)
-      try {
-        const res = await searchProducts({ q: value.trim(), limit: 20, isActive: true })
-        const products = res?.products ?? []
-
-        const trimmed = value.trim().toLowerCase()
+      const trimmed = value.trim().toLowerCase()
+      const applyLocal = (products: Product[]) => {
         const exactMatch = products.find(
           (p) => p.barcode && p.barcode.toLowerCase() === trimmed
         )
-
         if (exactMatch) {
           addToCart(exactMatch)
           setSearchQuery('')
@@ -214,13 +319,104 @@ export default function PosPage() {
           setSearchResults(products)
           setShowDropdown(products.length > 0)
         }
+      }
+      try {
+        const res = await searchProducts({
+          q: value.trim(),
+          limit: 20,
+          isActive: true,
+          ...(selectedBranch ? { branchId: selectedBranch.branch_id } : {}),
+        })
+        applyLocal(res?.products ?? [])
+        setOfflineSearchMessage(null)
       } catch {
-        setSearchResults([])
-        setShowDropdown(false)
+        // Offline: fall back to the locally cached catalog, filtered to the
+        // selected branch's inventory (mirrors the server-side INNER JOIN).
+        try {
+          const cached = (await getPulledCache('products')) as Product[]
+          const inventories = (await getPulledCache('inventories')) as {
+            product_id: string
+            branch_id: string
+          }[]
+
+          if (selectedBranch) {
+            const branchProductIds = new Set(
+              inventories
+                .filter((inv) => inv.branch_id === selectedBranch.branch_id)
+                .map((inv) => inv.product_id)
+            )
+            if (branchProductIds.size === 0) {
+              if (cached.length === 0) {
+                applyLocal([])
+                setOfflineSearchMessage(
+                  'Offline: no product catalog cached on this device. Connect once to enable offline search.'
+                )
+              } else {
+                const local = cached.filter(
+                  (p) =>
+                    p.is_active !== false &&
+                    ((p.product_name && p.product_name.toLowerCase().includes(trimmed)) ||
+                      (p.sku && p.sku.toLowerCase().includes(trimmed)) ||
+                      (p.barcode && p.barcode.toLowerCase().includes(trimmed)))
+                )
+                applyLocal(local)
+                setOfflineSearchMessage(
+                  local.length === 0
+                    ? `No offline product matches "${value.trim()}".`
+                    : 'Offline: no inventory cached for this branch — showing all catalog products.'
+                )
+              }
+            } else {
+              const local = cached.filter(
+                (p) =>
+                  p.is_active !== false &&
+                  branchProductIds.has(p.product_id) &&
+                  ((p.product_name && p.product_name.toLowerCase().includes(trimmed)) ||
+                    (p.sku && p.sku.toLowerCase().includes(trimmed)) ||
+                    (p.barcode && p.barcode.toLowerCase().includes(trimmed)))
+              )
+              applyLocal(local)
+              setOfflineSearchMessage(
+                local.length === 0
+                  ? `No offline product at this branch matches "${value.trim()}".`
+                  : null
+              )
+            }
+          } else {
+            const local = cached.filter(
+              (p) =>
+                p.is_active !== false &&
+                ((p.product_name && p.product_name.toLowerCase().includes(trimmed)) ||
+                  (p.sku && p.sku.toLowerCase().includes(trimmed)) ||
+                  (p.barcode && p.barcode.toLowerCase().includes(trimmed)))
+            )
+            applyLocal(local)
+            setOfflineSearchMessage(
+              local.length === 0
+                ? cached.length === 0
+                  ? 'Offline: no product catalog cached on this device. Connect once to enable offline search.'
+                  : `No offline product matches "${value.trim()}".`
+                : null
+            )
+          }
+        } catch {
+          setSearchResults([])
+          setShowDropdown(false)
+          setOfflineSearchMessage(
+            'Offline: no product catalog cached on this device. Connect once to enable offline search.'
+          )
+        }
       }
       setSearching(false)
     }, 200)
-  }, [])
+  }, [selectedBranch])
+
+  // Global barcode scans (native scanner bridge / wedge burst) are routed
+  // straight into the same debounced search + exact-match auto-add flow.
+  const handleScan = useCallback((code: string) => {
+    handleSearch(code)
+  }, [handleSearch])
+  useScanner(handleScan)
 
   function handleSearchKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
@@ -322,12 +518,13 @@ export default function PosPage() {
       removeFromCart(productId)
       return
     }
+    const capped = Math.min(Math.round(qty), MAX_QUANTITY)
     setCart((prev) =>
       prev.map((item) => {
         if (item.product.product_id !== productId) return item
-        const unitPrice = getEffectivePrice(item.product, qty)
-        const line = computeLineItem(item.product, qty, unitPrice)
-        return { ...item, quantity: qty, ...line }
+        const unitPrice = getEffectivePrice(item.product, capped)
+        const line = computeLineItem(item.product, capped, unitPrice)
+        return { ...item, quantity: capped, ...line }
       })
     )
   }
@@ -368,6 +565,15 @@ export default function PosPage() {
     setPayments((prev) => prev.filter((_, i) => i !== index))
   }
 
+  function resetSaleForm() {
+    setCart([])
+    setPayments([])
+    setNewPaymentAmount('')
+    setCustomerName('')
+    setSelectedCustomer(null)
+    setSearchQuery('')
+  }
+
   async function handleCompleteSale() {
     if (!selectedBranch) {
       toast('Please select a branch first', 'error')
@@ -375,46 +581,69 @@ export default function PosPage() {
     }
     if (!canComplete) return
 
-    setProcessing(true)
-    try {
-      const salePayload = {
-        branch_id: selectedBranch.branch_id,
-        customer_id: selectedCustomer?.customer_id || undefined,
-        customer_name: customerName.trim() || undefined,
-        cashier_id: user?.userId || undefined,
-        cashier_name: user?.fullName || undefined,
-        sale_type: saleType,
+    const validationError = validateSaleAmounts(
+      cart,
+      {
+        subtotal,
         discount_amount: totalDiscount,
         tax_amount: totalTax,
-        items: cart.map((item) => ({
-          product_id: item.product.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          uom_id: item.quantity >= (Number(item.product.wholesale_min_qty) || Infinity) && item.product.wholesale_uom_id
-            ? item.product.wholesale_uom_id
-            : item.product.base_uom_id,
-          cost_price: item.product.cost_price,
-          line_discount: item.line_discount,
-          tax_amount: item.tax_amount,
-        })),
-        payments: payments.map((p) => ({
-          amount: p.amount,
-          payment_method: p.method,
-        })),
-      }
+        total_amount: total,
+        amount_paid: totalPaidAmount,
+        balance_due: remaining,
+      },
+      payments,
+    )
+    if (validationError) {
+      toast(validationError, 'error')
+      return
+    }
 
+    const isOffline = !isOnline
+    const localTransactionId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `tx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    const localInvoice = `OFFLINE-${localTransactionId.slice(0, 8).toUpperCase()}`
+
+    const salePayload = {
+      branch_id: selectedBranch.branch_id,
+      customer_id: selectedCustomer?.customer_id || undefined,
+      customer_name: customerName.trim() || undefined,
+      cashier_id: user?.userId || undefined,
+      cashier_name: user?.fullName || undefined,
+      sale_type: saleType,
+      discount_amount: totalDiscount,
+      tax_amount: totalTax,
+      device_id: getDeviceId(),
+      local_transaction_id: localTransactionId,
+      ...(isOffline
+        ? { created_offline: true, invoice_number: localInvoice }
+        : {}),
+      items: cart.map((item) => ({
+        product_id: item.product.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        uom_id: item.quantity >= (Number(item.product.wholesale_min_qty) || Infinity) && item.product.wholesale_uom_id
+          ? item.product.wholesale_uom_id
+          : item.product.base_uom_id,
+        cost_price: item.product.cost_price,
+        line_discount: item.line_discount,
+        tax_amount: item.tax_amount,
+      })),
+      payments: payments.map((p) => ({
+        amount: p.amount,
+        payment_method: p.method,
+      })),
+    }
+
+    setProcessing(true)
+    try {
       const res = await createSale(salePayload)
       const sale = res?.data ?? res
 
       setLastSale(sale)
       toast('Sale completed successfully', 'success')
-
-      setCart([])
-      setPayments([])
-      setNewPaymentAmount('')
-      setCustomerName('')
-      setSelectedCustomer(null)
-      setSearchQuery('')
+      resetSaleForm()
 
       // Fetch receipt data + business settings in parallel
       const saleId = sale?.sale_id
@@ -430,10 +659,73 @@ export default function PosPage() {
         if (biz) setBusinessInfo(biz)
       }
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Sale failed'
-        : 'Sale failed'
-      toast(msg, 'error')
+      const queued = !!err && typeof err === 'object' && 'queuedOffline' in err
+      if (queued) {
+        // Sale was recorded to the outbox; treat it as a saved sale
+        const created = {
+          sale_id: null,
+          invoice_number: localInvoice,
+          sale_date: new Date().toISOString(),
+          subtotal,
+          discount_amount: totalDiscount,
+          tax_amount: totalTax,
+          total_amount: total,
+          amount_paid: totalPaidAmount,
+          balance_due: remaining,
+          payment_status: remaining > 0 ? 'PARTIAL' : 'PAID',
+          cashier_name: user?.fullName,
+          customer_name: customerName.trim() || null,
+          items: cart.map((item) => ({
+            product_name: item.product.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            line_discount: item.line_discount,
+            tax_amount: item.tax_amount,
+            uom_name: null,
+            symbol: null,
+          })),
+          payments: payments.map((p) => ({ payment_method: p.method, amount: p.amount })),
+        } as unknown as Sale & { items: unknown[]; payments: unknown[] }
+
+        await saveOfflineSale({
+          local_transaction_id: localTransactionId,
+          payload: salePayload,
+          invoice_number: localInvoice,
+          items: created.items,
+          payments: created.payments,
+          subtotal,
+          discount_amount: totalDiscount,
+          tax_amount: totalTax,
+          total_amount: total,
+          amount_paid: totalPaidAmount,
+          balance_due: remaining,
+          customer_name: customerName.trim() || null,
+          cashier_name: user?.fullName ?? null,
+          branch_id: selectedBranch.branch_id,
+          created_at: created.sale_date,
+          status: 'pending',
+          server_sale_id: null,
+          error: null,
+        })
+
+        setLastSale(created)
+        toast('Sale saved offline — will sync when back online', 'success')
+        resetSaleForm()
+        void loadOfflineSales()
+        // Best effort: hydrate the receipt header from cache
+        getBusinessSettings()
+          .then((res) => {
+            const bizRows = res?.data ?? res
+            const biz = Array.isArray(bizRows) ? bizRows[0] : bizRows
+            if (biz) setBusinessInfo(biz)
+          })
+          .catch(() => {})
+      } else {
+        const msg = err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Sale failed'
+          : 'Sale failed'
+        toast(msg, 'error')
+      }
     }
     setProcessing(false)
   }
@@ -511,7 +803,42 @@ export default function PosPage() {
   }
 
   function handlePrint() {
-    window.print()
+    void printReceipt()
+  }
+
+  const offlinePending = offlineSales.filter((s) => s.status !== 'synced').length
+
+  function printOfflineSale(entry: OfflineSale) {
+    setLastSale({
+      sale_id: entry.server_sale_id ?? null,
+      invoice_number: entry.invoice_number,
+      sale_date: entry.created_at,
+      subtotal: entry.subtotal,
+      discount_amount: entry.discount_amount,
+      tax_amount: entry.tax_amount,
+      total_amount: entry.total_amount,
+      amount_paid: entry.amount_paid,
+      balance_due: entry.balance_due,
+      payment_status: entry.balance_due > 0 ? 'PARTIAL' : 'PAID',
+      cashier_name: entry.cashier_name ?? undefined,
+      customer_name: entry.customer_name ?? undefined,
+      items: entry.items,
+      payments: entry.payments,
+    } as Sale & { items: unknown[]; payments: unknown[] })
+    setReceiptData(null)
+    setShowOfflineSalesModal(false)
+  }
+
+  function deleteOfflineSale(entry: OfflineSale) {
+    setConfirmDialog({
+      message: `Delete offline sale ${entry.invoice_number}? It will no longer be listed locally (it may still sync).`,
+      onConfirm: () => {
+        setConfirmDialog(null)
+        void removeOfflineSale(entry.local_transaction_id)
+          .then(() => loadOfflineSales())
+          .catch(() => {})
+      },
+    })
   }
 
   const receiptItems: ReceiptItem[] = receiptData?.sale?.items ?? []
@@ -545,6 +872,13 @@ export default function PosPage() {
               {searching && (
                 <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-secondary)' }}>
                   Searching…
+                </div>
+              )}
+
+              {/* Offline search notice (no cached catalog / no cached match) */}
+              {offlineSearchMessage && (
+                <div style={{ marginTop: 6, padding: '8px 12px', fontSize: 12, color: '#92400e', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 6 }}>
+                  {offlineSearchMessage}
                 </div>
               )}
 
@@ -594,6 +928,21 @@ export default function PosPage() {
               )}
             </div>
           </div>
+
+          {/* Offline-sales pending banner */}
+          {offlinePending > 0 && (
+            <div
+              onClick={() => { setShowOfflineSalesModal(true); void loadOfflineSales() }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px',
+                background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.25)',
+                fontSize: 12, color: '#92400e', cursor: 'pointer', fontWeight: 500,
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" width="14" height="14"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+              <span>{offlinePending} offline sale{offlinePending !== 1 ? 's' : ''} waiting to sync — click to view</span>
+            </div>
+          )}
 
           {/* Cart Table */}
           <div style={{ flex: 1, overflow: 'auto', padding: '0 20px' }}>
@@ -1062,6 +1411,74 @@ export default function PosPage() {
         </div>
       )}
 
+      {/* ── Offline Sales Modal ── */}
+      {showOfflineSalesModal && (
+        <div className="modal-overlay" onClick={() => setShowOfflineSalesModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(560px, 100%)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0 }}>Offline Sales</h3>
+              <button type="button" onClick={() => setShowOfflineSalesModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4, lineHeight: 1 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {offlineSales.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ margin: '0 auto 12px', opacity: 0.4 }}>
+                  <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                </svg>
+                <p style={{ fontSize: 14 }}>No offline sales recorded</p>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {offlineSales.map((s) => {
+                  const statusColor =
+                    s.status === 'synced' ? '#16a34a' : s.status === 'failed' ? 'var(--danger)' : '#d97706'
+                  return (
+                    <div key={s.local_transaction_id}
+                      style={{ padding: '12px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 8 }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{s.invoice_number}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {new Date(s.created_at).toLocaleDateString()} {new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {s.customer_name ? ` · ${s.customer_name}` : ''}
+                          </div>
+                          {s.server_sale_id && (
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Server: {s.server_sale_id}</div>
+                          )}
+                          {s.error && (
+                            <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 2 }}>{s.error}</div>
+                          )}
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600 }}>{formatPrice(s.total_amount)}</div>
+                          <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--bg)', border: `1px solid ${statusColor}`, color: statusColor, whiteSpace: 'nowrap', textTransform: 'uppercase', fontWeight: 600 }}>
+                            {s.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                        <button type="button"
+                          onClick={() => printOfflineSale(s)}
+                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', fontSize: 12, cursor: 'pointer' }}>
+                          Print
+                        </button>
+                        <button type="button"
+                          onClick={() => deleteOfflineSale(s)}
+                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--danger)', background: 'transparent', color: 'var(--danger)', fontSize: 12, cursor: 'pointer' }}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Sale Complete Modal ── */}
       {lastSale && (
         <div className="modal-overlay" style={{ zIndex: 100 }}>
@@ -1101,8 +1518,8 @@ export default function PosPage() {
                   onClick={() => setPaperSize(s)}
                   style={{
                     padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)',
-                    background: paperSize === s ? 'var(--primary)' : 'transparent',
-                    color: paperSize === s ? '#fff' : 'var(--text)',
+                    background: effectivePaperSize === s ? 'var(--primary)' : 'transparent',
+                    color: effectivePaperSize === s ? '#fff' : 'var(--text)',
                     fontSize: 12, cursor: 'pointer'
                   }}
                 >{s}</button>
@@ -1133,7 +1550,7 @@ export default function PosPage() {
 
       {/* ── Hidden Receipt (printed via window.print) ── */}
       <div id="receipt-print">
-        <div className={`receipt receipt-${paperSize === '58mm' ? '58' : '80'}`}>
+        <div className={`receipt receipt-${effectivePaperSize === '58mm' ? '58' : '80'}`}>
           {/* Header */}
           <div className="receipt-header">
             {businessInfo.logo && (
@@ -1187,7 +1604,7 @@ export default function PosPage() {
 
           {/* Items */}
           <div className="receipt-section receipt-items-section">
-            {paperSize === '58mm' ? (
+            {effectivePaperSize === '58mm' ? (
               /* 58mm: stacked flex layout — fits narrow paper */
               (receiptItems.length > 0 ? receiptItems : (lastSale?.items ?? []) as ReceiptItem[]).map((item, i) => {
                 const lineTotal = Number(item.quantity) * Number(item.unit_price) - Number(item.line_discount || 0) + Number(item.tax_amount || 0)
@@ -1293,7 +1710,7 @@ export default function PosPage() {
           {/* QR Code */}
           <div className="receipt-barcode">
             {qrDataUrl ? (
-              <img src={qrDataUrl} style={{ width: paperSize === '58mm' ? 80 : 120, height: 'auto' }} />
+              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
             ) : (
               <svg ref={barcodeRef} />
             )}

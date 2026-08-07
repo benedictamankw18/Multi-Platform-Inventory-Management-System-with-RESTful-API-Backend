@@ -405,6 +405,37 @@ async function branchPerformance(req, res, next) {
 }
 
 
+async function stockMovements(req, res, next) {
+  try {
+    const { startDate, endDate, format, groupBy = 'product' } = req.query;
+
+    const currentYear = new Date().getFullYear();
+    const from = startDate || new Date(currentYear, 0, 1).toISOString().split('T')[0];
+    const to = endDate || new Date(currentYear, 11, 31).toISOString().split('T')[0];
+
+    if (from > to) {
+      return res.status(400).json({ message: 'startDate cannot be greater than endDate.' });
+    }
+
+    const data = await reportService.stockMovements({
+      startDate: from,
+      endDate: to,
+      branchId: req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null,
+      productId: req.query.productId || null,
+      transactionType: req.query.transactionType || null,
+      groupBy,
+    });
+
+    if (format) {
+      return sendExport(res, data, 'stock-movements', format);
+    }
+
+    return res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listReports(req, res, next) {
     try {
 
@@ -521,6 +552,7 @@ module.exports = {
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  stockMovements,
   listReports,
   exportReport,
 };

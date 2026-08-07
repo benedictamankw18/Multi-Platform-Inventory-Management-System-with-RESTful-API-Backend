@@ -3,14 +3,28 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../config/db');
 const salesRepo = require('../repositories/sales.repository');
 const auditRepo = require('../repositories/audit.repository');
+const branchRepo = require('../repositories/branch.repository');
 const AppError = require('../utils/AppError');
 const cache = require('../utils/cache.utils');
+const notificationService = require('./notification.service');
 
 const PAYMENT_METHODS = new Set(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']);
 
 function asNumber(value, fallback = 0) {
   if (value === undefined || value === null || value === '') return fallback;
   return Number(value);
+}
+
+const MONEY_MAX = 9999999999.99;
+
+function assertMoneyRange(value, field) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw new AppError(`${field} must be a finite number.`, { status: 400 });
+  }
+  if (n < 0 || Math.abs(n) > MONEY_MAX) {
+    throw new AppError(`${field} ${n} is out of range (min 0, max ${MONEY_MAX}).`, { status: 400 });
+  }
 }
 
 function getActorId(actor) {
@@ -33,7 +47,7 @@ function normalizePayments(payload) {
 
 async function getProduct(productId, client) {
   const { rows } = await client.query(
-    'SELECT product_id, product_name, base_uom_id, cost_price FROM products WHERE product_id = $1 LIMIT 1',
+    'SELECT product_id, product_name, base_uom_id, cost_price, minimum_stock FROM products WHERE product_id = $1 LIMIT 1',
     [productId]
   );
   return rows[0];
@@ -72,14 +86,31 @@ async function createSale(payload, actor = null) {
   const items = payload.items || [];
   const payments = normalizePayments(payload);
 
+  for (const payment of payments) {
+    assertMoneyRange(asNumber(payment.amount), 'payment amount');
+  }
+
   if (!branchId) {
     throw new AppError('branch_id is required.', { status: 400 });
+  }
+
+  const isOfflineTolerant = payload.created_offline === true;
+
+  if (payload.local_transaction_id) {
+    const { rows: existingRows } = await client.query(
+      'SELECT * FROM sales WHERE local_transaction_id = $1 LIMIT 1',
+      [payload.local_transaction_id]
+    );
+    if (existingRows.length) {
+      return { ...existingRows[0], items: [], payments: [] };
+    }
   }
 
   try {
     await client.query('BEGIN');
 
     const preparedItems = [];
+    const lowStockCandidates = [];
     let subtotal = 0;
     let itemDiscountTotal = 0;
     let itemTaxTotal = 0;
@@ -94,22 +125,59 @@ async function createSale(payload, actor = null) {
       const taxAmount = asNumber(item.tax_amount);
       const gross = quantity * unitPrice;
       const lineTotal = gross - lineDiscount + taxAmount;
+      const costPrice = item.cost_price !== undefined ? asNumber(item.cost_price) : product.cost_price;
 
-      const inventoryResult = await client.query(
-        `UPDATE product_branch_inventory
-         SET quantity_on_hand = quantity_on_hand - $1,
-             available_quantity = GREATEST(COALESCE(available_quantity, quantity_on_hand) - $1, 0),
-             last_updated = now(),
-             updated_at = now()
-         WHERE product_id = $2
-           AND branch_id = $3
-           AND quantity_on_hand >= $1
-         RETURNING *`,
-        [quantity, item.product_id, branchId]
-      );
+      assertMoneyRange(quantity, 'item quantity');
+      assertMoneyRange(unitPrice, 'item unit_price');
+      assertMoneyRange(lineDiscount, 'item line_discount');
+      assertMoneyRange(taxAmount, 'item tax_amount');
+      assertMoneyRange(costPrice, 'item cost_price');
 
-      if (!inventoryResult.rows.length) {
+      const inventoryResult = isOfflineTolerant
+        ? await client.query(
+            `UPDATE product_branch_inventory
+             SET quantity_on_hand = GREATEST(COALESCE(quantity_on_hand, 0) - $1, 0),
+                 available_quantity = GREATEST(COALESCE(available_quantity, quantity_on_hand) - $1, 0),
+                 last_updated = now(),
+                 updated_at = now()
+             WHERE product_id = $2
+               AND branch_id = $3
+             RETURNING *`,
+            [quantity, item.product_id, branchId]
+          )
+        : await client.query(
+            `UPDATE product_branch_inventory
+             SET quantity_on_hand = quantity_on_hand - $1,
+                 available_quantity = GREATEST(COALESCE(available_quantity, quantity_on_hand) - $1, 0),
+                 last_updated = now(),
+                 updated_at = now()
+             WHERE product_id = $2
+               AND branch_id = $3
+               AND quantity_on_hand >= $1
+             RETURNING *`,
+            [quantity, item.product_id, branchId]
+          );
+
+      if (!inventoryResult.rows.length && !isOfflineTolerant) {
         throw new AppError(`Insufficient stock for "${product.product_name}".`, { status: 409 });
+      }
+
+      // Sale-driven decrement can push a product to/below its reorder level —
+      // capture candidates so a LOW_STOCK notification fires (dedup handled
+      // inside the notification service).
+      const invRow = inventoryResult.rows && inventoryResult.rows[0];
+      if (invRow) {
+        const lowStockThreshold = Number(invRow.reorder_level) > 0
+          ? Number(invRow.reorder_level)
+          : Number(product.minimum_stock || 0);
+        if (lowStockThreshold > 0 && Number(invRow.quantity_on_hand) <= lowStockThreshold) {
+          lowStockCandidates.push({
+            product,
+            branchId,
+            newQuantity: Number(invRow.quantity_on_hand),
+            threshold: lowStockThreshold,
+          });
+        }
       }
 
       preparedItems.push({
@@ -121,7 +189,7 @@ async function createSale(payload, actor = null) {
         unit_price: unitPrice,
         line_discount: lineDiscount,
         line_total: lineTotal,
-        cost_price: item.cost_price !== undefined ? asNumber(item.cost_price) : product.cost_price,
+        cost_price: costPrice,
         tax_amount: taxAmount,
         batch_number: item.batch_number || null,
         expiry_date: item.expiry_date || null,
@@ -143,40 +211,67 @@ async function createSale(payload, actor = null) {
     const paymentStatus = payload.payment_status || (balanceDue === 0 ? 'PAID' : amountPaid > 0 ? 'PARTIAL' : 'UNPAID');
     const status = payload.status || (balanceDue > 0 ? 'PARTIALLY_PAID' : 'COMPLETED');
 
-    const { rows: saleRows } = await client.query(
-      `INSERT INTO sales (
-        sale_id, branch_id, customer_id, cashier_id, sale_type, sale_date, subtotal,
-        discount_amount, tax_amount, total_amount, amount_paid, balance_due, status,
-        local_transaction_id, synced, invoice_number, cashier_name, customer_name,
-        remarks, device_id, payment_status, due_date, created_offline
-      ) VALUES ($1,$2,$3,$4,$5,COALESCE($6, now()),$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
-      RETURNING *`,
-      [
-        saleId,
-        branchId,
-        payload.customer_id || null,
-        payload.cashier_id || actorId || null,
-        payload.sale_type || 'RETAIL',
-        payload.sale_date || null,
-        subtotal,
-        discountAmount,
-        taxAmount,
-        totalAmount,
-        amountPaid,
-        balanceDue,
-        status,
-        payload.local_transaction_id || null,
-        payload.synced !== undefined ? payload.synced : true,
-        payload.invoice_number || `INV-${Date.now()}`,
-        payload.cashier_name || null,
-        payload.customer_name || null,
-        payload.remarks || null,
-        payload.device_id || null,
-        paymentStatus,
-        payload.due_date || null,
-        payload.created_offline || false,
-      ]
-    );
+    assertMoneyRange(subtotal, 'subtotal');
+    assertMoneyRange(discountAmount, 'discount_amount');
+    assertMoneyRange(taxAmount, 'tax_amount');
+    assertMoneyRange(totalAmount, 'total_amount');
+    assertMoneyRange(amountPaid, 'amount_paid');
+    assertMoneyRange(balanceDue, 'balance_due');
+
+    let saleRows;
+    try {
+      const insertResult = await client.query(
+        `INSERT INTO sales (
+          sale_id, branch_id, customer_id, cashier_id, sale_type, sale_date, subtotal,
+          discount_amount, tax_amount, total_amount, amount_paid, balance_due, status,
+          local_transaction_id, synced, invoice_number, cashier_name, customer_name,
+          remarks, device_id, payment_status, due_date, created_offline
+        ) VALUES ($1,$2,$3,$4,$5,COALESCE($6, now()),$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+        RETURNING *`,
+        [
+          saleId,
+          branchId,
+          payload.customer_id || null,
+          payload.cashier_id || actorId || null,
+          payload.sale_type || 'RETAIL',
+          payload.sale_date || null,
+          subtotal,
+          discountAmount,
+          taxAmount,
+          totalAmount,
+          amountPaid,
+          balanceDue,
+          status,
+          payload.local_transaction_id || null,
+          payload.synced !== undefined ? payload.synced : true,
+          payload.invoice_number || `INV-${Date.now()}`,
+          payload.cashier_name || null,
+          payload.customer_name || null,
+          payload.remarks || null,
+          payload.device_id || null,
+          paymentStatus,
+          payload.due_date || null,
+          payload.created_offline || false,
+        ]
+      );
+      saleRows = insertResult.rows;
+    } catch (err) {
+      if (err && err.code === '23505') {
+        // Lost a race against another request carrying the same
+        // local_transaction_id — the UNIQUE(local_transaction_id) constraint
+        // already applied this sale. Roll back and return the existing record
+        // so the caller sees a success instead of a 500.
+        await client.query('ROLLBACK');
+        const { rows: existingRows } = await client.query(
+          'SELECT * FROM sales WHERE local_transaction_id = $1 LIMIT 1',
+          [payload.local_transaction_id]
+        );
+        if (existingRows.length) {
+          return { ...existingRows[0], items: [], payments: [] };
+        }
+      }
+      throw err;
+    }
 
     for (const item of preparedItems) {
       await client.query(
@@ -230,6 +325,24 @@ async function createSale(payload, actor = null) {
 
     await client.query('COMMIT');
     cache.delByPattern('reports:*').catch(() => {});
+
+    // Fire LOW_STOCK alerts after the sale commits so a rolled-back sale never
+    // leaves orphan notifications. Non-blocking — POS latency is unaffected;
+    // the 24h dedup + recipients guard run inside the notification service.
+    for (const candidate of lowStockCandidates) {
+      branchRepo.getBranchById(candidate.branchId)
+        .then((branch) => {
+          if (!branch) return null;
+          return notificationService.createLowStockNotification({
+            product: candidate.product,
+            branch,
+            newQuantity: candidate.newQuantity,
+            performedBy: actorId,
+            threshold: candidate.threshold,
+          });
+        })
+        .catch((e) => console.error('low-stock notification error', e && e.message));
+    }
 
     return {
       ...saleRows[0],

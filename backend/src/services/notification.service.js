@@ -87,7 +87,7 @@ async function deleteNotification(id, performedBy) {
 }
 
 async function createLowStockNotification({ product, branch, newQuantity, performedBy, threshold }) {
-  const recent = await notificationRepo.findRecentLowStock(branch.branch_id, product.product_id, 24);
+  const recent = await notificationRepo.findRecentLowStock(branch.branch_id, product.product_name, 24);
   if (recent) return null;
 
   const recipients = await notificationRepo.findUsersWithPermissionAtBranch(
@@ -107,9 +107,32 @@ async function createLowStockNotification({ product, branch, newQuantity, perfor
     branch_id: branch.branch_id,
     type: 'LOW_STOCK',
     priority: 'HIGH',
-    createdBy: performedBy,
+    // notifications.user_id is NOT NULL — fall back to the first recipient when
+    // no actor is available (scheduled scan / system-triggered paths).
+    createdBy: performedBy || recipients[0] || null,
     recipients,
   });
+}
+
+async function scanLowStock() {
+  const candidates = await notificationRepo.listLowStockCandidates();
+  let created = 0;
+  for (const c of candidates) {
+    try {
+      const threshold = Number(c.reorder_level) > 0 ? Number(c.reorder_level) : Number(c.minimum_stock || 0);
+      const result = await createLowStockNotification({
+        product: { product_id: c.product_id, product_name: c.product_name, minimum_stock: c.minimum_stock },
+        branch: { branch_id: c.branch_id, branch_name: c.branch_name },
+        newQuantity: Number(c.quantity_on_hand),
+        performedBy: null,
+        threshold: threshold > 0 ? threshold : undefined,
+      });
+      if (result) created++;
+    } catch (e) {
+      console.error('low-stock scan error', e && e.message);
+    }
+  }
+  return { scanned: candidates.length, created };
 }
 
 async function createSyncFailureNotification({ entity, errorMessage, performedBy }) {
@@ -127,7 +150,7 @@ async function createSyncFailureNotification({ entity, errorMessage, performedBy
     message,
     type: 'SYNC_FAILURE',
     priority: 'HIGH',
-    createdBy: performedBy || 'system',
+    createdBy: performedBy || recipients[0] || null,
     recipients,
   });
 }
@@ -140,5 +163,6 @@ module.exports = {
   updateNotification,
   deleteNotification,
   createLowStockNotification,
+  scanLowStock,
   createSyncFailureNotification,
 };

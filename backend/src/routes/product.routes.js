@@ -6,6 +6,7 @@ const productImageController = require('../controllers/productImage.controller')
 const authenticate = require('../middleware/auth.middleware');
 const checkPermission = require('../middleware/permission.middleware');
 const validate = require('../middleware/validation.middleware');
+const idempotency = require('../middleware/idempotency.middleware');
 const productImageUpload = require('../middleware/productImageUpload.middleware');
 const { createProductValidation, updateProductValidation, productIdValidation, listProductsValidation } = require('../validations/product.validation');
 const {
@@ -16,7 +17,7 @@ const {
 } = require('../validations/productImage.validation');
 
 // Public (or protected depending on your RBAC) product endpoints
-router.post('/', authenticate, checkPermission('CREATE_PRODUCT'), createProductValidation, validate, productController.createProduct);
+router.post('/', authenticate, checkPermission('CREATE_PRODUCT'), createProductValidation, validate, idempotency('products'), productController.createProduct);
 router.post('/search', authenticate, checkPermission('VIEW_PRODUCTS'), listProductsValidation, validate, productController.listProducts);
 router.post('/:id/images', authenticate, checkPermission('CREATE_PRODUCT'), createProductImageValidation, validate, productImageUpload, productImageBodyValidation, validate, productImageController.addProductImage);
 router.patch('/:id/images', authenticate, checkPermission('CREATE_PRODUCT'), updateProductImageValidation, validate, productImageUpload, productImageBodyValidation, validate, productImageController.updateProductImage);
