@@ -58,6 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedUser && accessToken) {
       try {
         setUser(JSON.parse(storedUser))
+        // Refresh user in background so profile changes (e.g. profile photo) apply
+        api.getMyProfile()
+          .then((profile) => {
+            localStorage.setItem('authUser', JSON.stringify(profile))
+            setUser(profile)
+          })
+          .catch(() => {})
         // Fetch permissions in background on session restore
         api.getMyPermissions()
           .then((res) => setPermissions(res.permissions ?? []))

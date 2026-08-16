@@ -5,6 +5,10 @@ async function listSettings() {
   return businessRepo.getAllSettings();
 }
 
+async function getPublicSettings() {
+  return businessRepo.getPublicBusiness();
+}
+
 async function getSetting(key) {
   return businessRepo.getSettingByKey(key);
 }
@@ -36,6 +40,7 @@ async function deleteSetting(key, performedBy) {
 
 module.exports = {
   listSettings,
+  getPublicSettings,
   getSetting,
   upsertSetting,
   deleteSetting,

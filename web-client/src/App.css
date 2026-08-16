@@ -143,6 +143,14 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+.auth-logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
 /* ---- Auth panel layout ---- */
 .auth-panel {
   width: min(1100px, 100%);
@@ -1092,7 +1100,7 @@ tbody tr:hover {
 }
 
 .label-print-sheet .label {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -1118,7 +1126,7 @@ tbody tr:hover {
 }
 
 @media print {
-  body > #root { display: none !important; }
+  body:has(.label-print-sheet) > #root { display: none !important; }
   .label-print-sheet { display: block !important; padding: 5mm; }
   .label-print-sheet .label { border: none; }
   @page { size: auto; margin: 0; }

@@ -9,6 +9,15 @@ async function listSettings(req, res, next) {
   }
 }
 
+async function getPublicSettings(req, res, next) {
+  try {
+    const data = await businessService.getPublicSettings();
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getSetting(req, res, next) {
   try {
     const key = req.params.key;
@@ -56,6 +65,7 @@ async function uploadLogo(req, res, next) {
 
 module.exports = {
   listSettings,
+  getPublicSettings,
   getSetting,
   upsertSetting,
   deleteSetting,

@@ -156,6 +156,9 @@ web-client/dist
 
 backend/uploads
 
+# Runtime GeoIP database cache (seeded from geolite2-redist; ~66MB)
+backend/data
+
 .vscode
 .idea
 

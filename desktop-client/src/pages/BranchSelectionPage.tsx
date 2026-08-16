@@ -1,26 +1,39 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { getBusinessSettings, resolveImageUrl } from '../services/api'
 import '../components/Layout.css'
 import './BranchSelection.css'
 
 export default function BranchSelectionPage() {
   const { user, branches, branchesLoading, error, fetchBranches, selectBranch, logout } = useAuth()
+  const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
 
   useEffect(() => {
     fetchBranches()
   }, [fetchBranches])
+
+  useEffect(() => {
+    const loadBiz = () => getBusinessSettings().then(setBiz).catch(() => {})
+    loadBiz()
+    window.addEventListener('business-settings-updated', loadBiz)
+    return () => window.removeEventListener('business-settings-updated', loadBiz)
+  }, [])
 
   return (
     <div className="branch-select">
       <div className="branch-select__card">
         <div className="branch-select__header">
           <div className="brand-lockup">
-            <div className="brand-mark brand-mark--small" aria-hidden="true">
-              <span className="brand-mark__layer brand-mark__layer--top" />
-              <span className="brand-mark__layer brand-mark__layer--base" />
-            </div>
+            {biz?.logo ? (
+              <img src={resolveImageUrl(biz.logo) ?? undefined} alt="" className="branch-select__logo" />
+            ) : (
+              <div className="brand-mark brand-mark--small" aria-hidden="true">
+                <span className="brand-mark__layer brand-mark__layer--top" />
+                <span className="brand-mark__layer brand-mark__layer--base" />
+              </div>
+            )}
             <div>
-              <span className="branch-select__eyebrow">Inventory Suite</span>
+              <span className="branch-select__eyebrow">{biz?.business_name || 'Inventory Suite'}</span>
               <h1>Select a Branch</h1>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { OfflineProvider } from './contexts/OfflineContext'
 import Layout from './components/Layout'
 import AuthScreen from './components/AuthScreen'
 import SplashScreen from './components/SplashScreen'
+import BusinessBranding from './components/BusinessBranding'
 import { ToastProvider } from './contexts/ToastContext'
 import DashboardPage from './pages/DashboardPage'
 import SyncPage from './pages/SyncPage'
@@ -82,9 +83,9 @@ function BranchSelectionRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  // If branch is already selected, go to dashboard
+  // If branch is already selected, go to POS
   if (!needsBranchSelection) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/pos" replace />
   }
 
   return <>{children}</>
@@ -164,6 +165,7 @@ function App() {
       <OfflineProvider>
         <AuthProvider>
           <ToastProvider>
+            <BusinessBranding />
             <AppRoutes />
           </ToastProvider>
         </AuthProvider>

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getBusinessSettings, resolveImageUrl } from '../services/api'
+import { getPublicBusinessSettings, resolveImageUrl } from '../services/api'
 import './auth-pages.css'
 
 function SplashScreen() {
   const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
 
   useEffect(() => {
-    getBusinessSettings().then(setBiz).catch(() => {})
+    getPublicBusinessSettings().then(setBiz).catch(() => {})
   }, [])
 
   return (

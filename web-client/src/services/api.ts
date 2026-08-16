@@ -115,6 +115,8 @@ function processQueue(error: unknown, token: string | null) {
 
 function redirectToLogin() {
   clearTokens()
+  // Guard against redirect loops: if we're already on the login screen, do nothing.
+  if (window.location.pathname === '/login') return
   // Use a full page reload so React state is cleanly reset
   window.location.href = '/login'
 }
@@ -149,6 +151,14 @@ api.interceptors.response.use(
     // Don't try to refresh if this IS the refresh endpoint
     if (originalRequest.url?.includes('/auth/refresh')) {
       redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    // A 401 on a request that never carried a token just means "not logged in".
+    // Reject without refresh or redirect — otherwise anonymous requests (e.g. the
+    // splash-screen business-settings call on the login page) reload the whole
+    // app in an infinite loop.
+    if (!originalRequest.headers?.Authorization) {
       return Promise.reject(error)
     }
 
@@ -1376,6 +1386,12 @@ export async function deleteExpenseCategory(id: string) {
 export async function getBusinessSettings() {
   const { data } = await api.get('/business-settings')
   return data?.data?.[0] || {}
+}
+
+export async function getPublicBusinessSettings() {
+  const { data } = await api.get('/business/public')
+  const d = data?.data
+  return d && typeof d === 'object' ? d : {}
 }
 
 export async function updateBusinessSettings(body: Record<string, unknown>) {

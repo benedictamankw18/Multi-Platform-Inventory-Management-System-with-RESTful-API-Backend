@@ -23,6 +23,19 @@ async function getBusiness() {
   return rows[0] || null;
 }
 
+// Storefront-safe fields exposed without authentication (login/splash branding).
+const PUBLIC_COLUMNS = [
+  'business_name', 'business_type', 'currency', 'business_email', 'phone',
+  'address', 'logo', 'website', 'tax_number', 'registration_number',
+  'receipt_footer', 'timezone', 'language', 'date_format',
+].join(', ');
+
+async function getPublicBusiness() {
+  const q = `SELECT ${PUBLIC_COLUMNS} FROM ${TABLE} ORDER BY created_at DESC LIMIT 1`;
+  const { rows } = await client.query(q);
+  return rows[0] || null;
+}
+
 // Compatibility helper: return the value of a named column from the first settings row.
 // Returns null if the column does not exist or no row is present.
 async function getSettingByKey(key) {
@@ -80,6 +93,7 @@ async function deleteSetting(identifier) {
 module.exports = {
   getAllSettings,
   getBusiness,
+  getPublicBusiness,
   getSettingByKey,
   upsertSetting,
   deleteSetting,

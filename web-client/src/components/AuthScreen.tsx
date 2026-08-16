@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { getPublicBusinessSettings, resolveImageUrl } from '../services/api'
 import './auth-pages.css'
 
 type AuthMode = 'login' | 'forgot' | 'reset'
@@ -17,6 +18,7 @@ function AuthScreen() {
   const [authMessage, setAuthMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetToken, setResetToken] = useState('')
+  const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
 
   // Detect reset-password link (e.g. /auth/reset-password?token=xxx)
   useEffect(() => {
@@ -30,6 +32,14 @@ function AuthScreen() {
       clearError()
     }
   }, [clearError])
+
+  // Load business settings for the logo and business name in the hero panel
+  useEffect(() => {
+    const loadBiz = () => getPublicBusinessSettings().then(setBiz).catch(() => {})
+    loadBiz()
+    window.addEventListener('business-settings-updated', loadBiz)
+    return () => window.removeEventListener('business-settings-updated', loadBiz)
+  }, [])
 
   const handleLoginSubmit = useCallback(async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -127,12 +137,18 @@ function AuthScreen() {
       <section className="auth-panel" aria-label="Login form">
         <div className="auth-hero">
           <div className="brand-lockup">
-            <div className="brand-mark brand-mark--small" aria-hidden="true">
-              <span className="brand-mark__layer brand-mark__layer--top" />
-              <span className="brand-mark__layer brand-mark__layer--base" />
-            </div>
+            {biz.logo ? (
+              <img src={resolveImageUrl(biz.logo) ?? undefined} alt="" className="auth-logo" />
+            ) : (
+              <div className="brand-mark brand-mark--small" aria-hidden="true">
+                <span className="brand-mark__layer brand-mark__layer--top" />
+                <span className="brand-mark__layer brand-mark__layer--base" />
+              </div>
+            )}
             <div>
-              <span className="auth-eyebrow">{activeCopy.eyebrow}</span>
+              <span className="auth-eyebrow">
+                {authMode === 'login' && biz.business_name ? biz.business_name : activeCopy.eyebrow}
+              </span>
               <h1>{activeCopy.title}</h1>
             </div>
           </div>

@@ -1391,6 +1391,12 @@ export async function getBusinessSettings() {
   return data?.data?.[0] || {}
 }
 
+export async function getPublicBusinessSettings() {
+  const { data } = await api.get('/business/public')
+  const d = data?.data
+  return d && typeof d === 'object' ? d : {}
+}
+
 export async function updateBusinessSettings(body: Record<string, unknown>) {
   const { data } = await api.put('/business-settings', { patch: body })
   return data

@@ -49,6 +49,14 @@
   line-height: var(--leading-relaxed);
 }
 
+.branch-select__logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-button);
+  object-fit: cover;
+}
+
 .branch-select__error {
   background: rgba(239, 68, 68, 0.06);
   border: 1px solid rgba(239, 68, 68, 0.15);
@@ -84,6 +92,7 @@
 
 .branch-card {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: var(--space-4);
   width: 100%;
@@ -91,9 +100,10 @@
   border-radius: var(--radius-card);
   border: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   text-align: left;
-  transition: all 120ms ease;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
   color: inherit;
   font-family: inherit;
 }
@@ -131,10 +141,14 @@
 
 .branch-card__info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
-  gap: 2px;
+  font-size: var(--text-body);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
 }
 
 .branch-card__info strong {

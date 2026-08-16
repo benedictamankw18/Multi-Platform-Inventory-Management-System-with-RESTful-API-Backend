@@ -9,6 +9,7 @@ const upload = require('../middleware/upload.middleware');
 const { upsertBusinessSettingValidation, bulkUpsertBusinessSettingValidation } = require('../validations/business.validation');
 
 router.get('/', authenticate, businessController.listSettings);
+router.get('/public', businessController.getPublicSettings);
 router.get('/:key', authenticate, businessController.getSetting);
 router.post('/', authenticate, checkPermission('MANAGE_SETTINGS'), upsertBusinessSettingValidation, validate, businessController.upsertSetting);
 router.put('/', authenticate, checkPermission('MANAGE_SETTINGS'), bulkUpsertBusinessSettingValidation, validate, businessController.upsertSetting);

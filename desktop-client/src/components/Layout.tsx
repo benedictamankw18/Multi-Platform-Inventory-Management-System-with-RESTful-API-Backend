@@ -89,6 +89,9 @@ export default function Layout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [biz, setBiz] = useState<{ business_name?: string; logo?: string | null }>({})
+  const [avatarError, setAvatarError] = useState(false)
+
+  useEffect(() => { setAvatarError(false) }, [user?.userId])
 
   useEffect(() => {
     const loadBiz = () => getBusinessSettings().then(setBiz).catch(() => {})
@@ -178,8 +181,8 @@ export default function Layout() {
             </button>
             <div className="layout__topbar-user" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
               <div className="layout__topbar-avatar">
-                {user?.profilePhoto ? (
-                  <img src={resolveImageUrl(user.profilePhoto) ?? undefined} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                {user?.profilePhoto && !avatarError ? (
+                  <img src={resolveImageUrl(user.profilePhoto) ?? undefined} alt={user.username || 'User'} onError={() => setAvatarError(true)} />
                 ) : (
                   user?.username?.charAt(0)?.toUpperCase() || 'U'
                 )}
