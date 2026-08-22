@@ -209,7 +209,7 @@ export default function TransfersPage() {
     let availableStock = 0
     try {
       if (fromBranch) {
-        const res = await getInventory({ productId: product.product_id, branch_id: fromBranch, limit: 1 })
+        const res = await getInventory({ productId: product.product_id, branchId: fromBranch, limit: 1 })
         const stockItems = res.data ?? []
         availableStock = stockItems.length > 0 ? Number(stockItems[0].quantity_on_hand || 0) : 0
       }

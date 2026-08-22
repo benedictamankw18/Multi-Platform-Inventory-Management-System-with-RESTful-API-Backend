@@ -276,7 +276,7 @@ export default function PurchasesPage() {
       setViewItems(rows)
       const pids = [...new Set(rows.map((r: PurchaseOrderItem) => r.product_id))]
       if (pids.length > 0) {
-        const pRes = await searchProducts({ limit: 1000 })
+        const pRes = await searchProducts({ limit: 1000, includeInactive: true })
         const allP = pRes?.products ?? []
         setProductMap(Object.fromEntries(allP.filter((p: Product) => pids.includes(p.product_id)).map((p: Product) => [p.product_id, p.product_name])))
       }
@@ -929,7 +929,7 @@ export default function PurchasesPage() {
                 <div style={{ background: 'var(--bg)', borderRadius: 8, padding: 'var(--space-4)', border: '1px solid var(--border)', marginBottom: 'var(--space-5)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Items ({viewItems.length})</span>
-                    {po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && hasPermission('MANAGE_PURCHASES') && (
+                    {po.status === 'DRAFT' && hasPermission('MANAGE_PURCHASES') && (
                       <button type="button" className="btn btn--primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={openAddItem}>+ Add Item</button>
                     )}
                   </div>

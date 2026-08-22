@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getMessageQueue } from '../services/api'
+import { getMessageQueue, resendQueueMessage } from '../services/api'
+import { useToast } from '../contexts/ToastContext'
 
 interface QueueMessage {
   id: string
@@ -28,6 +29,8 @@ export default function MessageQueuePage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const limit = 50
+  const { toast } = useToast()
+  const [resendingId, setResendingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -42,6 +45,22 @@ export default function MessageQueuePage() {
     }
     setLoading(false)
   }, [page, statusFilter, typeFilter])
+
+  const handleResend = useCallback(async (m: QueueMessage) => {
+    setResendingId(m.id)
+    try {
+      await resendQueueMessage(m.id)
+      toast('Message requeued for sending', 'success')
+      await load()
+    } catch (err: unknown) {
+      const data = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string; errors?: Array<{ msg: string }> } } }).response?.data
+        : undefined
+      const msg = data?.errors?.length ? data.errors.map(e => e.msg).join('; ') : data?.message ?? 'Failed to resend message'
+      toast(msg, 'error')
+    }
+    setResendingId(null)
+  }, [load, toast])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { setPage(1) }, [statusFilter, typeFilter])
@@ -80,13 +99,14 @@ export default function MessageQueuePage() {
                 <th>Last Error</th>
                 <th>Created</th>
                 <th>Updated</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr key="loading"><td colSpan={6}><div className="empty-state"><div className="skeleton skeleton--row" /><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={7}><div className="empty-state"><div className="skeleton skeleton--row" /><div className="skeleton skeleton--row" /></div></td></tr>
               ) : messages.length === 0 ? (
-                <tr key="empty"><td colSpan={6}><div className="empty-state"><p>No queue messages found.</p></div></td></tr>
+                <tr key="empty"><td colSpan={7}><div className="empty-state"><p>No queue messages found.</p></div></td></tr>
               ) : messages.map((m) => (
                 <tr key={m.id}>
                   <td>{m.type}</td>
@@ -95,6 +115,19 @@ export default function MessageQueuePage() {
                   <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', color: m.last_error ? 'var(--danger)' : undefined }}>{m.last_error || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleString()}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{new Date(m.updated_at).toLocaleString()}</td>
+                  <td>
+                    {(m.status === 'PROCESSING' || m.status === 'FAILED') && (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        style={{ padding: '2px 10px', fontSize: 12 }}
+                        disabled={resendingId === m.id}
+                        onClick={() => handleResend(m)}
+                      >
+                        {resendingId === m.id ? 'Resending…' : 'Resend'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

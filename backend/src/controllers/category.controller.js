@@ -16,8 +16,12 @@ exports.createCategory = async (req, res) => {
 
 exports.listCategories = async (req, res) => {
   try {
-    const { q, isActive, page, limit } = req.body;
-    const result = await categoryService.listCategories({ q, isActive, page, limit });
+    const { q, isActive, includeInactive, page, limit } = req.body;
+    // Deactivated categories are hidden by default; callers must opt in explicitly.
+    const effectiveIsActive = includeInactive === true
+      ? undefined
+      : (isActive !== undefined ? isActive : true);
+    const result = await categoryService.listCategories({ q, isActive: effectiveIsActive, page, limit });
     return res.status(200).json(result);
   } catch (err) {
     return handleError(res, err);

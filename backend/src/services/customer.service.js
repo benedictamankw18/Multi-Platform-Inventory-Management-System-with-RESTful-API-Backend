@@ -4,7 +4,7 @@ const auditRepo = require('../repositories/audit.repository');
 
 async function createCustomer({ customer_name, contact_email, phone, address, contact_person, createdBy }) {
   const id = uuidv4();
-  const created = await customerRepo.createCustomer({ customer_id: id, business_name: customer_name, email: contact_email, phone, address, contact_name: contact_person, created_by: createdBy });
+  const created = await customerRepo.createCustomer({ customer_id: id, business_name: customer_name || null, email: contact_email, phone, address, contact_name: contact_person || null, created_by: createdBy });
   try {
     await auditRepo.writeLog(createdBy, 'create_customer', 'CUSTOMER', id, { customer_name });
   } catch (e) {

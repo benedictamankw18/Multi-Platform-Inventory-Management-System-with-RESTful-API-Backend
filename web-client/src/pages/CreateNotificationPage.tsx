@@ -25,6 +25,7 @@ export default function CreateNotificationPage() {
   const [type, setType] = useState('INFO')
   const [priority, setPriority] = useState('NORMAL')
   const [branchId, setBranchId] = useState('')
+  const [target, setTarget] = useState('USERS')
   const [expiresAt, setExpiresAt] = useState('')
   const [channels, setChannels] = useState<string[]>(['in_app'])
   const [recipients, setRecipients] = useState<UserResult[]>([])
@@ -74,7 +75,8 @@ export default function CreateNotificationPage() {
   async function handleSubmit() {
     if (!title.trim()) { toast('Title is required.', 'error'); return }
     if (!message.trim()) { toast('Message is required.', 'error'); return }
-    if (recipients.length === 0) { toast('At least one recipient is required.', 'error'); return }
+    if (!branchId) { toast('Please select a branch.', 'error'); return }
+    if (target === 'USERS' && recipients.length === 0) { toast('At least one recipient is required.', 'error'); return }
 
     setSaving(true)
     try {
@@ -84,7 +86,8 @@ export default function CreateNotificationPage() {
         branch_id: branchId,
         type,
         priority,
-        recipients: recipients.map((r) => r.user_id),
+        target,
+        ...(target === 'USERS' ? { recipients: recipients.map((r) => r.user_id) } : {}),
         channels,
         expires_at: expiresAt || undefined,
       })
@@ -167,6 +170,19 @@ export default function CreateNotificationPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
+            {label('Send To')}
+            <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 4, flexWrap: 'wrap' }}>
+              {[['USERS', 'Specific users'], ['ALL', 'All users'], ['BRANCH', 'Everyone in selected branch']].map(([val, text]) => (
+                <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                  <input type="radio" name="target" checked={target === val} onChange={() => setTarget(val)} />
+                  {text}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {target === 'USERS' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
             {label('Recipients')}
             <div style={{ position: 'relative' }}>
               <input type="text" className="input" placeholder="Search by name, email, or phone..." value={userSearch} onChange={(e) => handleUserSearch(e.target.value)}
@@ -199,6 +215,17 @@ export default function CreateNotificationPage() {
               </div>
             )}
           </div>
+          )}
+          {target === 'BRANCH' && (
+            <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+              All active users assigned to <strong>{branches.find((b) => b.branch_id === branchId)?.branch_name || 'the selected branch'}</strong> will receive this notification.
+            </p>
+          )}
+          {target === 'ALL' && (
+            <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+              Every active user will receive this notification.
+            </p>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-5)' }}>

@@ -5,11 +5,19 @@ const customerIdValidation = [
 ];
 
 const createCustomerValidation = [
-  body('customer_name').trim().notEmpty().withMessage('customer_name is required.').isLength({ max: 150 }),
+  body('customer_name').optional().trim().isLength({ max: 150 }),
   body('contact_email').optional().isEmail().withMessage('Invalid email.'),
   body('phone').optional().isLength({ max: 50 }),
   body('address').optional().isLength({ max: 500 }),
-  body('contact_person').optional().isLength({ max: 150 }),
+  body('contact_person').optional().trim().isLength({ max: 150 }),
+  body().custom((_, { req }) => {
+    const hasIdentifier = [req.body.customer_name, req.body.contact_person, req.body.phone]
+      .some((v) => typeof v === 'string' && v.trim().length > 0);
+    if (!hasIdentifier) {
+      throw new Error('At least one of business name, contact name, or phone is required.');
+    }
+    return true;
+  }),
 ];
 
 const updateCustomerValidation = [

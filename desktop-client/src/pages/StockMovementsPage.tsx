@@ -229,7 +229,7 @@ export default function StockMovementsPage() {
     if (!query.trim()) return
     setModalSearching(true)
     try {
-      const res = await searchProducts({ q: query, limit: 20, branch_id: selectedBranch?.branch_id })
+      const res = await searchProducts({ q: query, limit: 20, branchId: selectedBranch?.branch_id })
       const list = res.products ?? []
       setModalProducts(list)
       if (list.length === 1) {
@@ -255,7 +255,7 @@ export default function StockMovementsPage() {
   async function fetchModalStock(productId: string) {
     if (!selectedBranch) return
     try {
-      const res = await getInventory({ product_id: productId, branch_id: selectedBranch.branch_id, limit: 1 })
+      const res = await getInventory({ productId, branchId: selectedBranch.branch_id, limit: 1 })
       const items: InventoryItem[] = res.data ?? []
       setModalStock(items.length > 0 ? Number(items[0].quantity_on_hand) : 0)
     } catch {

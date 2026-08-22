@@ -89,11 +89,16 @@ function buildLayout(contentHtml, biz) {
 async function sendMail({ to, subject, text, html } = {}) {
   try {
     const nodemailer = require('nodemailer');
+    // Implicit TLS (secure: true) on port 465; STARTTLS otherwise. Email_SECURE overrides.
+    const port = Number(mailConfig.port) || 465;
+    const secure = process.env.Email_SECURE != null
+      ? String(process.env.Email_SECURE).toLowerCase() === 'true'
+      : port === 465;
     const transporter = nodemailer.createTransport({
       host: mailConfig.host,
-      port: mailConfig.port || 587,
+      port,
       auth: mailConfig.user ? { user: mailConfig.user, pass: mailConfig.password } : undefined,
-      secure: false,
+      secure,
     });
 
     let finalHtml = html;

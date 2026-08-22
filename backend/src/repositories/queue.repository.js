@@ -39,7 +39,8 @@ async function incrementAttempts(id) {
 }
 
 async function updateNextTry(id, nextTry) {
-  const q = `UPDATE ${TABLE} SET next_try = $2, updated_at = now() WHERE id = $1 RETURNING *`;
+  // Scheduling a retry re-queues the job; claimPending only picks PENDING rows.
+  const q = `UPDATE ${TABLE} SET status = 'PENDING', next_try = $2, updated_at = now() WHERE id = $1 RETURNING *`;
   const { rows } = await client.query(q, [id, nextTry]);
   return rows[0];
 }
@@ -51,6 +52,18 @@ async function list({ status = null, type = null, limit = 50, offset = 0 } = {})
   return rows;
 }
 
+async function getById(id) {
+  const q = `SELECT * FROM ${TABLE} WHERE id = $1`;
+  const { rows } = await client.query(q, [id]);
+  return rows[0] || null;
+}
+
+async function requeue(id) {
+  const q = `UPDATE ${TABLE} SET status = 'PENDING', attempts = 0, next_try = NULL, last_error = NULL, updated_at = now() WHERE id = $1 RETURNING *`;
+  const { rows } = await client.query(q, [id]);
+  return rows[0] || null;
+}
+
 module.exports = {
   enqueueMessage,
   getPending,
@@ -59,6 +72,8 @@ module.exports = {
   markFailed,
   incrementAttempts,
   updateNextTry,
+  getById,
+  requeue,
   list,
 };
 

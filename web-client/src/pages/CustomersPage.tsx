@@ -180,8 +180,8 @@ export default function CustomersPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.business_name.trim()) {
-      setFormError('Business name is required.')
+    if (!form.business_name.trim() && !form.contact_name.trim() && !form.phone.trim()) {
+      setFormError('Enter at least one of: business name, contact name, or phone.')
       return
     }
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
@@ -197,7 +197,7 @@ export default function CustomersPage() {
       if (editing) {
         const body: Record<string, unknown> = {
           customer_type: form.customer_type,
-          business_name: form.business_name.trim(),
+          business_name: form.business_name.trim() || null,
           contact_name: form.contact_name.trim() || null,
           phone: form.phone.trim() || null,
           email: form.email.trim() || null,
@@ -290,18 +290,19 @@ export default function CustomersPage() {
     for (let i = 0; i < importRows.length; i++) {
       const row = importRows[i]
       const name = String(row['Business Name'] ?? '').trim()
-      if (!name) {
-        failures.push({ row: i + 2, name: '(empty)', reason: 'Business name is required' })
+      const contact = String(row['Contact Name'] ?? '').trim()
+      const ph = String(row['Phone'] ?? '').trim()
+      if (!name && !contact && !ph) {
+        failures.push({ row: i + 2, name: '(empty)', reason: 'Enter a business name, contact name, or phone' })
         done++
         setImportProgress({ done, total: importRows.length })
         continue
       }
 
       try {
-        const body: Record<string, unknown> = { customer_name: name }
-        const contact = String(row['Contact Name'] ?? '').trim()
+        const body: Record<string, unknown> = {}
+        if (name) body.customer_name = name
         if (contact) body.contact_person = contact
-        const ph = String(row['Phone'] ?? '').trim()
         if (ph) body.phone = ph
         const em = String(row['Email'] ?? '').trim()
         if (em) body.contact_email = em
@@ -582,7 +583,7 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div className="field">
-                <span>Business Name *</span>
+                <span>Business Name</span>
                 <input value={form.business_name} onChange={(e) => set('business_name', e.target.value)} placeholder="e.g. Acme Corp" autoFocus />
               </div>
               <div className="field">

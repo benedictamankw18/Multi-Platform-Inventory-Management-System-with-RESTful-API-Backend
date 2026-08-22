@@ -21,9 +21,14 @@ async function createInventory(req, res, next) {
 
 async function listInventories(req, res, next) {
   try {
-    const { branchId, ...rest } = req.body || req.query;
-    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
-    const { items, total } = await inventoryService.listInventories({ ...rest, branchId: resolvedBranchId });
+    const src = req.body || req.query;
+    // Accept both snake_case and camelCase filter keys from clients.
+    const explicitBranchId = src.branchId || src.branch_id;
+    const resolvedBranchId = explicitBranchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    const { q, isActive, page, limit } = src;
+    const productId = src.productId || src.product_id;
+    const supplierId = src.supplierId || src.supplier_id;
+    const { items, total } = await inventoryService.listInventories({ q, productId, supplierId, isActive, branchId: resolvedBranchId, page, limit });
     res.json({ data: items, total });
   } catch (err) {
     next(err);

@@ -98,9 +98,9 @@ export default function ProductsPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const body: Record<string, unknown> = { page, limit }
+      const body: Record<string, unknown> = { page, limit, includeInactive: true }
       if (search) body.q = search
-      if (selectedBranch) body.branch_id = selectedBranch.branch_id
+      if (selectedBranch) body.branchId = selectedBranch.branch_id
       const res = await searchProducts(body)
       setProducts(res.products ?? [])
       setTotal(res.total ?? 0)
@@ -503,9 +503,9 @@ export default function ProductsPage() {
 
   async function getExportData(): Promise<Record<string, unknown>[]> {
     try {
-      const body: Record<string, unknown> = { page: 1, limit: 10000 }
+      const body: Record<string, unknown> = { page: 1, limit: 10000, includeInactive: true }
       if (search) body.q = search
-      if (selectedBranch) body.branch_id = selectedBranch.branch_id
+      if (selectedBranch) body.branchId = selectedBranch.branch_id
       const res = await searchProducts(body)
       const allProducts = res.products ?? []
       return allProducts.map((p) => ({

@@ -2,10 +2,18 @@ const { v4: uuidv4 } = require('uuid');
 const purchaseItemRepo = require('../repositories/purchaseItem.repository');
 const purchaseRepo = require('../repositories/purchase.repository');
 const auditRepo = require('../repositories/audit.repository');
+const AppError = require('../utils/AppError');
+
+function assertDraftStatus(po) {
+  if (!po || po.status !== 'DRAFT') {
+    throw new AppError('Purchase order items can only be modified while the order is in DRAFT status.', { status: 409 });
+  }
+}
 
 async function addItemToPurchase({ po_id, product_id, uom_id, quantity, unit_price, discount = 0, expiry_date = null, batch_number = null, serial_number = null, createdBy = null } = {}) {
   const po = await purchaseRepo.getPurchaseOrderById(po_id);
   if (!po) throw new Error('Purchase order not found');
+  assertDraftStatus(po);
 
   const po_item_id = uuidv4();
   const quantity_ordered = Number(quantity || 0);
@@ -26,6 +34,7 @@ async function addItemToPurchase({ po_id, product_id, uom_id, quantity, unit_pri
     batch_number,
     serial_number,
   });
+  await purchaseRepo.recalculateTotal(po_id);
   try {
     await auditRepo.writeLog(createdBy, 'create_purchase_item', 'PURCHASE_ITEM', po_item_id, { po_id, product_id, uom_id, quantity_ordered, unit_cost, discount: discountAmount });
   } catch (e) {
@@ -39,10 +48,15 @@ async function listItems(po_id, { limit = 100, offset = 0 } = {}) {
 }
 
 async function updateItem(item_id, patch, performedBy) {
+  const item = await purchaseItemRepo.getPurchaseItemById(item_id);
+  if (!item) throw new AppError('Purchase order item not found.', { status: 404 });
+  const po = await purchaseRepo.getPurchaseOrderById(item.po_id);
+  assertDraftStatus(po);
   const mapped = { ...patch };
   if (mapped.quantity !== undefined) { mapped.quantity_ordered = mapped.quantity; delete mapped.quantity }
   if (mapped.unit_price !== undefined) { mapped.unit_cost = mapped.unit_price; delete mapped.unit_price }
   const updated = await purchaseItemRepo.updatePurchaseItem(item_id, mapped);
+  await purchaseRepo.recalculateTotal(item.po_id);
   try {
     await auditRepo.writeLog(performedBy, 'update_purchase_item', 'PURCHASE_ITEM', item_id, patch);
   } catch (e) {
@@ -52,7 +66,12 @@ async function updateItem(item_id, patch, performedBy) {
 }
 
 async function removeItem(item_id, performedBy) {
+  const item = await purchaseItemRepo.getPurchaseItemById(item_id);
+  if (!item) throw new AppError('Purchase order item not found.', { status: 404 });
+  const po = await purchaseRepo.getPurchaseOrderById(item.po_id);
+  assertDraftStatus(po);
   const deleted = await purchaseItemRepo.deletePurchaseItem(item_id);
+  await purchaseRepo.recalculateTotal(item.po_id);
   try {
     await auditRepo.writeLog(performedBy, 'delete_purchase_item', 'PURCHASE_ITEM', item_id);
   } catch (e) {

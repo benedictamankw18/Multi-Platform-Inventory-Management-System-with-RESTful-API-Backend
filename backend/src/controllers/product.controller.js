@@ -22,9 +22,15 @@ exports.createProduct = async (req, res) => {
 
 exports.listProducts = async (req, res) => {
   try {
-    const { q, categoryId, supplierId, isActive, page, limit, branchId } = req.body;
-    const resolvedBranchId = branchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
-    const result = await productService.listProducts({ q, categoryId, supplierId, isActive, page, limit, branch_id: resolvedBranchId });
+    const { q, categoryId, supplierId, isActive, includeInactive, page, limit } = req.body;
+    // Accept both camelCase and snake_case branch keys; explicit value wins over the account fallback.
+    const explicitBranchId = req.body.branchId || req.body.branch_id;
+    const resolvedBranchId = explicitBranchId || (req.user && (req.user.branch_id || req.user.branchId)) || undefined;
+    // Deactivated products are hidden by default; callers must opt in explicitly.
+    const effectiveIsActive = includeInactive === true
+      ? isActive
+      : (isActive !== undefined ? isActive : true);
+    const result = await productService.listProducts({ q, categoryId, supplierId, isActive: effectiveIsActive, page, limit, branch_id: resolvedBranchId });
     return res.status(200).json(result);
   } catch (err) {
     return handleError(res, err);

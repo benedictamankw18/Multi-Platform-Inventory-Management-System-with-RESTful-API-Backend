@@ -105,6 +105,7 @@ const listProductsQueryValidation = [
   body('q').optional().trim().isLength({ max: 100 }),
   body('categoryId').optional().isUUID().withMessage('Invalid categoryId.'),
   body('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false.'),
+  body('includeInactive').optional().isBoolean().withMessage('includeInactive must be a boolean.'),
   body('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
   body('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
 ];

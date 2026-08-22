@@ -97,6 +97,17 @@ async function reactivatePurchaseOrder(po_id) {
   return rows[0];
 }
 
+async function recalculateTotal(po_id, txClient = null) {
+  const db = txClient || client;
+  const q = `
+    UPDATE ${TABLE} po
+    SET total_amount = COALESCE((SELECT SUM(line_total) FROM purchase_order_items WHERE po_id = $1), 0)
+    WHERE po.po_id = $1
+    RETURNING total_amount`;
+  const { rows } = await db.query(q, [po_id]);
+  return rows[0] ? Number(rows[0].total_amount) : null;
+}
+
 module.exports = {
   createPurchaseOrder,
   getPurchaseOrderById,
@@ -105,4 +116,5 @@ module.exports = {
   deletePurchaseOrder,
   deactivatePurchaseOrder,
   reactivatePurchaseOrder,
+  recalculateTotal,
 };

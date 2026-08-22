@@ -567,7 +567,7 @@ export default function BranchesPage() {
 
             {formError && <div className="auth-feedback auth-feedback--error" style={{ marginBottom: 12 }}>{formError}</div>}
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
               <div className="field">
                 <span>Branch Name *</span>
                 <input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="e.g. Main Store" autoFocus />

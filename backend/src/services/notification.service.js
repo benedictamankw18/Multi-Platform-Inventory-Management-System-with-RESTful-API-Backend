@@ -3,24 +3,38 @@ const notificationRepo = require('../repositories/notification.repository');
 const auditRepo = require('../repositories/audit.repository');
 const userRepo = require('../repositories/user.repository');
 const queueService = require('./queue.service');
+const AppError = require('../utils/AppError');
 
-async function createNotification({ user_id, title, body, message, branch_id, priority, type, data, createdBy, recipients, expires_at, channels = ['in_app'] }) {
+async function createNotification({ user_id, title, body, message, branch_id, priority, type, data, createdBy, recipients, target = 'USERS', expires_at, channels = ['in_app'] }) {
   const id = uuidv4();
   const userId = user_id || (createdBy && createdBy) || null;
+
+  // Resolve the recipient list based on the targeting mode.
+  let recipientIds = Array.isArray(recipients) ? recipients : [];
+  if (target === 'ALL') {
+    recipientIds = await notificationRepo.findActiveUserIds();
+  } else if (target === 'BRANCH') {
+    if (!branch_id) throw new AppError('branch_id is required to notify everyone in a branch.', { status: 400 });
+    recipientIds = await notificationRepo.findActiveUserIdsAtBranch(branch_id);
+  }
+  if (!recipientIds.length) {
+    throw new AppError('No eligible recipients found for this notification.', { status: 400 });
+  }
+
   const payloadData = data || null;
   const created = await notificationRepo.createNotification(
             { id, user_id: userId, branch_id: branch_id, title: title || null, message: message || null, expires_at: expires_at || null,
-              notification_type: type || null, priority: priority || null, data: payloadData ? JSON.stringify(payloadData) : null, recipients: recipients,
+              notification_type: type || null, priority: priority || null, data: payloadData ? JSON.stringify(payloadData) : null, recipients: recipientIds,
               is_read: false, created_by: createdBy });
   try {
-    await auditRepo.writeLog(createdBy, 'create_notification', 'NOTIFICATION', id, { user_id, title });
+    await auditRepo.writeLog(createdBy, 'create_notification', 'NOTIFICATION', id, { user_id, title, target });
   } catch (e) {
     console.error('audit error', e.message);
   }
 
   if (channels.includes('email') || channels.includes('sms')) {
     const users = await Promise.all(
-      (recipients || []).map((id) => userRepo.findUserById(id).catch(() => null))
+      recipientIds.map((id) => userRepo.findUserById(id).catch(() => null))
     );
     const valid = users.filter(Boolean);
     const subject = title || 'Notification';

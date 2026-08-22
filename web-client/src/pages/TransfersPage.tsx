@@ -209,7 +209,7 @@ export default function TransfersPage() {
     let availableStock = 0
     try {
       if (fromBranch) {
-        const res = await getInventory({ productId: product.product_id, branch_id: fromBranch, limit: 1 })
+        const res = await getInventory({ productId: product.product_id, branchId: fromBranch, limit: 1 })
         const stockItems = res.data ?? []
         availableStock = stockItems.length > 0 ? Number(stockItems[0].quantity_on_hand || 0) : 0
       }
@@ -492,7 +492,7 @@ export default function TransfersPage() {
                   <span style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
                     {transferItems.length} product(s) selected
                   </span>
-                  <div className="table-wrap">
+                  <div className="table-wrap-scroll" style={{ maxHeight: 200, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
                     <table className="data-table">
                       <thead>
                         <tr>

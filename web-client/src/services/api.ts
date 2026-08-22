@@ -1500,6 +1500,11 @@ export async function getMessageQueue(params?: Record<string, unknown>) {
   return data
 }
 
+export async function resendQueueMessage(id: string) {
+  const { data } = await api.post(`/admin/queue/${id}/resend`)
+  return data
+}
+
 // ---- SMS Balance ------------------------------------------------------------
 
 export type SmsBalance = {

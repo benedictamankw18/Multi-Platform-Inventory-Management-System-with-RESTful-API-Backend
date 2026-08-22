@@ -31,6 +31,7 @@ const updateCategoryValidation = [
 const listCategoriesValidation = [
   body('q').optional().trim().isLength({ max: 100 }),
   body('isActive').optional().isIn(['true','false']).withMessage('isActive must be true or false.'),
+  body('includeInactive').optional().isBoolean().withMessage('includeInactive must be a boolean.'),
   body('page').optional().isInt({ min: 1 }),
   body('limit').optional().isInt({ min: 1, max: 10000 }),
 ];

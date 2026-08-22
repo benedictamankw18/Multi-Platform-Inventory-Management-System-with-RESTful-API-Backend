@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Select a Branch - Inventory Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c6c6cd",
+                      "secondary-container": "#645efb",
+                      "tertiary": "#000000",
+                      "on-primary": "#ffffff",
+                      "surface": "#f8f9ff",
+                      "surface-container-high": "#dde9ff",
+                      "on-background": "#0d1c2f",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed-variant": "#3323cc",
+                      "surface-bright": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-secondary-container": "#fffbff",
+                      "surface-variant": "#d5e3fd",
+                      "secondary-fixed": "#e2dfff",
+                      "primary": "#000000",
+                      "secondary": "#4b41e1",
+                      "on-secondary-fixed": "#0f0069",
+                      "on-surface": "#0d1c2f",
+                      "on-primary-fixed": "#131b2e",
+                      "on-primary-container": "#7c839b",
+                      "inverse-surface": "#233144",
+                      "outline": "#76777d",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-container": "#009668",
+                      "tertiary-container": "#002113",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-dim": "#ccdbf4",
+                      "background": "#f8f9ff",
+                      "surface-container-low": "#eff4ff",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "on-error": "#ffffff",
+                      "primary-fixed": "#dae2fd",
+                      "tertiary-fixed": "#6ffbbe",
+                      "error": "#ba1a1a",
+                      "surface-container-highest": "#d5e3fd",
+                      "inverse-on-surface": "#ebf1ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#565e74",
+                      "primary-container": "#131b2e",
+                      "surface-container": "#e6eeff",
+                      "on-surface-variant": "#45464d",
+                      "secondary-fixed-dim": "#c3c0ff",
+                      "inverse-primary": "#bec6e0",
+                      "primary-fixed-dim": "#bec6e0",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-secondary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "gutter": "16px",
+                      "stack-sm": "8px",
+                      "unit": "4px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "title-sm": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "title-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background min-h-screen flex flex-col font-body-md text-on-background">
+<!-- Navbar (Suppressed per "Transactional/Onboarding" rule) -->
+<!-- Content Canvas -->
+<main class="flex-grow flex items-center justify-center p-container-padding">
+<div class="w-full max-w-4xl space-y-stack-lg">
+<!-- Header -->
+<div class="text-center space-y-stack-sm">
+<span class="material-symbols-outlined text-secondary text-5xl mb-4" style="font-variation-settings: 'FILL' 1;">warehouse</span>
+<h1 class="font-display-lg text-display-lg text-on-background">Select a Branch to Continue</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Choose your operational context for this session. This will configure your inventory views and permissions.</p>
+</div>
+<!-- Branch Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Active Branch Card 1 -->
+<button class="bg-surface border border-outline-variant rounded-lg p-6 text-left hover:border-secondary hover:bg-surface-container-high transition-colors group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface group-hover:text-secondary transition-colors">Main Branch</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#DCFCE7] text-[#166534] font-label-caps mt-1">Active</span>
+</div>
+</div>
+</div>
+<div class="space-y-2 mt-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_on</span>
+                            123 Commerce Blvd, Suite 100
+                        </div>
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_city</span>
+                            Metropolis, NY
+                        </div>
+</div>
+<div class="absolute inset-0 border-2 border-transparent group-hover:border-secondary rounded-lg pointer-events-none transition-colors"></div>
+</button>
+<!-- Active Branch Card 2 -->
+<button class="bg-surface border border-outline-variant rounded-lg p-6 text-left hover:border-secondary hover:bg-surface-container-high transition-colors group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">factory</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface group-hover:text-secondary transition-colors">North Warehouse</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#DCFCE7] text-[#166534] font-label-caps mt-1">Active</span>
+</div>
+</div>
+</div>
+<div class="space-y-2 mt-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_on</span>
+                            8800 Industrial Pkwy
+                        </div>
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_city</span>
+                            Northville, NY
+                        </div>
+</div>
+<div class="absolute inset-0 border-2 border-transparent group-hover:border-secondary rounded-lg pointer-events-none transition-colors"></div>
+</button>
+<!-- Active Branch Card 3 -->
+<button class="bg-surface border border-outline-variant rounded-lg p-6 text-left hover:border-secondary hover:bg-surface-container-high transition-colors group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-background">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">local_shipping</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface group-hover:text-secondary transition-colors">East Distribution Hub</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#DCFCE7] text-[#166534] font-label-caps mt-1">Active</span>
+</div>
+</div>
+</div>
+<div class="space-y-2 mt-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_on</span>
+                            450 Logistics Way
+                        </div>
+<div class="flex items-center text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_city</span>
+                            Eastburg, NY
+                        </div>
+</div>
+<div class="absolute inset-0 border-2 border-transparent group-hover:border-secondary rounded-lg pointer-events-none transition-colors"></div>
+</button>
+<!-- Inactive Branch Card -->
+<div class="bg-surface-container-low border border-outline-variant/50 rounded-lg p-6 text-left opacity-60 cursor-not-allowed">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-outline-variant/30 flex items-center justify-center text-outline">
+<span class="material-symbols-outlined">domain_disabled</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface-variant">South Annex</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FEE2E2] text-[#991B1B] font-label-caps mt-1">Maintenance</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline" title="Branch Currently Unavailable">lock</span>
+</div>
+<div class="space-y-2 mt-4 border-t border-outline-variant/30 pt-4">
+<div class="flex items-center text-on-surface-variant/80 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_on</span>
+                            199 South Ave
+                        </div>
+<div class="flex items-center text-on-surface-variant/80 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] mr-2">location_city</span>
+                            Southville, NY
+                        </div>
+</div>
+</div>
+</div>
+<div class="mt-8 text-center">
+<button class="bg-transparent border border-outline-variant text-on-background font-body-sm text-body-sm py-2 px-6 rounded hover:bg-surface-container-high transition-colors">
+                    Logout
+                </button>
+</div>
+</div>
+</main>
+</body></html>

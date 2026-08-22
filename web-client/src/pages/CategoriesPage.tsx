@@ -75,7 +75,7 @@ export default function CategoriesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const body: Record<string, unknown> = { page, limit }
+      const body: Record<string, unknown> = { page, limit, includeInactive: true }
       if (search) body.q = search
       const res = await getCategories(body)
       const data = Array.isArray(res) ? res : res?.categories ?? res?.data ?? []
@@ -90,7 +90,7 @@ export default function CategoriesPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const res = await getCategories({ limit: 100 })
+      const res = await getCategories({ limit: 100, includeInactive: true })
       setAllCategories(Array.isArray(res) ? res : res?.categories ?? [])
     } catch {
       setAllCategories([])

@@ -278,6 +278,30 @@ async function findUsersWithPermission(permissionNames) {
   return rows.map(r => r.user_id);
 }
 
+async function findActiveUserIds() {
+  const q = `
+    SELECT u.user_id
+    FROM users u
+    WHERE u.deleted_at IS NULL
+      AND u.is_active = TRUE
+  `;
+  const { rows } = await client.query(q);
+  return rows.map(r => r.user_id);
+}
+
+async function findActiveUserIdsAtBranch(branchId) {
+  const q = `
+    SELECT DISTINCT u.user_id
+    FROM users u
+    JOIN user_branches ub ON ub.user_id = u.user_id
+    WHERE ub.branch_id = $1
+      AND u.deleted_at IS NULL
+      AND u.is_active = TRUE
+  `;
+  const { rows } = await client.query(q, [branchId]);
+  return rows.map(r => r.user_id);
+}
+
 async function findRecentSyncFailure(entityType, hours = 1) {
   const q = `
     SELECT notification_id
@@ -301,6 +325,8 @@ module.exports = {
   deleteNotification,
   findRecentLowStock,
   findUsersWithPermissionAtBranch,
+  findActiveUserIds,
+  findActiveUserIdsAtBranch,
   findUsersWithPermission,
   findRecentSyncFailure,
   listLowStockCandidates,
