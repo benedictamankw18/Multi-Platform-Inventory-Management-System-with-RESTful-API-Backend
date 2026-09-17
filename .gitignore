@@ -141,3 +141,26 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+
+node_modules
+dist
+build
+.env
+coverage
+*.log
+
+
+desktop-client/dist
+web-client/dist
+
+backend/uploads
+
+# Runtime GeoIP database cache (seeded from geolite2-redist; ~66MB)
+backend/data
+
+.vscode
+.idea
+
+*.sqlite
+*.db

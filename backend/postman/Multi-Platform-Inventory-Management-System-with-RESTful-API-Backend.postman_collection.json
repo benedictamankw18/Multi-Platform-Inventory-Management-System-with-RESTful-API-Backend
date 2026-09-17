@@ -1,0 +1,5736 @@
+{
+  "info": {
+    "_postman_id": "9a20fdf7-e187-455e-8447-926d566ce849",
+    "name": "Multi-Platform-Inventory-Management-System-with-RESTful-API-Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34722135"
+  },
+  "item": [
+    {
+      "name": "AdminQueue",
+      "item": [
+        {
+          "name": "list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{adminQueueRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{adminQueueRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AdminSms",
+      "item": [
+        {
+          "name": "sendTest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"to\":\"+233543779868\",\r\n    \"message\":\"First Test 0001\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{adminSmsRoutes}}/test",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{adminSmsRoutes}}"
+              ],
+              "path": [
+                "test"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "getLogsByUser",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/users/:userID",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                "users",
+                ":userID"
+              ],
+              "variable": [
+                {
+                  "key": "userID",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getLogsByEntity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/entity/USER/:UserID",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                "entity",
+                "USER",
+                ":UserID"
+              ],
+              "variable": [
+                {
+                  "key": "UserID",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getLogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                ""
+              ],
+              "query": [
+                {
+                  "key": "",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "count",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"action\":\"REMOVE_PERMISSION_FROM_ROLE\",\r\n    \"entityType\":\"ROLE\"\r\n    // \"entityId\":\"\",\r\n    // \"startDate\":\"\",\r\n    // \"endDate\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/count?userId=159b1b70-4d88-4d7f-836f-4ad1d963ad4e",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                "count"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                },
+                {
+                  "key": "action",
+                  "value": "REMOVE_PERMISSION_FROM_ROLE",
+                  "disabled": true
+                },
+                {
+                  "key": "entityType",
+                  "value": "ROLE",
+                  "disabled": true
+                },
+                {
+                  "key": "entityId",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "exportAudits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/export",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "fields",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "auditId",
+                  "value": "a2ce427d-0fc3-45a3-896c-65cee41733ec",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getLogById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{auditRoutes}}/:auditId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{auditRoutes}}"
+              ],
+              "path": [
+                ":auditId"
+              ],
+              "variable": [
+                {
+                  "key": "auditId",
+                  "value": "a2ce427d-0fc3-45a3-896c-65cee41733ec"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\":\"john.smith\",\r\n    \"password\":\"Bhim@1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/login",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "refresh",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"refreshToken\":\"{{refresh}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/refresh",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/logout",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout-all",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/logout-all",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "logout-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgot-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"john.smith\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/forgot-password",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reset-password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"token\":\"9d1819af9afe6277750d584d34a16a2d8185aac93102bdb3da3a72a150a21df3a972d6fcf8772006970a26b3af7ba249\",\r\n    \"password\":\"Bhim@1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{authRoutes}}/reset-password",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{authRoutes}}"
+              ],
+              "path": [
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Branch",
+      "item": [
+        {
+          "name": "listBranches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createBranch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_name\":\"Tema com 12 Branch\",\r\n    \"address\":\"\",\r\n    \"is_active\": true,\r\n    \"phone\":\"\",\r\n    \"email\":\"email@gmaim.com\"\r\n    // \"manager_id\":\"\",\r\n    // \"city\":\"\",\r\n    // \"country\":\"\",\r\n    // \"postal_code\":\"\",\r\n    // \"latitude\":\"\",\r\n    // \"longitude\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "searchBranches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "activateBranch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id/activate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "activate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateBranch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getBranchById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateBranch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_name\":\"Tema Branch\",\r\n    \"address\":\"\",\r\n    \"is_active\": true,\r\n    \"phone\":\"\",\r\n    \"email\":\"update.email@gmaim.cim\"\r\n    // \"manager_id\":\"\",\r\n    // \"city\":\"\",\r\n    // \"country\":\"\",\r\n    // \"postal_code\":\"\",\r\n    // \"latitude\":\"\",\r\n    // \"longitude\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteBranch",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{branchRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{branchRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ad97413d-500b-4806-b00d-fe7c46a15bc9"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business",
+      "item": [
+        {
+          "name": "listSettings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSetting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/business_name",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
+              ],
+              "path": [
+                "business_name"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "upsertSetting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"key\":\"business_name\",\r\n    \"value\":\"N3thunt3r Shop\"\r\n}\r\n\r\n//Keys\r\n// 'setting_id', 'business_name', 'business_type', 'currency',\r\n//   'created_at', 'updated_at', 'business_email', 'phone', 'address',\r\n//   'logo', 'website', 'tax_number', 'registration_number', 'receipt_footer',\r\n//   'timezone', 'language', 'date_format', 'allow_negative_stock', 'enable_offline_mode'",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update-upsertSetting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"key\":\"business_name\",\r\n    \"value\":\"N3thunt3r ShoP\"\r\n}\r\n\r\n//Keys\r\n// 'setting_id', 'business_name', 'business_type', 'currency',\r\n//   'created_at', 'updated_at', 'business_email', 'phone', 'address',\r\n//   'logo', 'website', 'tax_number', 'registration_number', 'receipt_footer',\r\n//   'timezone', 'language', 'date_format', 'allow_negative_stock', 'enable_offline_mode'",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteSetting",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{businessRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{businessRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "createCategory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"name\":\"Food and Drink\",\r\n    \"category_name\":\"Food and Drink 1\"\r\n    // \"parent_id\":\"\",\r\n    // \"description\":\"\",\r\n    // \"is_active\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listCategories",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"q\":\"\",\r\n    \"isActive\":\"false\"\r\n    // \"page\":\"1\",\r\n    // \"limit\":\"20\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getCategoryById",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateCategory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"name\":\"Food and Drink\",\r\n    \"category_name\":\"Food and Drink 11\",\r\n    \"parent_id\":\"b2a8d1f3-4b55-4224-a738-1353b3f997d9\",\r\n    \"description\":\"BG-color\",\r\n    \"is_active\":\"false\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/1de712ac-8f57-45bc-9c3b-49c42dd1ae1c",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateCategory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reactivateCategory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{categoryRoutes}}/:id/activate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{categoryRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "activate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1de712ac-8f57-45bc-9c3b-49c42dd1ae1c"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customer",
+      "item": [
+        {
+          "name": "createCustomer",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_name\":\"fish\",\r\n    \"contact_email\":\"email@gmail.com\",\r\n    \"phone\":\"034323223\",\r\n    \"address\":\"ADDD\",\r\n    \"contact_person\":\"adsdsd\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listCustomers",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getCustomerById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateCustomer",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_name\":\"fish\",\r\n    \"contact_email\":\"emaildaa@gmail.com\",\r\n    \"phone\":\"222223339\",\r\n    \"address\":\"ADDD\",\r\n    \"contact_person\":\"adsdsd\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateCustomer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reactivateCustomer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId/activate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId",
+                "activate"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPaymentsByCustomer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId/payments",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId",
+                "payments"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "export",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId/export",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId",
+                "export"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "import",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerRoutes}}/:customerId/import",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerRoutes}}"
+              ],
+              "path": [
+                ":customerId",
+                "import"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "2e5a3eae-ecad-4ce3-a50d-26078cdee857"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CustomerPayments",
+      "item": [
+        {
+          "name": "createCustomerPayment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"customer_id\":\"2e5a3eae-ecad-4ce3-a50d-26078cdee857\",\r\n    \"amount\":\"120.50\",\r\n    // \"payment_date\":\"\",\r\n    \"method\":\"CASH\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerPaymentRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerPaymentRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listCustomerPayments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{customerPaymentRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{customerPaymentRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "item": [
+        {
+          "name": "listExpenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createExpense",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"category_id\":\"4e44a912-3376-4f3e-8a86-486310f892ef\",\r\n    \"amount\":\"23\"\r\n    // \"date\":\"\",\r\n    // \"notes\":\"\",\r\n    // \"branch_id\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "exportExpenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/export",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                "export"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getExpenseById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/:expenseId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                ":expenseId"
+              ],
+              "variable": [
+                {
+                  "key": "expenseId",
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateExpense",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"category_id\":\"4e44a912-3376-4f3e-8a86-486310f892ef\",\r\n    \"notes\":\"now () *** () \",\r\n    \"amount\":\"2333\"\r\n    // \"date\":\"\",\r\n    // \"branch_id\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/:expenseId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                ":expenseId"
+              ],
+              "variable": [
+                {
+                  "key": "expenseId",
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteExpense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseRoutes}}/:expenseId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseRoutes}}"
+              ],
+              "path": [
+                ":expenseId"
+              ],
+              "variable": [
+                {
+                  "key": "expenseId",
+                  "value": "d7994a54-761e-40c1-bf32-a216df972770"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ExpenseCategory",
+      "item": [
+        {
+          "name": "listExpenseCategories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createExpenseCategory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"DOG-FOOD\",\r\n    \"description\":\"DOG FOOD descrrition\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getExpenseCategoryById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/:categoryId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}"
+              ],
+              "path": [
+                ":categoryId"
+              ],
+              "variable": [
+                {
+                  "key": "categoryId",
+                  "value": "2129e963-3d20-4259-9cf0-12cf4680b090"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateExpenseCategory",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"DOG2 FOOD\",\r\n    \"description\":\"DOG FOOD descrrition\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/:categoryId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}"
+              ],
+              "path": [
+                ":categoryId"
+              ],
+              "variable": [
+                {
+                  "key": "categoryId",
+                  "value": "2129e963-3d20-4259-9cf0-12cf4680b090"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteExpenseCategory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}/:categoryId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{expenseCategoryRoutes}}"
+              ],
+              "path": [
+                ":categoryId"
+              ],
+              "variable": [
+                {
+                  "key": "categoryId",
+                  "value": "1af2c437-7708-44f1-a78e-005b6d8ed3fa"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "createInventory",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"supplier_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"uom_id\":\"\",\r\n    \"quantity_on_hand\":\"200\",\r\n    // \"cost_price\":\"\",\r\n    // \"selling_price\":\"\",\r\n    \"location\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listInventories",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                "search"
+              ],
+              "query": [
+                {
+                  "key": null,
+                  "value": "",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getInventoryById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/:inventoryId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                ":inventoryId"
+              ],
+              "variable": [
+                {
+                  "key": "inventoryId",
+                  "value": "e2ec5efe-73c9-4aa3-b25e-a2538861f82e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateInventory",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"supplier_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    // \"uom_id\":\"\",\r\n    \"quantity_on_hand\":\"2000\"\r\n    // \"available_quantity\":\"20000\"\r\n    // \"cost_price\":\"\",\r\n    // \"selling_price\":\"\",\r\n    // \"location\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/:inventoryId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                ":inventoryId"
+              ],
+              "variable": [
+                {
+                  "key": "inventoryId",
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateInventory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/:inventoryId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                ":inventoryId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "inventoryId",
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "activateInventory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}/:inventoryId/activate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryRoutes}}"
+              ],
+              "path": [
+                ":inventoryId",
+                "activate"
+              ],
+              "variable": [
+                {
+                  "key": "inventoryId",
+                  "value": "78a283b7-2c69-4524-b7e9-3d80f1c0b938"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role",
+      "item": [
+        {
+          "name": "getRolesDropdown",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/dropdown",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                "dropdown"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getRoleStatistics",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n    // \"\":\"\",\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/statistics",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                "statistics"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getAllRoles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createRole",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n     \"roleName\":\"Technicalff\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getRoleById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getRoleSummary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/summary",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "summary"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "canDeleteRole",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/can-delete",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "can-delete"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "f3ccecd2-2b5a-4cf3-bbba-3b75db915ff4"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateRole",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"A-Dmin Boss\",\r\n    \"description\":\"Bossu baako pii\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "5cfadf5a-4bfa-410a-89d6-897588613b58"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteRole",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "5cfadf5a-4bfa-410a-89d6-897588613b58"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getRolePermissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "replaceRolePermissions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        // \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ],\r\n    \"permissionIds.\":[]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "assignPermissionToRole",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        // \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "removePermissionFromRole",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"permissionIds\":[\r\n        \"6d01b111-ee8d-4afb-be77-4f9d51be920a\",\r\n        \"04e9a9c6-bdbf-4d90-82c6-04670dadfdd3\",\r\n        \"a2c763ba-c404-41ea-a0d7-b4b178c536db\",\r\n        \"228e71fc-cc05-4304-a3f7-677e6f0e6c34\"\r\n        ]\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/permissions/:permission_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "permissions",
+                ":permission_id"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                },
+                {
+                  "key": "permission_id",
+                  "value": "6d01b111-ee8d-4afb-be77-4f9d51be920a"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "copyRolePermissions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:to_role_id/permissions/copy-from/:from_role_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":to_role_id",
+                "permissions",
+                "copy-from",
+                ":from_role_id"
+              ],
+              "variable": [
+                {
+                  "key": "to_role_id",
+                  "value": "4445525a-af69-479c-97db-93b456c39025"
+                },
+                {
+                  "key": "from_role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getUsersByRole",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{roleRoutes}}/:role_id/users",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{roleRoutes}}"
+              ],
+              "path": [
+                ":role_id",
+                "users"
+              ],
+              "variable": [
+                {
+                  "key": "role_id",
+                  "value": "fa25c72f-4501-4ef0-b885-2cc9621401bc"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permission",
+      "item": [
+        {
+          "name": "getAllPermissions",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n     \"roleName\":\"Technical\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getPermissionById",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n     \"roleName\":\"Technical\",\r\n     \"description\":\"Technical Support is for the IT support\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ":id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createPermission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"permissionName\":\"Create.User\",\r\n    \"description\":\"Create User is All User\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updatePermission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"permissionName\":\"CREATE.USER\",\r\n    \"description\":\"Create User is All User\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ":id",
+                ""
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deletePermission",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "a2c763ba-c404-41ea-a0d7-b4b178c536db"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getRolesUsingPermission",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/roles",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "roles"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "04e9a9c6-bdbf-4d90-82c6-04670dadfdd3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "canDeletePermission",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{permissionRoutes}}/:id/can-delete",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{permissionRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "can-delete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "04e9a9c6-bdbf-4d90-82c6-04670dadfdd3"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "InventoryTransaction",
+      "item": [
+        {
+          "name": "createTransaction",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"quantity\":\"10\",\r\n    \"type\":\"out\",\r\n    \"reference_type\":\"\",\r\n    // \"reference_id\":\"\",\r\n    \"notes\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listTransactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getTransactionById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}/:transactionId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransactionRoutes}}"
+              ],
+              "path": [
+                ":transactionId"
+              ],
+              "variable": [
+                {
+                  "key": "transactionId",
+                  "value": "0bc726b6-8581-490b-b9fd-28e6d1f71dc4"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "InventoryTransfer",
+      "item": [
+        {
+          "name": "createTransfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"from_branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"to_branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"1020\",\r\n    // \"transfer_date\":\"\",\r\n    \"notes\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listTransfers",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getTransferById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateTransfer",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"from_branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"to_branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"1000000\",\r\n    // \"transfer_date\":\"\",\r\n    \"notes\":\"\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateTransfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "activateTransfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId/activate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId",
+                "activate"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "approveTransfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId/approve",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "rejectTransfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}/:transferId/reject",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{inventoryTransferRoutes}}"
+              ],
+              "path": [
+                ":transferId",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "transferId",
+                  "value": "19cef893-b35f-4b6d-a8b2-5c8609b58a50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "item": [
+        {
+          "name": "listNotifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/me",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createNotification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Me\",\r\n  \"branch_id\": \"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n  \"message\": \"ME DONE\",\r\n  \"type\": \"SUCCESS\",\r\n  \"priority\": \"URGENT\",\r\n  \"recipients\": [\r\n    \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n    \"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\"\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "markAsRead",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/:notificationId/read",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ":notificationId",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteNotification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/:notificationId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ":notificationId"
+              ],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getNotificationById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/:notificationId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ":notificationId"
+              ],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateNotification",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Me\",\r\n  \"branch_id\": \"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n  \"message\": \"ME PORT DONE\",\r\n  \"type\": \"SUCCESS\",\r\n  \"priority\": \"URGENT\",\r\n  \"recipients\": [\r\n    \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n    \"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\"\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{notificationRoutes}}/:notificationId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{notificationRoutes}}"
+              ],
+              "path": [
+                ":notificationId"
+              ],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "b5b012e3-c5c1-44bf-91d3-6ef39a642cef"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "item": [
+        {
+          "name": "createProduct",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sku\":\"s sdsvibg sd sd s\",\r\n    \"product_name\":\"Coconut oil\",\r\n    \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\",\r\n    \"reorder_level\":\"1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listProducts",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"q\":\"\"\r\n    // \"categoryId\":\"\"\r\n    // \"page\":\"\"\r\n    // \"isActive\":\"true\"\r\n    // \"limit\":\"\"\r\n    // \"\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "addProductImage",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"is_primary\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:id/images",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "images"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getProductImages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:id/images",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "images"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getProductById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateProduct",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"sku\":\"s sdsvibg sd sd s\",\r\n    \"product_name\":\"Coconut oil\",\r\n    \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"23\",\r\n    \"wholesale_price\":\"32\",\r\n    \"retail_price\":\"37\",\r\n    \"reorder_level\":\"8\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateProduct",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":productId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "activateProduct",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:productId/reactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":productId",
+                "reactivate"
+              ],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateProductImage",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productRoutes}}/:id/images",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "images"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PriceHistory",
+      "item": [
+        {
+          "name": "listPriceHistory",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createPriceHistory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"price\":\"2\"\r\n    // \"effective_date\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{priceHistoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ProductBranch",
+      "item": [
+        {
+          "name": "listInventoryRecords",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\"\r\n    // \"page\":\"\",\r\n    // \"limit\":\"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createInventoryRecord",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"202\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateInventoryRecord",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"quantity\":\"20222\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getInventoryById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "query": [
+                {
+                  "key": "inventory_id",
+                  "value": "21212",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getInventoryByProductAndBranch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/product/:product_id/branch/:branch_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                "product",
+                ":product_id",
+                "branch",
+                ":branch_id"
+              ],
+              "query": [
+                {
+                  "key": "product_id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "branch_id",
+                  "value": "a9558848-02bb-4c31-b30c-d9dab94f6028",
+                  "type": "text",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "product_id",
+                  "value": "74fb533f-4e26-4bd0-bf5c-d3b7514ade37"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "a9558848-02bb-4c31-b30c-d9dab94f6028"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteInventoryRecord",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}/:inventory_id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productBranchInventoryRoutes}}"
+              ],
+              "path": [
+                ":inventory_id"
+              ],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "a321656e-5558-4ce2-9941-eb4cfc45c4c2"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ProductImage",
+      "item": [
+        {
+          "name": "deleteProductImage",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{productImageRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{productImageRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Purchase",
+      "item": [
+        {
+          "name": "createPurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"1862dec2-7b9d-4cef-9e2b-c0dd2df57c56\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"po_number\":\"12193\",\r\n    // \"order_date\":\"\",\r\n    // \"expected_date\":\"\",\r\n    // \"status\":\"\",\r\n    \"total_amount\":\"122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPurchases",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getPurchaseById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updatePurchase",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"1862dec2-7b9d-4cef-9e2b-c0dd2df57c56\",\r\n    \"branch_id\":\"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n    \"po_number\":\"9223\",\r\n    // \"order_date\":\"\",\r\n    // \"expected_date\":\"\",\r\n    // \"status\":\"\",\r\n    \"total_amount\":\"122\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivatePurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reactivatePurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/reactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "reactivate"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "submitPurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/submit",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "submit"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "approvePurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/approve",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "receivePurchase",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/receive",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "receive"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createPurchaseItem",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    \"quantity\":\"10\",\r\n    \"unit_price\":\"20\",\r\n    \"discount\":\"2\",\r\n    // \"expiry_date\":\"\",\r\n    \"batch_number\":\"12331\",\r\n    \"serial_number\":\"3990\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPurchaseItems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updatePurchaseItem",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"product_id\":\"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n    \"uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    \"quantity\":\"10\",\r\n    \"unit_price\":\"20\",\r\n    \"discount\":\"22\",\r\n    // \"expiry_date\":\"\",\r\n    \"batch_number\":\"12331\",\r\n    \"serial_number\":\"3990\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items/:itemId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "items",
+                ":itemId"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                },
+                {
+                  "key": "itemId",
+                  "value": "590e12b5-0f67-45ed-bcac-3535d6c2abda"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deletePurchaseItem",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}/:purchaseId/items/:itemId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{purchaseRoutes}}"
+              ],
+              "path": [
+                ":purchaseId",
+                "items",
+                ":itemId"
+              ],
+              "variable": [
+                {
+                  "key": "purchaseId",
+                  "value": "f2c660c1-bbb5-44d2-8657-36d99c8ff347"
+                },
+                {
+                  "key": "itemId",
+                  "value": "590e12b5-0f67-45ed-bcac-3535d6c2abda"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "item": [
+        {
+          "name": "dailySales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/daily-sales",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "daily-sales"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "monthlySales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/monthly-sales",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "monthly-sales"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "annualSales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/annual-sales",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "annual-sales"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "profitReport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/profit",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "profit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "inventoryReport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/inventory",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "inventory"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "lowStock",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/low-stock",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "low-stock"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "purchasesReport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/purchases",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "purchases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "bestSellingProducts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/best-selling",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "best-selling"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "branchPerformance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/branch-performance",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "branch-performance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listReports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/?report_type=suppliers",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                ""
+              ],
+              "query": [
+                {
+                  "key": "report_type",
+                  "value": "sales",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "purchases",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "inventory",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "expenses",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "customers",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "suppliers",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "exportReport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{reportRoutes}}/export?report_type=expenses",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{reportRoutes}}"
+              ],
+              "path": [
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "report_type",
+                  "value": null,
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "suppliers",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "customers",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "expenses"
+                },
+                {
+                  "key": "report_type",
+                  "value": "inventory",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "purchases",
+                  "disabled": true
+                },
+                {
+                  "key": "report_type",
+                  "value": "sales",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "listSales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createSale",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"branch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n  \"customer_id\": \"2e5a3eae-ecad-4ce3-a50d-26078cdee857\",\r\n  \"cashier_id\": \"605fa2e2-097a-43dd-91cb-f96a2e1e1825\",\r\n  \"sale_type\": \"RETAIL\",\r\n  \"sale_date\": \"2026-07-17T20:00:00Z\",\r\n  \"discount_amount\": 10.00,\r\n  \"tax_amount\": 18.00,\r\n  \"total_amount\": 198.00,\r\n  \"amount_paid\": 198.00,\r\n  \"status\": \"COMPLETED\",\r\n  \"invoice_number\": \"INV-20260717-0002\",\r\n  \"cashier_name\": \"John Doe\",\r\n  \"customer_name\": \"Walk-in Customer\",\r\n  \"remarks\": \"Paid in full\",\r\n  \"device_id\": \"POS-001\",\r\n//   \"due_date\": null,\r\n\r\n  \"items\": [\r\n    {\r\n      \"product_id\": \"e2ec5efe-73c9-4aa3-b25e-a2538861f82e\",\r\n      \"uom_id\": \"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n      \"quantity\": 2,\r\n      \"unit_price\": 90.00,\r\n      \"line_discount\": 10.00,\r\n      \"tax_amount\": 18.00,\r\n      \"cost_price\": 60.00,\r\n      \"batch_number\": \"BATCH-001\",\r\n      \"expiry_date\": \"2027-12-31\"\r\n    }\r\n  ],\r\n\r\n  \"payment\": {\r\n    \"amount\": 198.00,\r\n    \"payment_method\": \"CASH\",\r\n    \"reference_number\": \"CASH-001\"\r\n  },\r\n\r\n  \"payments\": [\r\n    {\r\n      \"amount\": 198.00,\r\n      \"payment_method\": \"CASH\",\r\n      \"reference_number\": \"CASH-001\"\r\n    }\r\n  ],\r\n\r\n  \"payment_amount\": 198.00,\r\n  \"payment_method\": \"CASH\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "searchSales",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSaleItems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/:saleId/items",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ":saleId",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "saleId",
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSaleReceipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/:saleId/receipt",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ":saleId",
+                "receipt"
+              ],
+              "variable": [
+                {
+                  "key": "saleId",
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "voidSale",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/:saleId/void",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ":saleId",
+                "void"
+              ],
+              "variable": [
+                {
+                  "key": "saleId",
+                  "value": "68635d14-e232-420b-b958-7465c3291103"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "refundSale",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/:saleId/refund",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ":saleId",
+                "refund"
+              ],
+              "variable": [
+                {
+                  "key": "saleId",
+                  "value": "5fee00c9-6744-40cb-9ed7-1dd3c8eae0dd"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSaleById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{salesRoutes}}/:saleId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{salesRoutes}}"
+              ],
+              "path": [
+                ":saleId"
+              ],
+              "variable": [
+                {
+                  "key": "saleId",
+                  "value": "5fee00c9-6744-40cb-9ed7-1dd3c8eae0dd"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "listMySessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{sessionsRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{sessionsRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "revokeSession",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{sessionsRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{sessionsRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3a936df4-f6f5-46a5-b942-d51352ee4d26"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "SupplierPayment",
+      "item": [
+        {
+          "name": "createSupplierPayment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_id\":\"cf9c691a-e54c-4375-b105-a6890a5734ae\",\r\n    \"amount\":\"20\",\r\n    // \"payment_date\": \"\",\r\n    \"payment_method\":\"MOMO\",\r\n    \"po_id\":\"\",\r\n    \"reference_number\":\"23233\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getPaymentById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updatePayment",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deletePayment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/:paymentId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                ":paymentId"
+              ],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPaymentsBySupplier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}/supplier/:supplierId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierPaymentRoutes}}"
+              ],
+              "path": [
+                "supplier",
+                ":supplierId"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Supplier",
+      "item": [
+        {
+          "name": "createSupplier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_name\":\"Accra\",\r\n    \"contact_email\":\"accra@gmail.com\",\r\n    \"phone\":\"054456564\",\r\n    \"address\":\"Accra\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listSuppliers",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/search",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                "search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSupplierById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ":supplierId"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateSupplier",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"supplier_name\":\"Accra\",\r\n    \"email\":\"accra1@gmail.com\",\r\n    \"phone\":\"054456564\",\r\n    \"address\":\"Accra22\",\r\n    \"is_active\":\"true\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ":supplierId"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateSupplier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ":supplierId",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reactivateSupplier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/reactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ":supplierId",
+                "reactivate"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listPaymentsBySupplier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{supplierRoutes}}/:supplierId/payments",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{supplierRoutes}}"
+              ],
+              "path": [
+                ":supplierId",
+                "payments"
+              ],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "cf9c691a-e54c-4375-b105-a6890a5734ae"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sync",
+      "item": [
+        {
+          "name": "getLastSync",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/:entity/last",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                ":entity",
+                "last"
+              ],
+              "variable": [
+                {
+                  "key": "entity",
+                  "value": "products"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pull",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/:entity/pull",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                ":entity",
+                "pull"
+              ],
+              "variable": [
+                {
+                  "key": "entity",
+                  "value": "inventries"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "push",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"items\": [\r\n    {\r\n    \"product_id\":\"da3ca8a5-c157-4063-92f5-5af5e5be62ae\",\r\n    \"sku\":\"cfcgcyikvkj\",\r\n    \"product_name\":\"Coconut oil\",\r\n    // \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\"\r\n    // \"reorder_level\":\"1\"\r\n},\r\n\r\n{\r\n    \"product_id\":\"74fb533f-4e26-4bd0-bf5c-d3b7514ade37\",\r\n    \"sku\":\"hvpoihugyyvy\",\r\n    \"product_name\":\"Coconut oil\",\r\n    // \"name\":\"DIOOW\",\r\n    \"base_uom_id\":\"961a38bf-7301-43e6-9b9c-9ed230176c49\",\r\n    // \"uom_id\":\"\",\r\n    // \"category_id\":\"\",\r\n    \"cost_price\":\"20\",\r\n    \"wholesale_price\":\"320\",\r\n    \"retail_price\":\"30\"\r\n    // \"reorder_level\":\"1\"\r\n}\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/:entity/push",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                ":entity",
+                "push"
+              ],
+              "variable": [
+                {
+                  "key": "entity",
+                  "value": "products"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pushGlobal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"sync_payload\": [\r\n    {\r\n      \"entity\": \"sales\",\r\n      \"data\": {\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"branch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\",\r\n        \"invoice_number\": \"INV-20260717-0001\",\r\n        \"total_amount\": 198.00,\r\n        \"status\": \"COMPLETED\"\r\n      }\r\n    },\r\n    {\r\n      \"entity\": \"sale_items\",\r\n      \"data\": {\r\n        \"sale_item_id\": \"d4e6f3b1-7d59-4e0f-b0e8-8f4b6b1d9d44\",\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"product_id\": \"c6d8f1e2-4d3b-4b5d-a7c8-1f2e3d4c5b6a\",\r\n        \"quantity\": 2,\r\n        \"unit_price\": 90.00\r\n      }\r\n    },\r\n    {\r\n      \"entity\": \"payments\",\r\n      \"data\": {\r\n        \"payment_id\": \"b5a7c3d2-9f4a-4d7c-a1b2-c3d4e5f6a7b8\",\r\n        \"sale_id\": \"5e6d4c7a-4c0f-4c70-8c53-9f5b2a7f8d12\",\r\n        \"amount\": 198.00,\r\n        \"payment_method\": \"CASH\",\r\n        \"reference_number\": \"CASH-001\"\r\n      }\r\n    }\r\n  ],\r\n  \"source\": \"POS-001\",\r\n  \"target\": \"CENTRAL_SERVER\",\r\n  \"batch_id\": \"a9558848-02bb-4c31-b30c-d9dab94f6028\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/push",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                "push"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pullGlobal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"entity\":\"products\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/pull",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                "pull"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listLogs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/logs",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                "logs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "retry",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sync_id\":\"213dcb69-5ce5-46b2-87bb-81a4c42fb72b\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{syncRoutes}}/retry",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{syncRoutes}}"
+              ],
+              "path": [
+                "retry"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "listSettings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{systemRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "upsertSetting",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"key\": \"company_name\",\r\n  \"value\": \"ABC Supermarket\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{systemRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getSetting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/:key",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{systemRoutes}}"
+              ],
+              "path": [
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "company_name"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateSetting",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"key\": \"company_name\",\r\n  \"value\": \"ABC Supermarket\",\r\n  \"description\":\"My Company Name\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/:key",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{systemRoutes}}"
+              ],
+              "path": [
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "company_name"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteSetting",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{systemRoutes}}/:key",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{systemRoutes}}"
+              ],
+              "path": [
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "tax_rate"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Uom",
+      "item": [
+        {
+          "name": "listUoms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createUom",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getUomById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateUom",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteUom",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{units-uomRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "createUser",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{Bearer}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"fullName\":\"David GHana\",\r\n    \"username\":\"david.ghana\",\r\n    \"password\":\"Bhim@1234\",\r\n    \"email\":\"david@gmail.com\",\r\n    \"roleId\":\"ca569317-3355-4a33-bbb3-8408aebb14d1\",\r\n    \"branchId\":\"5332784d-9b37-4b31-a513-f5134f958fe3\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listUser",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branchId\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"roleId\":\"fa25c72f-4501-4ef0-b885-2cc9621401bc\",\r\n    \"isActive\":\"true\",\r\n    \"page\":\"1\",\r\n   \"limit\":\"100\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listUserSessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id/sessions",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "sessions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listUserBranches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id/branches",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "branches"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getUserId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateUser",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"email\":\"david.ghana@gmail.com\",\r\n    \"fullName\":\"David Ghana\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateUser",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\",\r\n    \"email\":\"david.ghana@gmail.com\",\r\n    \"fullName\":\"David Ghana\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteUser",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "605fa2e2-097a-43dd-91cb-f96a2e1e1825"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "assignRole",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"role_id\":\"d1a69964-542f-4d6d-925f-2dc8ea71fade\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id/role",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "role"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deactivateUser",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id/deactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "deactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reactivateUser",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_05ye}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userRoutes}}/:id/reactivate",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userRoutes}}"
+              ],
+              "path": [
+                ":id",
+                "reactivate"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "UserBranch",
+      "item": [
+        {
+          "name": "createUserBranch",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\"\r\n    \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteUserBranch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}/:userId/:branchId",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}"
+              ],
+              "path": [
+                ":userId",
+                ":branchId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "159b1b70-4d88-4d7f-836f-4ad1d963ad4e"
+                },
+                {
+                  "key": "branchId",
+                  "value": "5332784d-9b37-4b31-a513-f5134f958fe3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteUserBranch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\":\"159b1b70-4d88-4d7f-836f-4ad1d963ad4e\",\r\n    \"branch_id\":\"5332784d-9b37-4b31-a513-f5134f958fe3\"\r\n    \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}/",
+              "host": [
+                "{{baseUrl}}{{apiV1}}{{userBranchRoutes}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{supabase_service_role_api_key_0t72}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "apiV1",
+      "value": ""
+    },
+    {
+      "key": "authRoutes",
+      "value": ""
+    },
+    {
+      "key": "userRoutes",
+      "value": ""
+    },
+    {
+      "key": "roleRoutes",
+      "value": ""
+    },
+    {
+      "key": "permissionRoutes",
+      "value": ""
+    },
+    {
+      "key": "auditRoutes",
+      "value": ""
+    },
+    {
+      "key": "productRoutes",
+      "value": ""
+    },
+    {
+      "key": "productImageRoutes",
+      "value": ""
+    },
+    {
+      "key": "categoryRoutes",
+      "value": ""
+    },
+    {
+      "key": "units-uomRoutes",
+      "value": ""
+    },
+    {
+      "key": "uomRoutes",
+      "value": ""
+    },
+    {
+      "key": "supplierRoutes",
+      "value": ""
+    },
+    {
+      "key": "supplierPaymentRoutes",
+      "value": ""
+    },
+    {
+      "key": "customerRoutes",
+      "value": ""
+    },
+    {
+      "key": "customerPaymentRoutes",
+      "value": ""
+    },
+    {
+      "key": "inventoryRoutes",
+      "value": ""
+    },
+    {
+      "key": "inventoryTransferRoutes",
+      "value": ""
+    },
+    {
+      "key": "inventoryTransactionRoutes",
+      "value": ""
+    },
+    {
+      "key": "purchaseRoutes",
+      "value": ""
+    },
+    {
+      "key": "salesRoutes",
+      "value": ""
+    },
+    {
+      "key": "notificationRoutes",
+      "value": ""
+    },
+    {
+      "key": "reportRoutes",
+      "value": ""
+    },
+    {
+      "key": "syncRoutes",
+      "value": ""
+    },
+    {
+      "key": "branchRoutes",
+      "value": ""
+    },
+    {
+      "key": "priceHistoryRoutes",
+      "value": ""
+    },
+    {
+      "key": "businessRoutes",
+      "value": ""
+    },
+    {
+      "key": "settingsbusinessRoutes",
+      "value": ""
+    },
+    {
+      "key": "expenseCategoryRoutes",
+      "value": ""
+    },
+    {
+      "key": "expenseRoutes",
+      "value": ""
+    },
+    {
+      "key": "systemRoutes",
+      "value": ""
+    },
+    {
+      "key": "settingssystemRoutes",
+      "value": ""
+    },
+    {
+      "key": "sessionsRoutes",
+      "value": ""
+    },
+    {
+      "key": "userBranchRoutes",
+      "value": ""
+    },
+    {
+      "key": "productBranchInventoryRoutes",
+      "value": ""
+    },
+    {
+      "key": "adminQueueRoutes",
+      "value": ""
+    },
+    {
+      "key": "adminSmsRoutes",
+      "value": ""
+    },
+    {
+      "key": "Bearer",
+      "secret": true
+    },
+    {
+      "key": "refresh",
+      "secret": true
+    },
+    {
+      "key": "token",
+      "secret": true
+    },
+    {
+      "key": "supabase_service_role_api_key_0t72",
+      "secret": true
+    }
+  ]
+}

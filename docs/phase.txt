@@ -1,0 +1,506 @@
+Since your project is **Multi-Platform Inventory Management System with RESTful API Backend** using:
+
+* Frontend (Web): React
+* Frontend (Desktop): Electron
+* Backend: Node.js + Express.js
+* Database: PostgreSQL
+* Offline Database: SQLite
+* Authentication: JWT
+
+you should build it in phases rather than coding everything at once.
+
+# Phase 1: Project Setup
+
+## Step 1: Create Git Repository
+
+```bash
+mkdir multi-platform-inventory-system
+cd multi-platform-inventory-system
+
+git init
+```
+
+Structure:
+
+```text
+multi-platform-inventory-system/
+│
+├── backend/
+├── web-client/
+├── desktop-client/
+├── docs/
+└── database/
+```
+
+---
+
+# Phase 2: Database Design
+
+Before writing code, create your database schema.
+
+## Core Tables
+
+```text
+roles
+users
+branches
+categories
+products
+inventory
+inventory_transactions
+suppliers
+purchase_orders
+purchase_order_items
+sales
+sale_items
+stock_transfers
+notifications
+audit_logs
+```
+
+Example:
+
+```sql
+CREATE TABLE roles (
+    id UUID PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE branches (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100),
+    location VARCHAR(255)
+);
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    role_id UUID REFERENCES roles(id),
+    branch_id UUID REFERENCES branches(id),
+    username VARCHAR(100),
+    email VARCHAR(100),
+    password VARCHAR(255)
+);
+```
+
+---
+
+# Phase 3: Backend API
+
+## Step 1: Initialize Backend
+
+```bash
+cd backend
+
+npm init -y
+```
+
+Install packages:
+
+```bash
+npm install express pg dotenv bcrypt jsonwebtoken cors helmet morgan
+```
+
+Dev dependencies:
+
+```bash
+npm install -D nodemon
+```
+
+---
+
+## Step 2: Folder Structure
+
+```text
+backend/
+│
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── repositories/
+│   ├── models/
+│   ├── utils/
+│   └── app.js
+│
+├── server.js
+├── package.json
+└── .env
+```
+
+---
+
+## Step 3: Create Express Server
+
+### server.js
+
+```javascript
+const app = require("./src/app");
+
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+```
+
+### app.js
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+app.use(express.json());
+
+app.get("/", (req, res) => {
+    res.json({
+        message: "Inventory API Running"
+    });
+});
+
+module.exports = app;
+```
+
+Run:
+
+```bash
+npm run dev
+```
+
+---
+
+# Phase 4: Authentication Module
+
+This should be your first real feature.
+
+### Tables
+
+```text
+users
+roles
+permissions
+```
+
+Endpoints:
+
+```text
+POST   /auth/login
+POST   /auth/logout
+POST   /auth/refresh
+GET    /users/me
+```
+
+Example:
+
+```javascript
+POST /auth/login
+```
+
+Request:
+
+```json
+{
+  "username":"admin",
+  "password":"password"
+}
+```
+
+Response:
+
+```json
+{
+  "accessToken":"jwt-token"
+}
+```
+
+---
+
+# Phase 5: User Management Module
+
+Endpoints:
+
+```text
+GET    /users
+GET    /users/:id
+POST   /users
+PUT    /users/:id
+DELETE /users/:id
+```
+
+---
+
+# Phase 6: Product Management
+
+Create:
+
+```text
+categories
+products
+```
+
+Endpoints:
+
+```text
+GET /products
+POST /products
+PUT /products/:id
+DELETE /products/:id
+```
+
+Product Model:
+
+```json
+{
+  "name":"Coca Cola",
+  "sku":"CC001",
+  "barcode":"123456789",
+  "sellingPrice":10.00,
+  "categoryId":"..."
+}
+```
+
+---
+
+# Phase 7: Inventory Module
+
+Tables:
+
+```text
+inventory
+inventory_transactions
+```
+
+Endpoints:
+
+```text
+POST /inventory/stock-in
+POST /inventory/stock-out
+GET  /inventory
+GET  /inventory/history
+```
+
+Business Rule:
+
+```text
+Every stock movement
+=
+Inventory Transaction Record
+```
+
+---
+
+# Phase 8: Supplier Module
+
+Tables:
+
+```text
+suppliers
+purchase_orders
+purchase_order_items
+```
+
+Endpoints:
+
+```text
+POST /suppliers
+GET /suppliers
+
+POST /purchase-orders
+GET /purchase-orders
+```
+
+---
+
+# Phase 9: Sales Module (POS)
+
+Tables:
+
+```text
+sales
+sale_items
+```
+
+Endpoints:
+
+```text
+POST /sales
+GET /sales
+GET /sales/:id
+```
+
+Flow:
+
+```text
+Cashier
+   ↓
+Select Products
+   ↓
+Calculate Total
+   ↓
+Process Payment
+   ↓
+Save Sale
+   ↓
+Update Inventory
+   ↓
+Generate Receipt
+```
+
+---
+
+# Phase 10: Branch Management
+
+Tables:
+
+```text
+branches
+stock_transfers
+```
+
+Endpoints:
+
+```text
+POST /branches
+
+POST /stock-transfers
+
+GET /stock-transfers
+```
+
+---
+
+# Phase 11: Reporting Module
+
+Endpoints:
+
+```text
+GET /reports/sales
+GET /reports/inventory
+GET /reports/stock-movement
+GET /reports/branches
+```
+
+---
+
+# Phase 12: React Web App
+
+Create React:
+
+```bash
+npm create vite@latest web-client
+```
+
+Install:
+
+```bash
+npm install axios react-router-dom
+```
+
+Pages:
+
+```text
+Login
+Dashboard
+Products
+Inventory
+Sales
+Suppliers
+Reports
+Users
+Branches
+```
+
+---
+
+# Phase 13: Electron Desktop App
+
+Create:
+
+```bash
+npm create vite@latest desktop-client
+```
+
+Install:
+
+```bash
+npm install electron
+```
+
+Features:
+
+```text
+POS Screen
+Barcode Scanner
+Receipt Printing
+Offline SQLite
+Synchronization
+```
+
+---
+
+# Phase 14: Offline Synchronization
+
+SQLite tables mirror PostgreSQL.
+
+Flow:
+
+```text
+Internet Available
+      ↓
+PostgreSQL
+
+Internet Down
+      ↓
+SQLite
+
+Internet Restored
+      ↓
+Sync SQLite → PostgreSQL
+```
+
+---
+
+# Phase 15: Testing
+
+### Backend
+
+```bash
+npm install jest supertest
+```
+
+Test:
+
+```text
+Authentication
+Products
+Inventory
+Sales
+Reports
+```
+
+---
+
+# Recommended Development Order
+
+```text
+1. PostgreSQL Database
+2. Express Backend
+3. Authentication
+4. User Management
+5. Product Management
+6. Inventory Management
+7. Supplier Management
+8. Purchase Orders
+9. Sales/POS
+10. Branch Management
+11. Reporting
+12. React Web App
+13. Electron Desktop App
+14. Offline Sync
+15. Testing
+16. Deployment
+```
+
+This order follows your SRS and minimizes rework because every later module depends on the earlier ones. Start with **Authentication → Users → Products → Inventory** before touching React or Electron.
