@@ -1,10 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
+const pool = require('../config/db');
 const inventoryRepo = require('../repositories/inventory.repository');
 const auditRepo = require('../repositories/audit.repository');
 const productBranchInventoryRepo = require('../repositories/productBranchInventory.repository');
 const productRepo = require('../repositories/product.repository');
 const branchRepo = require('../repositories/branch.repository');
 const notificationService = require('./notification.service');
+const productBatchService = require('./productBatch.service');
 
 async function createInventory({ product_id, branch_id, supplier_id, uom_id, quantity, cost_price, selling_price, location, createdBy }) {
   const id = uuidv4();
@@ -66,16 +68,44 @@ async function activateInventory(id, performedBy) {
   return activated;
 }
 
-async function createTransaction({ product_id, branch_id, quantity, type, reference_type = null, reference_id = null, notes = null, performedBy = null, unit_cost = null, client = null } = {}) {
+/**
+ * Public entry point. When the caller already owns a transaction it passes
+ * `client`; otherwise this opens its own so the transaction row, the aggregate
+ * inventory row, and the batch ledger all commit or roll back together.
+ */
+async function createTransaction(params = {}) {
+  const { client = null } = params;
+  if (client) return applyTransaction(client, params);
+
+  const conn = await pool.connect();
+  try {
+    await conn.query('BEGIN');
+    const result = await applyTransaction(conn, params);
+    await conn.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+async function applyTransaction(client, { product_id, branch_id, quantity, type, reference_type = null, reference_id = null, notes = null, performedBy = null, unit_cost = null, batch_number = null, expiry_date = null, batch_id = null } = {}) {
   const typeMap = { in: 'STOCK_IN', out: 'STOCK_OUT', adjustment: 'ADJUSTMENT' };
   const transaction_type = typeMap[type];
   if (!transaction_type) throw new Error('Invalid transaction type');
 
-  let pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, branch_id, client);
+  const product = await productRepo.getProductById(product_id);
+
+  let pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, branch_id, client, { forUpdate: true });
   const previous_quantity = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
 
   if (type === 'out' && previous_quantity < Number(quantity)) {
-    const product = await productRepo.getProductById(product_id);
     const name = product ? product.product_name : product_id;
     throw new Error(`Insufficient stock for "${name}".`);
   }
@@ -95,6 +125,26 @@ async function createTransaction({ product_id, branch_id, quantity, type, refere
     await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id, branch_id, quantity_on_hand: new_quantity, available_quantity: new_quantity }, client);
   }
 
+  // Batch ledger for expiry-tracked products — same transaction as the
+  // aggregate so the two can never drift apart on this code path.
+  if (product && product.expiry_required) {
+    if (transaction_type === 'STOCK_OUT') {
+      await productBatchService.allocateFefo(client, { product, branch_id, quantity: Number(quantity), batch_id });
+    } else {
+      await productBatchService.addStockToBatch(client, {
+        product,
+        branch_id,
+        batch_number,
+        expiry_date,
+        quantity: Number(quantity),
+        cost_price: unit_cost != null ? unit_cost : product.cost_price,
+        supplier_id: product.supplier_id || null,
+        po_id: reference_type === 'PURCHASE' ? reference_id : null,
+        createdBy: performedBy,
+      });
+    }
+  }
+
   try {
     await auditRepo.writeLog(performedBy, 'inventory_transaction', 'INVENTORY', transaction_id, { product_id, branch_id, transaction_type, quantity });
   } catch (e) {
@@ -103,7 +153,6 @@ async function createTransaction({ product_id, branch_id, quantity, type, refere
 
   if (transaction_type === 'STOCK_IN' || transaction_type === 'STOCK_OUT') {
     try {
-      const product = await productRepo.getProductById(product_id);
       const threshold = pbi && pbi.reorder_level > 0 ? Number(pbi.reorder_level) : (product ? Number(product.minimum_stock) : 0);
       if (threshold > 0 && new_quantity <= threshold) {
         const branch = await branchRepo.getBranchById(branch_id);

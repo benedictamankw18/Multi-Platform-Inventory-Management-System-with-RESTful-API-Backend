@@ -116,6 +116,16 @@ async function stockMovements({ startDate, endDate, branchId, productId, transac
   return cacheWrap(key, () => reportRepo.stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy }), 300);
 }
 
+async function expiryReport(branchId, withinDays = 30, includeExpired = false) {
+  const key = `reports:expiry:${branchId || 'all'}:${withinDays}:${includeExpired ? 'with-expired' : 'upcoming'}`;
+  return cacheWrap(key, () => reportRepo.expiryReport(branchId, withinDays, includeExpired), 60);
+}
+
+async function expiryReconciliation(branchId) {
+  const key = `reports:expiryReconciliation:${branchId || 'all'}`;
+  return cacheWrap(key, () => reportRepo.expiryReconciliation(branchId), 60);
+}
+
 module.exports = {
   dailySales,
   monthlySales,
@@ -127,6 +137,8 @@ module.exports = {
   bestSellingProducts,
   branchPerformance,
   stockMovements,
+  expiryReport,
+  expiryReconciliation,
   generateReport,
   objectArrayToCsv,
 };

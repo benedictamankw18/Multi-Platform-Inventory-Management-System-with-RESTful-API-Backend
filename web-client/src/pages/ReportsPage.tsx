@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -25,12 +27,19 @@ import {
   type PurchasesReportItem,
   type StockMovementItem,
   type StockMovementDay,
+  isAxiosError,
+  getExpiryReport,
+  disposeBatch,
+  type ExpiryReportItem,
+  type ExpiryReconciliation,
+  type ExpiryStatus,
 } from '../services/api'
 
-type Tab = 'overview' | 'sales' | 'profit' | 'inventory' | 'purchases' | 'best-selling' | 'branches' | 'stock-movements'
+type Tab = 'overview' | 'sales' | 'profit' | 'inventory' | 'purchases' | 'best-selling' | 'branches' | 'stock-movements' | 'expiry'
 
 export default function ReportsPage() {
-  const { selectedBranch } = useAuth()
+  const { selectedBranch, hasPermission } = useAuth()
+  const { toast } = useToast()
   const [tab, setTab] = useState<Tab>('overview')
   const resolvedBranch = selectedBranch?.branch_id
 
@@ -92,6 +101,15 @@ export default function ReportsPage() {
   const [smLoading, setSmLoading] = useState(false)
   const [showSmExport, setShowSmExport] = useState(false)
   const smExportRef = useRef<HTMLDivElement>(null)
+
+  // Expiry
+  const [expWithinDays, setExpWithinDays] = useState(30)
+  const [expIncludeExpired, setExpIncludeExpired] = useState(true)
+  const [expData, setExpData] = useState<ExpiryReportItem[]>([])
+  const [expRecon, setExpRecon] = useState<ExpiryReconciliation | null>(null)
+  const [expLoading, setExpLoading] = useState(false)
+  const [disposeTarget, setDisposeTarget] = useState<ExpiryReportItem | null>(null)
+  const [disposing, setDisposing] = useState(false)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -352,6 +370,45 @@ export default function ReportsPage() {
 
   useEffect(() => { if (tab === 'stock-movements') loadStockMovements() }, [tab, smStart, smEnd, smGroupBy, loadStockMovements])
 
+  // ---- Expiry ----
+  const loadExpiry = useCallback(async () => {
+    setExpLoading(true)
+    try {
+      const res = await getExpiryReport({ branchId: resolvedBranch, withinDays: expWithinDays, includeExpired: expIncludeExpired })
+      setExpData(res.data ?? [])
+      setExpRecon(res.reconciliation ?? null)
+    } catch {
+      setExpData([]); setExpRecon(null)
+    }
+    setExpLoading(false)
+  }, [resolvedBranch, expWithinDays, expIncludeExpired])
+
+  useEffect(() => { if (tab === 'expiry') loadExpiry() }, [tab, expWithinDays, expIncludeExpired, loadExpiry])
+
+  const canManageInventory = hasPermission('MANAGE_INVENTORY')
+
+  function expiryBadgeClass(status: ExpiryStatus): string {
+    if (status === 'EXPIRED' || status === 'CRITICAL') return 'badge--danger'
+    if (status === 'WARNING') return 'badge--warning'
+    if (status === 'OK') return 'badge--success'
+    return 'badge--info'
+  }
+
+  async function handleDispose() {
+    if (!disposeTarget) return
+    setDisposing(true)
+    try {
+      await disposeBatch(disposeTarget.batch_id)
+      toast('Batch disposed', 'success')
+      setDisposeTarget(null)
+      await loadExpiry()
+    } catch (err) {
+      const msg = isAxiosError(err) ? err.response?.data?.message ?? 'Failed to dispose batch' : 'Failed to dispose batch'
+      toast(msg, 'error')
+    }
+    setDisposing(false)
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'sales', label: 'Sales' },
@@ -361,6 +418,7 @@ export default function ReportsPage() {
     { key: 'best-selling', label: 'Best Selling' },
     { key: 'branches', label: 'Branches' },
     { key: 'stock-movements', label: 'Stock Movements' },
+    { key: 'expiry', label: 'Expiry' },
   ]
 
   function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
@@ -789,6 +847,82 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      {/* ============================== EXPIRY ============================== */}
+      {tab === 'expiry' && (
+        <div className="glass-card">
+          <FilterBar>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Expiring within</span>
+            <select className="input" style={{ width: 'auto' }} value={expWithinDays} onChange={(e) => setExpWithinDays(Number(e.target.value))}>
+              {[7, 14, 30, 60, 90].map((n) => <option key={n} value={n}>{n} days</option>)}
+            </select>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={expIncludeExpired} onChange={(e) => setExpIncludeExpired(e.target.checked)} />
+              Include already expired
+            </label>
+          </FilterBar>
+
+          {expRecon && expRecon.drift_rows > 0 && (
+            <div className="alert alert--error" style={{ marginBottom: 'var(--space-4)' }}>
+              Batch ledger drift detected: {expRecon.drift_rows} product/branch entr{expRecon.drift_rows === 1 ? 'y' : 'ies'} differ from aggregate stock by {Number(expRecon.drift_quantity)} units.
+            </div>
+          )}
+
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Batch</th>
+                  <th>Expiry</th>
+                  <th style={{ textAlign: 'right' }}>Days</th>
+                  <th style={{ textAlign: 'right' }}>On Hand</th>
+                  <th style={{ textAlign: 'right' }}>Value</th>
+                  <th>Status</th>
+                  {canManageInventory && <th style={{ textAlign: 'right' }}>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {expLoading ? (
+                  <SkeletonRows cols={canManageInventory ? 9 : 8} />
+                ) : expData.length === 0 ? (
+                  <EmptyRow cols={canManageInventory ? 9 : 8} msg="No batches match this expiry window." />
+                ) : expData.map((r) => (
+                  <tr key={r.batch_id}>
+                    <td>{r.product_name || '—'}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{r.sku || ''}</td>
+                    <td>{r.batch_number || '—'}</td>
+                    <td>{r.expiry_date ? new Date(r.expiry_date).toLocaleDateString() : '—'}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.days_to_expiry) < 0 ? 'var(--danger, #ef4444)' : 'inherit' }}>{Number(r.days_to_expiry)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.quantity_on_hand)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.value_at_cost).toFixed(2)}</td>
+                    <td><span className={`badge ${expiryBadgeClass(r.expiry_status)}`}>{r.expiry_status}</span></td>
+                    {canManageInventory && (
+                      <td style={{ textAlign: 'right' }}>
+                        <button type="button" className="btn btn--ghost" style={{ fontSize: 12 }} disabled={Number(r.quantity_on_hand) <= 0} onClick={() => setDisposeTarget(r)}>
+                          Dispose
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!disposeTarget}
+        title="Dispose batch"
+        message={disposeTarget ? `Dispose ${Number(disposeTarget.quantity_on_hand)} unit(s) of "${disposeTarget.product_name}"${disposeTarget.batch_number ? ` (batch ${disposeTarget.batch_number})` : ''}? This removes the stock from inventory and cannot be undone.` : undefined}
+        confirmLabel="Dispose"
+        variant="danger"
+        loading={disposing}
+        onConfirm={handleDispose}
+        onCancel={() => { if (!disposing) setDisposeTarget(null) }}
+      />
     </div>
   )
 }

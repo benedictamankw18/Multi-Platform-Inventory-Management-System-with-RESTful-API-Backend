@@ -17,9 +17,10 @@ exports.getInventoryById = async (inventory_id, txClient = null) => {
   return rows[0];
 };
 
-exports.getInventoryByProductAndBranch = async (product_id, branch_id, txClient = null) => {
+exports.getInventoryByProductAndBranch = async (product_id, branch_id, txClient = null, { forUpdate = false } = {}) => {
   const c = txClient || db;
-  const q = `SELECT * FROM ${TABLE} WHERE product_id = $1 AND branch_id = $2 LIMIT 1`;
+  const lock = forUpdate && txClient ? ' FOR UPDATE' : '';
+  const q = `SELECT * FROM ${TABLE} WHERE product_id = $1 AND branch_id = $2 LIMIT 1${lock}`;
   const { rows } = await c.query(q, [product_id, branch_id]);
   return rows[0];
 };

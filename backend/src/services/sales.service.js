@@ -7,6 +7,8 @@ const branchRepo = require('../repositories/branch.repository');
 const AppError = require('../utils/AppError');
 const cache = require('../utils/cache.utils');
 const notificationService = require('./notification.service');
+const productBatchService = require('./productBatch.service');
+const productBatchRepo = require('../repositories/productBatch.repository');
 
 const PAYMENT_METHODS = new Set(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']);
 
@@ -47,7 +49,7 @@ function normalizePayments(payload) {
 
 async function getProduct(productId, client) {
   const { rows } = await client.query(
-    'SELECT product_id, product_name, base_uom_id, cost_price, minimum_stock FROM products WHERE product_id = $1 LIMIT 1',
+    'SELECT product_id, product_name, base_uom_id, cost_price, minimum_stock, expiry_required FROM products WHERE product_id = $1 LIMIT 1',
     [productId]
   );
   return rows[0];
@@ -125,7 +127,7 @@ async function createSale(payload, actor = null) {
       const taxAmount = asNumber(item.tax_amount);
       const gross = quantity * unitPrice;
       const lineTotal = gross - lineDiscount + taxAmount;
-      const costPrice = item.cost_price !== undefined ? asNumber(item.cost_price) : product.cost_price;
+      let costPrice = item.cost_price !== undefined ? asNumber(item.cost_price) : product.cost_price;
 
       assertMoneyRange(quantity, 'item quantity');
       assertMoneyRange(unitPrice, 'item unit_price');
@@ -180,6 +182,39 @@ async function createSale(payload, actor = null) {
         }
       }
 
+      // Batch ledger for expiry-tracked products. A sale item that names a lot
+      // (batch_number) is a strict manual override; otherwise FEFO picks the
+      // earliest-expiring lots. The line's cost becomes the weighted average of
+      // the allocated lots because a single sale_items.cost_price cannot
+      // represent a multi-lot line.
+      let allocations = null;
+      if (product.expiry_required) {
+        let overrideBatchId = null;
+        if (item.batch_number) {
+          const manualBatch = await productBatchRepo.findActiveBatch(
+            item.product_id, branchId, item.batch_number, item.expiry_date || null, client,
+          );
+          if (!manualBatch) {
+            throw new AppError(`Batch "${item.batch_number}" not found for this product and branch.`, {
+              status: 404,
+              code: 'BATCH_NOT_FOUND',
+            });
+          }
+          overrideBatchId = manualBatch.batch_id;
+        }
+        allocations = await productBatchService.allocateFefo(client, {
+          product,
+          branch_id: branchId,
+          quantity,
+          batch_id: overrideBatchId,
+        });
+        if (allocations.length) {
+          costPrice = allocations.reduce(
+            (sum, a) => sum + Number(a.cost_price || 0) * Number(a.quantity), 0,
+          ) / quantity;
+        }
+      }
+
       preparedItems.push({
         sale_item_id: uuidv4(),
         product_id: item.product_id,
@@ -193,6 +228,7 @@ async function createSale(payload, actor = null) {
         tax_amount: taxAmount,
         batch_number: item.batch_number || null,
         expiry_date: item.expiry_date || null,
+        allocations,
       });
 
       subtotal += gross;
@@ -294,6 +330,21 @@ async function createSale(payload, actor = null) {
           item.expiry_date,
         ]
       );
+      // Persist the FEFO/override lot split so a void/refund restores the exact
+      // batches it drew from.
+      if (item.allocations && item.allocations.length) {
+        for (const alloc of item.allocations) {
+          await productBatchRepo.recordSaleItemBatch(
+            {
+              sale_item_id: item.sale_item_id,
+              batch_id: alloc.batch_id,
+              quantity: alloc.quantity,
+              cost_price: alloc.cost_price,
+            },
+            client,
+          );
+        }
+      }
     }
 
     const createdPayments = [];
@@ -412,7 +463,18 @@ async function getSaleReceipt(id, actor = null) {
 
 async function restoreSaleInventory(saleId, branchId, client) {
   const { rows: items } = await client.query(
-    'SELECT product_id, quantity FROM sale_items WHERE sale_id = $1',
+    `SELECT si.product_id, si.quantity, p.product_name, p.cost_price, p.expiry_required
+     FROM sale_items si
+     JOIN products p ON p.product_id = si.product_id
+     WHERE si.sale_id = $1`,
+    [saleId]
+  );
+
+  const { rows: allocRows } = await client.query(
+    `SELECT sib.batch_id, sib.quantity, si.product_id
+     FROM sale_item_batches sib
+     JOIN sale_items si ON si.sale_item_id = sib.sale_item_id
+     WHERE si.sale_id = $1`,
     [saleId]
   );
 
@@ -427,6 +489,35 @@ async function restoreSaleInventory(saleId, branchId, client) {
          AND branch_id = $3`,
       [item.quantity, item.product_id, branchId]
     );
+
+    if (!item.expiry_required) continue;
+
+    // Restore the exact lots recorded at sale time. Sales created before the
+    // batch ledger existed (no sale_item_batches rows) fall back to the
+    // sentinel fill batch so the aggregate and ledger stay in sync.
+    const allocs = allocRows.filter((a) => a.product_id === item.product_id);
+    if (allocs.length) {
+      for (const alloc of allocs) {
+        await productBatchRepo.incrementBatch(alloc.batch_id, alloc.quantity, client);
+      }
+    } else {
+      await productBatchService.addStockToBatch(
+        client,
+        {
+          product: {
+            product_id: item.product_id,
+            product_name: item.product_name,
+            cost_price: item.cost_price,
+            expiry_required: true,
+          },
+          branch_id: branchId,
+          batch_number: null,
+          expiry_date: null,
+          quantity: Number(item.quantity),
+          createdBy: null,
+        },
+      );
+    }
   }
 }
 

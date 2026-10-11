@@ -10,6 +10,13 @@ async function createTransaction(req, res, next) {
       reference_type: req.body.reference_type,
       reference_id: req.body.reference_id,
       notes: req.body.notes,
+      unit_cost: req.body.unit_cost,
+      // Batch identity for expiry-tracked products: stock-in carries the lot
+      // number + expiry; stock-out may pass batch_id for a strict override
+      // (otherwise the service applies FEFO).
+      batch_number: req.body.batch_number,
+      expiry_date: req.body.expiry_date,
+      batch_id: req.body.batch_id,
       performedBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });

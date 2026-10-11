@@ -73,6 +73,7 @@ const PULL_ENTITIES = [
   'inventories',
   'inventory-transfers',
   'notifications',
+  'product-batches',
 ]
 
 // Entities whose rows belong to a single branch. Their pulls are scoped with
@@ -85,6 +86,7 @@ const BRANCH_SCOPED_ENTITIES = [
   'inventories',
   'inventory-transfers',
   'notifications',
+  'product-batches',
 ]
 
 // The branch the offline cache is scoped to. Kept in sync with AuthContext,
@@ -388,7 +390,7 @@ export async function hydrateOfflineCache(api: AxiosInstance): Promise<number> {
         // Products + branch inventory drive the offline POS catalog: always
         // pull FULL snapshots (no `since`), otherwise an incremental pull would
         // overwrite the cached data with only recently-changed rows.
-        const isFull = entity === 'products' || entity === 'inventories'
+        const isFull = entity === 'products' || entity === 'inventories' || entity === 'product-batches'
         const sinceKey = `sync:pull:${entity}`
         const sinceVal = isFull ? undefined : await getMeta(sinceKey)
         const since = typeof sinceVal === 'string' && sinceVal ? sinceVal : undefined

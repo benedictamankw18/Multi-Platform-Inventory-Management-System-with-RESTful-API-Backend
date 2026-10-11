@@ -436,6 +436,32 @@ async function stockMovements(req, res, next) {
   }
 }
 
+async function expiryReport(req, res, next) {
+  try {
+    const withinDays = req.query.withinDays !== undefined ? Number(req.query.withinDays) : 30;
+
+    if (Number.isNaN(withinDays) || withinDays < 0) {
+      return res.status(400).json({ message: 'Invalid withinDays.' });
+    }
+
+    const includeExpired = String(req.query.includeExpired).toLowerCase() === 'true';
+    const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
+
+    const [data, reconciliation] = await Promise.all([
+      reportService.expiryReport(branchId, withinDays, includeExpired),
+      reportService.expiryReconciliation(branchId),
+    ]);
+
+    if (req.query.format) {
+      return sendExport(res, data, 'expiry-report', req.query.format);
+    }
+
+    return res.json({ data, reconciliation });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listReports(req, res, next) {
     try {
 
@@ -553,6 +579,7 @@ module.exports = {
   bestSellingProducts,
   branchPerformance,
   stockMovements,
+  expiryReport,
   listReports,
   exportReport,
 };

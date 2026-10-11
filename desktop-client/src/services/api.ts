@@ -1276,6 +1276,87 @@ export async function getStockMovements(params?: { startDate?: string; endDate?:
   return data.data
 }
 
+// ---- Product Batches & Expiry ----------------------------------------------
+//
+// The batch ledger (product_batches) is server-authoritative and pull-only:
+// FEFO allocation and weighted-average cost are computed in the stock-out
+// transaction, so clients never author batches directly — the only write is
+// disposal, which the server validates.
+
+export type BatchStatus = 'ACTIVE' | 'DEPLETED' | 'EXPIRED' | 'DISPOSED'
+
+export type ProductBatch = {
+  batch_id: string
+  product_id: string
+  branch_id: string
+  supplier_id: string | null
+  po_id: string | null
+  batch_number: string | null
+  expiry_date: string | null
+  received_date: string | null
+  cost_price: number | null
+  quantity_received: number
+  quantity_on_hand: number
+  quantity_reserved: number
+  status: BatchStatus
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export async function getBatches(params?: { product_id?: string; branch_id?: string; status?: string; page?: number; limit?: number }) {
+  const { data } = await api.get<{ items: ProductBatch[]; total: number }>('/batches', { params })
+  return data
+}
+
+export async function getBatchById(batchId: string) {
+  const { data } = await api.get<{ batch: ProductBatch }>(`/batches/${batchId}`)
+  return data.batch
+}
+
+export async function getBatchesByProductAndBranch(productId: string, branchId: string) {
+  const { data } = await api.get<{ batches: ProductBatch[] }>(`/batches/product/${productId}/branch/${branchId}`)
+  return data.batches
+}
+
+export async function disposeBatch(batchId: string, notes?: string) {
+  const { data } = await api.post<{ batch: ProductBatch }>(`/batches/${batchId}/dispose`, notes ? { notes } : {})
+  return data.batch
+}
+
+export type ExpiryStatus = 'EXPIRED' | 'CRITICAL' | 'WARNING' | 'OK'
+
+export type ExpiryReportItem = {
+  batch_id: string
+  product_id: string
+  product_name: string
+  sku: string | null
+  branch_id: string
+  branch_name: string | null
+  batch_number: string | null
+  expiry_date: string
+  days_to_expiry: number
+  quantity_on_hand: number
+  quantity_reserved: number
+  cost_price: number | null
+  value_at_cost: number
+  expiry_status: ExpiryStatus
+}
+
+export type ExpiryReconciliation = {
+  drift_rows: number
+  drift_quantity: number
+}
+
+export async function getExpiryReport(params?: { branchId?: string; withinDays?: number; includeExpired?: boolean }) {
+  const query: Record<string, string | number | boolean> = {}
+  if (params?.branchId) query.branchId = params.branchId
+  if (params?.withinDays != null) query.withinDays = params.withinDays
+  if (params?.includeExpired) query.includeExpired = true
+  const { data } = await api.get<{ data: ExpiryReportItem[]; reconciliation: ExpiryReconciliation }>('/reports/expiry', { params: query })
+  return data
+}
+
 // ---- Notifications ---------------------------------------------------------
 
 export async function getNotifications(params?: Record<string, unknown>) {

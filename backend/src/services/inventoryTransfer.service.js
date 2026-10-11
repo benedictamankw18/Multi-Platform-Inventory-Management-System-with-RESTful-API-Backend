@@ -24,6 +24,16 @@ async function createTransfer({ product_id, from_branch_id, to_branch_id, quanti
   const product = await productRepo.getProductById(product_id);
   if (!product)     throw new AppError('Product not found.', { status: 404, code: 'PRODUCT_NOT_FOUND' });
 
+  // Interim guard: expiry-tracked products move through the batch ledger, and
+  // transfers do not yet persist the picked lots, so allowing a transfer would
+  // desynchronise batches from the aggregate. Block until lot persistence lands.
+  if (product.expiry_required) {
+    throw new AppError(
+      `Transfers for expiry-tracked product "${product.product_name}" are not supported yet. Use a purchase receipt or adjustment instead.`,
+      { status: 409, code: 'EXPIRY_TRANSFER_UNSUPPORTED' },
+    );
+  }
+
   const pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product_id, from_branch_id);
   const available = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
   if (available < Number(quantity)) {
@@ -183,6 +193,12 @@ async function shipTransfer(id, performedBy, userBranchId) {
   if (userBranchId && existing.from_branch_id !== userBranchId) throw new AppError('Only users at the source branch can ship this transfer.', { status: 403, code: 'WRONG_BRANCH' });
 
   const product = await productRepo.getProductById(existing.product_id);
+  if (product && product.expiry_required) {
+    throw new AppError(
+      `Transfers for expiry-tracked product "${product.product_name}" are not supported yet.`,
+      { status: 409, code: 'EXPIRY_TRANSFER_UNSUPPORTED' },
+    );
+  }
   const pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(existing.product_id, existing.from_branch_id);
   const available = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
   if (available < Number(existing.quantity)) {

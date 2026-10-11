@@ -949,6 +949,7 @@ export default function PurchasesPage() {
                             <th style={{ textAlign: 'right' }}>Discount</th>
                             <th style={{ textAlign: 'right' }}>Line Total</th>
                             <th>Batch</th>
+                            <th>Expiry</th>
                             {hasPermission('MANAGE_PURCHASES') && <th style={{ textAlign: 'right' }}>Actions</th>}
                           </tr>
                         </thead>
@@ -962,6 +963,7 @@ export default function PurchasesPage() {
                               <td style={{ textAlign: 'right' }}>{Number(item.discount ?? 0).toFixed(2)}</td>
                               <td style={{ textAlign: 'right', fontWeight: 600 }}>{Number(item.line_total).toFixed(2)}</td>
                               <td style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: 12 }}>{item.batch_number ?? '—'}</td>
+                              <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '—'}</td>
                               {hasPermission('MANAGE_PURCHASES') && (
                                 <td style={{ textAlign: 'right' }}>
                                   <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>

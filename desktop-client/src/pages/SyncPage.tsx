@@ -42,6 +42,7 @@ const ENTITIES = [
   'inventories',
   'inventory-transfers',
   'notifications',
+  'product-batches',
 ]
 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {

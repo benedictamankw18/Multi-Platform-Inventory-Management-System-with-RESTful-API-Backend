@@ -110,6 +110,9 @@ async function receivePurchase(id, receiverId) {
         reference_type: 'PURCHASE',
         reference_id: po.po_id,
         unit_cost: item.unit_cost,
+        // Lot identity captured on the PO line, carried into the batch ledger.
+        batch_number: item.batch_number || null,
+        expiry_date: item.expiry_date || null,
         notes: `PO receipt ${po.po_number || id}`,
         performedBy: receiverId,
         client,

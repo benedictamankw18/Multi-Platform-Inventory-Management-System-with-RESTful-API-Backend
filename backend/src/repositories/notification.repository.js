@@ -225,6 +225,57 @@ async function findRecentLowStock(branchId, productName, hours = 24) {
     return rows[0] || null;
 }
 
+async function findRecentExpiryAlert(branchId, productName, hours = 24) {
+    const q = `
+        SELECT notification_id
+        FROM notifications
+        WHERE branch_id = $1
+          AND notification_type = 'EXPIRY_ALERT'
+          AND message ILIKE '%"' || $2 || '"%'
+          AND created_at >= NOW() - INTERVAL '1 hour' * $3
+          AND deleted_at IS NULL
+        LIMIT 1
+    `;
+    const { rows } = await client.query(q, [branchId, productName, hours]);
+    return rows[0] || null;
+}
+
+/**
+ * Groups ACTIVE, in-stock batches whose expiry_date is real (not the
+ * 9999-12-31 sentinel) and falls at or before the alert window. Already-expired
+ * batches have expiry_date in the past and therefore always qualify. Returns
+ * one candidate per (branch, product) with the summed quantity, the earliest
+ * expiry, and the affected lot numbers for the notification message.
+ */
+async function listExpiryCandidates({ withinDays = 7 } = {}) {
+    const q = `
+        SELECT
+            b.product_id,
+            p.product_name,
+            b.branch_id,
+            br.branch_name,
+            SUM(b.quantity_on_hand)::integer AS quantity,
+            MIN(b.expiry_date) AS earliest_expiry,
+            string_agg(
+                DISTINCT COALESCE(NULLIF(b.batch_number, ''), '(unnamed)'),
+                ', '
+                ORDER BY COALESCE(NULLIF(b.batch_number, ''), '(unnamed)')
+            ) AS batch_numbers
+        FROM product_batches b
+        INNER JOIN products p ON p.product_id = b.product_id
+        INNER JOIN branches br ON br.branch_id = b.branch_id
+        WHERE p.is_active = TRUE
+          AND b.status = 'ACTIVE'
+          AND b.quantity_on_hand > 0
+          AND b.expiry_date <> DATE '9999-12-31'
+          AND b.expiry_date <= (CURRENT_DATE + $1::integer)
+        GROUP BY b.product_id, p.product_name, b.branch_id, br.branch_name
+        ORDER BY earliest_expiry ASC
+    `;
+    const { rows } = await client.query(q, [Number(withinDays) || 7]);
+    return rows || [];
+}
+
 async function listLowStockCandidates() {
     const q = `
         SELECT
@@ -324,10 +375,12 @@ module.exports = {
   updateNotification,
   deleteNotification,
   findRecentLowStock,
+  findRecentExpiryAlert,
   findUsersWithPermissionAtBranch,
   findActiveUserIds,
   findActiveUserIdsAtBranch,
   findUsersWithPermission,
   findRecentSyncFailure,
   listLowStockCandidates,
+  listExpiryCandidates,
 };

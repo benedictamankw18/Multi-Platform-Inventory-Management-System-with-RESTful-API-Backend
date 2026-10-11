@@ -206,6 +206,8 @@ export default function StockMovementsPage() {
   const [modalSelected, setModalSelected] = useState<Product | null>(null)
   const [modalQty, setModalQty] = useState('')
   const [modalCost, setModalCost] = useState('')
+  const [modalExpiry, setModalExpiry] = useState('')
+  const [modalBatchNumber, setModalBatchNumber] = useState('')
   const [modalNotes, setModalNotes] = useState('')
   const [modalSubmitting, setModalSubmitting] = useState(false)
   const [modalSearching, setModalSearching] = useState(false)
@@ -218,6 +220,8 @@ export default function StockMovementsPage() {
     setModalSelected(null)
     setModalQty('')
     setModalCost('')
+    setModalExpiry('')
+    setModalBatchNumber('')
     setModalNotes('')
     setModalStock(null)
   }
@@ -272,7 +276,11 @@ export default function StockMovementsPage() {
     if (modal === 'stock-out' && modalStock !== null && qty > modalStock) {
       toast(`Insufficient stock. Available: ${modalStock}`, 'error'); return
     }
+    if (modal === 'stock-in' && modalSelected.expiry_required && !modalExpiry) {
+      toast('Expiry date is required for this product', 'warning'); return
+    }
 
+    const trackExpiry = modal === 'stock-in' && modalSelected.expiry_required
     setModalSubmitting(true)
     try {
       await createInventoryTransaction({
@@ -281,6 +289,7 @@ export default function StockMovementsPage() {
         quantity: qty,
         type: modal === 'stock-in' ? 'in' : 'out',
         unit_cost: modal === 'stock-in' && modalCost ? Number(modalCost) : undefined,
+        ...(trackExpiry ? { expiry_date: modalExpiry, batch_number: modalBatchNumber.trim() || undefined } : {}),
         notes: modalNotes || undefined,
       })
       toast(modal === 'stock-in' ? 'Stock-in recorded successfully' : 'Stock-out recorded successfully', 'success')
@@ -516,6 +525,29 @@ export default function StockMovementsPage() {
                       placeholder="0.00"
                     />
                   </div>
+                )}
+
+                {modal === 'stock-in' && modalSelected?.expiry_required && (
+                  <>
+                    <div className="field">
+                      <span>Expiry Date *</span>
+                      <input
+                        type="date"
+                        value={modalExpiry}
+                        onChange={(e) => setModalExpiry(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="field">
+                      <span>Batch / Lot Number (optional)</span>
+                      <input
+                        type="text"
+                        value={modalBatchNumber}
+                        onChange={(e) => setModalBatchNumber(e.target.value)}
+                        placeholder="e.g. LOT-2026-A"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="field">

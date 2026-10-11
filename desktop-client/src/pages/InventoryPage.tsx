@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -10,9 +11,14 @@ import {
   getBranches,
   createInventoryEntry,
   resolveImageUrl,
+  getBatchesByProductAndBranch,
+  disposeBatch,
+  isAxiosError,
   type InventoryItem,
   type Product,
   type BranchInfo,
+  type ProductBatch,
+  type BatchStatus,
 } from '../services/api'
 
 type ModalMode = 'import' | null
@@ -41,7 +47,7 @@ function normalizeHeader(name: string): string {
 
 export default function InventoryPage() {
   const { toast } = useToast()
-  const { selectedBranch } = useAuth()
+  const { selectedBranch, hasPermission } = useAuth()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -62,6 +68,13 @@ export default function InventoryPage() {
   const exportRef = useRef<HTMLDivElement>(null)
   const [showImportMenu, setShowImportMenu] = useState(false)
   const importMenuRef = useRef<HTMLDivElement>(null)
+
+  const [lotsTarget, setLotsTarget] = useState<InventoryItem | null>(null)
+  const [lotsBatches, setLotsBatches] = useState<ProductBatch[]>([])
+  const [lotsLoading, setLotsLoading] = useState(false)
+  const [disposeTarget, setDisposeTarget] = useState<ProductBatch | null>(null)
+  const [disposing, setDisposing] = useState(false)
+  const canManageInventory = hasPermission('MANAGE_INVENTORY')
 
   const limit = 25
 
@@ -106,6 +119,44 @@ export default function InventoryPage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  function batchStatusClass(status: BatchStatus): string {
+    if (status === 'ACTIVE') return 'badge--success'
+    if (status === 'EXPIRED' || status === 'DISPOSED') return 'badge--danger'
+    return 'badge--info'
+  }
+
+  async function openLots(item: InventoryItem) {
+    setLotsTarget(item)
+    setLotsLoading(true)
+    setLotsBatches([])
+    try {
+      const batches = await getBatchesByProductAndBranch(item.product_id, item.branch_id)
+      setLotsBatches(batches)
+    } catch {
+      setLotsBatches([])
+    }
+    setLotsLoading(false)
+  }
+
+  async function handleDisposeBatch() {
+    if (!disposeTarget) return
+    setDisposing(true)
+    try {
+      await disposeBatch(disposeTarget.batch_id)
+      toast('Batch disposed', 'success')
+      setDisposeTarget(null)
+      if (lotsTarget) {
+        const batches = await getBatchesByProductAndBranch(lotsTarget.product_id, lotsTarget.branch_id)
+        setLotsBatches(batches)
+      }
+      await load()
+    } catch (err) {
+      const msg = isAxiosError(err) ? err.response?.data?.message ?? 'Failed to dispose batch' : 'Failed to dispose batch'
+      toast(msg, 'error')
+    }
+    setDisposing(false)
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -369,13 +420,14 @@ export default function InventoryPage() {
                 <th style={{ textAlign: 'right' }}>Reserved</th>
                 <th style={{ textAlign: 'right' }}>Reorder</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Lots</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr key="loading"><td colSpan={8}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={9}><div className="empty-state"><div className="skeleton skeleton--row" /></div></td></tr>
               ) : items.length === 0 ? (
-                <tr key="empty"><td colSpan={8}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No inventory records found.</p></div></td></tr>
+                <tr key="empty"><td colSpan={9}><div className="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40" style={{ opacity: 0.35, marginBottom: 8 }}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6m-3-3v6" /><path d="M3 9h18M3 15h18" /></svg><p>No inventory records found.</p></div></td></tr>
               ) : items.map((item) => (
                 <tr key={item.inventory_id}>
                   <td>
@@ -403,6 +455,9 @@ export default function InventoryPage() {
                       {item.reorder_level >= item.available_quantity ? 'Low Stock' : item.available_quantity > 0 ? 'In Stock' :  'Out of Stock'}
                     </span>
                   </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button type="button" className="btn btn--ghost" style={{ fontSize: 12 }} onClick={() => void openLots(item)}>Lots</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -419,6 +474,66 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
+
+      {/* ---- Lots Modal ---- */}
+      {lotsTarget && (
+        <div className="modal-overlay" onClick={() => setLotsTarget(null)}>
+          <div className="modal" style={{ maxWidth: 640, textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 4 }}>Batches — {lotsTarget.product_name}</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>
+              {lotsTarget.sku} · {lotsTarget.branch_name ?? 'Branch'}
+            </p>
+            {lotsLoading ? (
+              <div className="skeleton skeleton--row" />
+            ) : lotsBatches.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', padding: 12, textAlign: 'center' }}>No batches tracked for this product at this branch.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Batch</th>
+                      <th>Expiry</th>
+                      <th style={{ textAlign: 'right' }}>On Hand</th>
+                      <th>Status</th>
+                      {canManageInventory && <th style={{ textAlign: 'right' }}>Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lotsBatches.map((b) => (
+                      <tr key={b.batch_id}>
+                        <td>{b.batch_number || '—'}</td>
+                        <td>{b.expiry_date ? new Date(b.expiry_date).toLocaleDateString() : '—'}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(b.quantity_on_hand)}</td>
+                        <td><span className={`badge ${batchStatusClass(b.status)}`}>{b.status}</span></td>
+                        {canManageInventory && (
+                          <td style={{ textAlign: 'right' }}>
+                            <button type="button" className="btn btn--ghost" style={{ fontSize: 12 }} disabled={b.status !== 'ACTIVE' || Number(b.quantity_on_hand) <= 0} onClick={() => setDisposeTarget(b)}>Dispose</button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button type="button" className="btn btn--ghost" onClick={() => setLotsTarget(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!disposeTarget}
+        title="Dispose batch"
+        message={disposeTarget ? `Dispose ${Number(disposeTarget.quantity_on_hand)} unit(s) of batch ${disposeTarget.batch_number || '(unnamed)'}? This removes the stock from inventory and cannot be undone.` : undefined}
+        confirmLabel="Dispose"
+        variant="danger"
+        loading={disposing}
+        onConfirm={handleDisposeBatch}
+        onCancel={() => { if (!disposing) setDisposeTarget(null) }}
+      />
 
       {/* ---- Import Modal ---- */}
       {modal === 'import' && (

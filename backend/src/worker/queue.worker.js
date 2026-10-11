@@ -7,9 +7,14 @@ const notificationService = require('../services/notification.service');
 const LOW_STOCK_SCAN_INTERVAL_MS =
   (Number(process.env.LOW_STOCK_SCAN_INTERVAL_MIN || 30) || 30) * 60 * 1000;
 
+const EXPIRY_ALERT_SCAN_INTERVAL_MS =
+  (Number(process.env.EXPIRY_ALERT_SCAN_INTERVAL_MIN || 1440) || 1440) * 60 * 1000;
+const EXPIRY_ALERT_WINDOW_DAYS = Number(process.env.EXPIRY_ALERT_WINDOW_DAYS || 7) || 7;
+
 async function runLoop() {
   const intervalMs = Number(process.env.QUEUE_WORKER_INTERVAL_MS || 30000);
   let lastLowStockScanAt = 0;
+  let lastExpiryAlertScanAt = 0;
   console.log('[queue.worker] starting, intervalMs=', intervalMs);
   while (true) {
     try {
@@ -30,6 +35,19 @@ async function runLoop() {
         }
       } catch (e) {
         console.error('[queue.worker] low-stock scan error', e && e.message);
+      }
+    }
+    // Periodic expiry scan — alerts for lots that have expired or expire within
+    // the configured window. Daily by default; 24h dedup prevents spam.
+    if (Date.now() - lastExpiryAlertScanAt >= EXPIRY_ALERT_SCAN_INTERVAL_MS) {
+      lastExpiryAlertScanAt = Date.now();
+      try {
+        const result = await notificationService.scanExpiry({ withinDays: EXPIRY_ALERT_WINDOW_DAYS });
+        if (result && result.created) {
+          console.log('[queue.worker] expiry scan created', result.created);
+        }
+      } catch (e) {
+        console.error('[queue.worker] expiry scan error', e && e.message);
       }
     }
     // eslint-disable-next-line no-await-in-loop

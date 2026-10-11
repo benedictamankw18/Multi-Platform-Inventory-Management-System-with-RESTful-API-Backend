@@ -205,6 +205,82 @@ async function stockMovements({ startDate, endDate, branchId, productId, transac
   return rows || [];
 }
 
+// Batches expiring within `withinDays` for expiry-tracked products. When
+// `includeExpired` is false, already-expired batches are excluded. The
+// sentinel backfill date (9999-12-31) never appears.
+async function expiryReport(branchId, withinDays = 30, includeExpired = false) {
+  const params = [];
+  const branchFilter = branchId ? `AND b.branch_id = $${params.push(branchId)}` : '';
+  const days = Number.isFinite(Number(withinDays)) ? Number(withinDays) : 30;
+  const daysParam = `$${params.push(days)}`;
+  const horizon = `(current_date + ${daysParam} * INTERVAL '1 day')`;
+  const expiryFilter = includeExpired
+    ? `b.expiry_date < ${horizon}`
+    : `b.expiry_date >= current_date AND b.expiry_date < ${horizon}`;
+
+  const q = `
+    SELECT
+      b.batch_id,
+      b.product_id,
+      p.product_name,
+      p.sku,
+      b.branch_id,
+      br.branch_name,
+      b.batch_number,
+      b.expiry_date,
+      (b.expiry_date - current_date) AS days_to_expiry,
+      b.quantity_on_hand,
+      b.quantity_reserved,
+      b.cost_price,
+      (b.quantity_on_hand * COALESCE(b.cost_price, 0)) AS value_at_cost,
+      CASE
+        WHEN b.expiry_date < current_date THEN 'EXPIRED'
+        WHEN b.expiry_date <= current_date + 7 THEN 'CRITICAL'
+        WHEN b.expiry_date <= current_date + 30 THEN 'WARNING'
+        ELSE 'OK'
+      END AS expiry_status
+    FROM product_batches b
+    JOIN products p ON p.product_id = b.product_id
+    LEFT JOIN branches br ON br.branch_id = b.branch_id
+    WHERE b.status = 'ACTIVE'
+      AND b.quantity_on_hand > 0
+      AND b.expiry_date < DATE '9999-12-31'
+      AND ${expiryFilter}
+      ${branchFilter}
+    ORDER BY b.expiry_date ASC, p.product_name ASC NULLS LAST
+  `;
+  const { rows } = await client.query(q, params);
+  return rows || [];
+}
+
+// Reconciliation check: rows where the aggregate cache disagrees with the sum
+// of the batch ledger for expiry-tracked products. Report only, never auto-fix.
+async function expiryReconciliation(branchId) {
+  const params = [];
+  const where = [
+    'p.expiry_required = TRUE',
+    'agg.quantity_on_hand <> COALESCE(batch.batch_qty, 0)',
+  ];
+  if (branchId) where.push(`agg.branch_id = $${params.push(branchId)}`);
+
+  const q = `
+    SELECT
+      COUNT(*) AS drift_rows,
+      COALESCE(SUM(ABS(agg.quantity_on_hand - COALESCE(batch.batch_qty, 0))), 0) AS drift_quantity
+    FROM product_branch_inventory agg
+    JOIN products p ON p.product_id = agg.product_id
+    LEFT JOIN (
+      SELECT product_id, branch_id, SUM(quantity_on_hand) AS batch_qty
+      FROM product_batches
+      WHERE status IN ('ACTIVE', 'EXPIRED')
+      GROUP BY product_id, branch_id
+    ) batch ON batch.product_id = agg.product_id AND batch.branch_id = agg.branch_id
+    WHERE ${where.join(' AND ')}
+  `;
+  const { rows } = await client.query(q, params);
+  return rows[0] || { drift_rows: 0, drift_quantity: 0 };
+}
+
 module.exports = {
   dailySales,
   monthlySales,
@@ -217,4 +293,6 @@ module.exports = {
   bestSellingProducts,
   branchPerformance,
   stockMovements,
+  expiryReport,
+  expiryReconciliation,
 };

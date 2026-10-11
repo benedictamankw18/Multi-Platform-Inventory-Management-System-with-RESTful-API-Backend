@@ -25,6 +25,12 @@ const paginationValidation = [
   query('limit').optional().isInt({ min: 1 }),
 ];
 
+const expiryValidation = [
+  query('withinDays').optional().isInt({ min: 0, max: 3650 }).withMessage('withinDays must be between 0 and 3650'),
+  query('includeExpired').optional().isBoolean().withMessage('includeExpired must be a boolean'),
+  query('format').optional().isIn(['csv', 'xlsx']).withMessage('format must be csv or xlsx'),
+];
+
 const ALLOWED_TYPES = ['sales', 'purchases', 'inventory', 'expenses', 'customers', 'suppliers', 'movement'];
 
 const reportQueryValidation = [
@@ -49,4 +55,5 @@ module.exports = {
   rangeValidation,
   paginationValidation,
   reportQueryValidation,
+  expiryValidation,
 };

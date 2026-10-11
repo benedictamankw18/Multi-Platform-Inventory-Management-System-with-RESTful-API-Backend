@@ -23,7 +23,21 @@ const ENTITY_TABLE_MAP = {
   inventory: 'product_branch_inventory',
   transfers: 'inventory_transfers',
   notifications: 'notifications',
+  // Batch ledger is server-authoritative (FEFO + weighted-average cost are
+  // computed server-side), so it is pull-only. It is listed here so pull can
+  // resolve the table; push is rejected via PUSH_BLOCKED_ENTITIES below.
+  'product-batches': 'product_batches',
+  batches: 'product_batches',
 };
+
+// Entities that may be pulled but never pushed. Their correctness depends on
+// server-side invariants (the batch ledger must stay consistent with the
+// product_branch_inventory aggregate), so clients do not author them directly.
+const PUSH_BLOCKED_ENTITIES = new Set([
+  'product-batches',
+  'batches',
+  'product_batches',
+]);
 
 // Branch-scoped pull filters: which column(s) narrow an entity's rows to a
 // single branch. Tables not listed are global reference data (products,
@@ -33,6 +47,7 @@ const ENTITY_TABLE_MAP = {
 // injection via the entity path parameter.
 const BRANCH_SCOPE_MAP = {
   product_branch_inventory: ['branch_id'],
+  product_batches: ['branch_id'],
   sales: ['branch_id'],
   purchase_orders: ['branch_id'],
   expenses: ['branch_id'],
@@ -183,6 +198,11 @@ async function pushChanges(entity, items) {
     try {
         // Resolve entity to a real table via the allow-list to prevent SQL injection
         const table = resolveTable(entity);
+
+        // Server-authoritative entities are pull-only.
+        if (PUSH_BLOCKED_ENTITIES.has(entity)) {
+            throw new Error(`Entity '${entity}' is server-authoritative and cannot be pushed.`);
+        }
 
         if (!Array.isArray(items) || items.length === 0) {
             return {

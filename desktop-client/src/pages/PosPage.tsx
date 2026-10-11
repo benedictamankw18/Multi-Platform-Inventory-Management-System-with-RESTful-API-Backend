@@ -16,7 +16,9 @@ import {
   getSystemSetting,
   getDeviceId,
   resolveImageUrl,
+  getBatchesByProductAndBranch,
   type Product,
+  type ProductBatch,
   type Customer,
   type Sale,
 } from '../services/api'
@@ -37,6 +39,10 @@ type CartItem = {
   unit_price: number
   line_discount: number
   tax_amount: number
+  // Manual FEFO override for expiry-tracked products. When unset the server
+  // allocates from the earliest-expiring batch automatically.
+  batch_number?: string | null
+  expiry_date?: string | null
 }
 
 type PaymentMethod = 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CREDIT'
@@ -152,6 +158,9 @@ export default function PosPage() {
   const barcodeRef = useRef<SVGSVGElement>(null)
 
   const [cart, setCart] = useState<CartItem[]>([])
+  const [lotTarget, setLotTarget] = useState<Product | null>(null)
+  const [lotBatches, setLotBatches] = useState<ProductBatch[]>([])
+  const [lotLoading, setLotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [searching, setSearching] = useState(false)
@@ -533,6 +542,34 @@ export default function PosPage() {
     setCart((prev) => prev.filter((item) => item.product.product_id !== productId))
   }
 
+  async function openLotPicker(product: Product) {
+    if (!selectedBranch) {
+      toast('Please select a branch first', 'error')
+      return
+    }
+    setLotTarget(product)
+    setLotLoading(true)
+    setLotBatches([])
+    try {
+      const batches = await getBatchesByProductAndBranch(product.product_id, selectedBranch.branch_id)
+      setLotBatches(batches.filter((b) => b.status === 'ACTIVE' && Number(b.quantity_on_hand) > 0 && b.batch_number))
+    } catch {
+      setLotBatches([])
+    }
+    setLotLoading(false)
+  }
+
+  function chooseLot(productId: string, batchNumber: string | null, expiryDate: string | null) {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product.product_id === productId
+          ? { ...item, batch_number: batchNumber, expiry_date: expiryDate }
+          : item
+      )
+    )
+    setLotTarget(null)
+  }
+
   const saleType = cart.some(
     (item) =>
       Number(item.product.wholesale_price) > 0 &&
@@ -629,6 +666,7 @@ export default function PosPage() {
         cost_price: item.product.cost_price,
         line_discount: item.line_discount,
         tax_amount: item.tax_amount,
+        ...(item.batch_number ? { batch_number: item.batch_number, expiry_date: item.expiry_date || undefined } : {}),
       })),
       payments: payments.map((p) => ({
         amount: p.amount,
@@ -1018,6 +1056,12 @@ export default function PosPage() {
                             <div>
                               <div style={{ fontWeight: 500, fontSize: 14 }}>{item.product.product_name}</div>
                               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{item.product.sku}</div>
+                              {item.product.expiry_required && (
+                                <button type="button" onClick={() => void openLotPicker(item.product)}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 2, fontSize: 11, color: 'var(--primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                                  Lot: {item.batch_number || 'Auto (FEFO)'}
+                                </button>
+                              )}
                               {hasBothPrices && (
                                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', opacity: 0.7, marginTop: 1 }}>
                                   Retail: {formatPrice(retailPrice)} · Wholesale: {formatPrice(wholesalePrice)} ({wholesaleMin}+)
@@ -1317,6 +1361,42 @@ export default function PosPage() {
         onConfirm={() => { if (confirmDialog) { const fn = confirmDialog.onConfirm; setConfirmDialog(null); fn() } }}
         onCancel={() => setConfirmDialog(null)}
       />
+
+      {/* ── Batch / Lot Picker Modal ── */}
+      {lotTarget && (
+        <div className="modal-overlay" onClick={() => setLotTarget(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <h3 style={{ margin: '0 0 4px' }}>Select lot</h3>
+            <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px', fontSize: 13 }}>
+              {lotTarget.product_name} — stock-out draws from the earliest-expiring batch (FEFO) unless you pick a specific lot.
+            </p>
+            {lotLoading ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading lots…</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflow: 'auto' }}>
+                <button type="button" onClick={() => chooseLot(lotTarget.product_id, null, null)} className="btn btn--ghost" style={{ justifyContent: 'space-between', width: '100%' }}>
+                  <span>Auto (FEFO)</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>earliest expiry</span>
+                </button>
+                {lotBatches.length === 0 && (
+                  <div style={{ padding: 12, fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center' }}>No batches with available stock.</div>
+                )}
+                {lotBatches.map((b) => (
+                  <button key={b.batch_id} type="button" onClick={() => chooseLot(lotTarget.product_id, b.batch_number, b.expiry_date)} className="btn btn--ghost" style={{ justifyContent: 'space-between', width: '100%' }}>
+                    <span>{b.batch_number}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {b.expiry_date ? `exp ${new Date(b.expiry_date).toLocaleDateString()}` : 'no expiry'} · {Number(b.quantity_on_hand)} on hand
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button type="button" onClick={() => setLotTarget(null)} className="btn btn--ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Save Cart Modal ── */}
       {showSaveModal && (

@@ -169,6 +169,71 @@ async function createSyncFailureNotification({ entity, errorMessage, performedBy
   });
 }
 
+/**
+ * Create a branch-scoped expiry alert for one (branch, product) group or return
+ * null when a like alert was created within the dedup window (default 24h) or
+ * no user is eligible to receive it.
+ */
+async function createExpiryAlertNotification({
+  product,
+  branch,
+  quantity,
+  earliestExpiry,
+  batchNumbers,
+  performedBy,
+}) {
+  const recent = await notificationRepo.findRecentExpiryAlert(branch.branch_id, product.product_name, 24);
+  if (recent) return null;
+
+  const recipients = await notificationRepo.findUsersWithPermissionAtBranch(
+    ['MANAGE_INVENTORY', 'MANAGE_SETTINGS'],
+    branch.branch_id
+  );
+  if (!recipients.length) return null;
+
+  const title = 'Expiry Alert';
+  const message =
+    `"${product.product_name}" at ${branch.branch_name} has ${quantity} unit${quantity === 1 ? '' : 's'} ` +
+    `in expiring stock (earliest expiry: ${earliestExpiry}, lots: ${batchNumbers}).`;
+
+  return createNotification({
+    title,
+    message,
+    branch_id: branch.branch_id,
+    type: 'EXPIRY_ALERT',
+    priority: 'HIGH',
+    // notifications.user_id is NOT NULL — fall back to the first recipient when
+    // no actor is available (scheduled scan / system-triggered paths).
+    createdBy: performedBy || recipients[0] || null,
+    recipients,
+  });
+}
+
+/**
+ * Daily scan for stock that is or is about to expire. Walks the candidate list
+ * produced by the repository; 24h per-product dedup prevents notification spam.
+ */
+async function scanExpiry({ withinDays = Number(process.env.EXPIRY_ALERT_WINDOW_DAYS || 7) || 7 } = {}) {
+  const candidates = await notificationRepo.listExpiryCandidates({ withinDays });
+  let created = 0;
+  for (const c of candidates) {
+    try {
+      const result = await createExpiryAlertNotification({
+        product: { product_id: c.product_id, product_name: c.product_name },
+        branch: { branch_id: c.branch_id, branch_name: c.branch_name },
+        quantity: Number(c.quantity),
+        earliestExpiry: c.earliest_expiry,
+        batchNumbers: c.batch_numbers,
+        performedBy: null,
+      });
+      if (result) created++;
+    } catch (e) {
+      console.error('expiry scan error', e && e.message);
+    }
+  }
+  return { scanned: candidates.length, created };
+}
+
 module.exports = {
   createNotification,
   listNotifications,
@@ -178,5 +243,7 @@ module.exports = {
   deleteNotification,
   createLowStockNotification,
   scanLowStock,
+  createExpiryAlertNotification,
+  scanExpiry,
   createSyncFailureNotification,
 };
