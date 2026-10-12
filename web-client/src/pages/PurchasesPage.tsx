@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
@@ -81,6 +82,7 @@ const EMPTY_ITEM_FORM: ItemForm = {
 export default function PurchasesPage() {
   const { toast } = useToast()
   const { hasPermission, selectedBranch } = useAuth()
+  const { currency, formatCurrency } = useCurrency()
 
   const [items, setItems] = useState<PurchaseOrder[]>([])
   const [total, setTotal] = useState(0)
@@ -107,6 +109,7 @@ export default function PurchasesPage() {
   const [viewItems, setViewItems] = useState<PurchaseOrderItem[]>([])
   const [viewItemsLoading, setViewItemsLoading] = useState(false)
   const [productMap, setProductMap] = useState<Record<string, string>>({})
+  const [productMeta, setProductMeta] = useState<Record<string, Product>>({})
 
   const [viewPayments, setViewPayments] = useState<SupplierPayment[]>([])
   const [viewPaymentsLoading, setViewPaymentsLoading] = useState(false)
@@ -152,7 +155,7 @@ export default function PurchasesPage() {
     getUnitsOfMeasure().then((d) => {
       const arr = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []
       setUoms(arr)
-      setUomMap(Object.fromEntries(arr.map((u: UnitOfMeasure) => [u.uom_id, u.abbreviation || u.uom_name])))
+      setUomMap(Object.fromEntries(arr.map((u: UnitOfMeasure) => [u.uom_id, u.symbol || u.uom_name])))
     }).catch(() => {})
   }, [])
 
@@ -278,7 +281,10 @@ export default function PurchasesPage() {
       if (pids.length > 0) {
         const pRes = await searchProducts({ limit: 1000, includeInactive: true })
         const allP = pRes?.products ?? []
-        setProductMap(Object.fromEntries(allP.filter((p: Product) => pids.includes(p.product_id)).map((p: Product) => [p.product_id, p.product_name])))
+        const relevant = allP.filter((p: Product) => pids.includes(p.product_id))
+        setProductMap(Object.fromEntries(relevant.map((p: Product) => [p.product_id, p.product_name])))
+        // Keep full product records so the item form knows which products need an expiry date.
+        setProductMeta((prev) => ({ ...prev, ...Object.fromEntries(relevant.map((p: Product) => [p.product_id, p])) }))
       }
     } catch {
       setViewItems([])
@@ -407,6 +413,7 @@ export default function PurchasesPage() {
       uom_id: p.base_uom_id,
       unit_price: String(p.cost_price ?? 0),
     }))
+    setProductMeta((prev) => ({ ...prev, [p.product_id]: p }))
     setProductSearch(p.product_name)
     setProductResults([])
   }
@@ -415,6 +422,9 @@ export default function PurchasesPage() {
     if (!viewing) return
     if (!itemForm.product_id) { setItemFormError('Product is required.'); return }
     if (!itemForm.uom_id) { setItemFormError('UoM is required.'); return }
+    if (productMeta[itemForm.product_id]?.expiry_required && !itemForm.expiry_date) {
+      setItemFormError('Expiry date is required for this product.'); return
+    }
     const qty = parseFloat(itemForm.quantity)
     if (!qty || qty <= 0) { setItemFormError('Quantity must be positive.'); return }
     const price = parseFloat(itemForm.unit_price)
@@ -484,7 +494,7 @@ export default function PurchasesPage() {
         Supplier: supMap[po.supplier_id] ?? po.supplier_id,
         'Order Date': po.order_date ? new Date(po.order_date).toLocaleDateString() : '',
         'Expected Delivery': po.expected_delivery_date ? new Date(po.expected_delivery_date).toLocaleDateString() : '',
-        Total: Number(po.total_amount).toFixed(2),
+        [`Total (${currency})`]: Number(po.total_amount).toFixed(2),
         Status: po.status,
         'Payment Status': po.payment_status ?? '',
         Notes: po.notes ?? '',
@@ -506,7 +516,7 @@ export default function PurchasesPage() {
         Supplier: supMap[po.supplier_id] ?? po.supplier_id,
         'Order Date': po.order_date ? new Date(po.order_date).toLocaleDateString() : '',
         'Expected Delivery': po.expected_delivery_date ? new Date(po.expected_delivery_date).toLocaleDateString() : '',
-        Total: Number(po.total_amount).toFixed(2),
+        [`Total (${currency})`]: Number(po.total_amount).toFixed(2),
         Status: po.status,
         'Payment Status': po.payment_status ?? '',
         Notes: po.notes ?? '',
@@ -533,7 +543,7 @@ export default function PurchasesPage() {
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
       autoTable(doc, {
         startY: 34,
-        head: [['PO #', 'Supplier', 'Date', 'Total', 'Status', 'Payment']],
+        head: [['PO #', 'Supplier', 'Date', `Total (${currency})`, 'Status', 'Payment']],
         body: data.map((po: PurchaseOrder) => [
           po.po_number, supMap[po.supplier_id] ?? '', po.order_date ? new Date(po.order_date).toLocaleDateString() : '',
           Number(po.total_amount).toFixed(2), po.status, po.payment_status ?? '',
@@ -840,7 +850,7 @@ export default function PurchasesPage() {
                     <span style={{ fontSize: 15, fontWeight: 700 }}>
                       {(Number(form.shipping_cost) || 0) + (Number(form.tax_amount) || 0) - (Number(form.discount_amount) || 0) === 0
                         ? '—'
-                        : `${(Number(form.shipping_cost) || 0) + (Number(form.tax_amount) || 0) - (Number(form.discount_amount) || 0) > 0 ? '' : '-'}${Math.abs((Number(form.shipping_cost) || 0) + (Number(form.tax_amount) || 0) - (Number(form.discount_amount) || 0)).toFixed(2)}`}
+                        : formatCurrency((Number(form.shipping_cost) || 0) + (Number(form.tax_amount) || 0) - (Number(form.discount_amount) || 0))}
                     </span>
                   </div>
                 </div>
@@ -899,23 +909,23 @@ export default function PurchasesPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Subtotal</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{subtotal.toFixed(2)}</div>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{formatCurrency(subtotal)}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Shipping</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{Number(po.shipping_cost ?? 0).toFixed(2)}</div>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{formatCurrency(po.shipping_cost ?? 0)}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Tax</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{Number(po.tax_amount ?? 0).toFixed(2)}</div>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>{formatCurrency(po.tax_amount ?? 0)}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Discount</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>-{Number(po.discount_amount ?? 0).toFixed(2)}</div>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2 }}>-{formatCurrency(po.discount_amount ?? 0)}</div>
                   </div>
                   <div style={{ padding: 'var(--space-3)', background: 'var(--primary)', borderRadius: 'var(--radius-button)', border: '1px solid var(--primary)' }}>
                     <span style={{ fontSize: 'var(--text-caption)', color: 'rgba(255,255,255,0.8)' }}>Total</span>
-                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: '#fff', fontWeight: 700 }}>{total.toFixed(2)}</div>
+                    <div style={{ fontSize: 'var(--text-body)', marginTop: 2, color: '#fff', fontWeight: 700 }}>{formatCurrency(total)}</div>
                   </div>
                 </div>
 
@@ -959,9 +969,9 @@ export default function PurchasesPage() {
                               <td>{productMap[item.product_id] ?? item.product_id.slice(0, 8)}</td>
                               <td style={{ textAlign: 'right' }}>{Number(item.quantity_ordered)}</td>
                               <td>{uomMap[item.uom_id] ?? '—'}</td>
-                              <td style={{ textAlign: 'right' }}>{Number(item.unit_cost).toFixed(2)}</td>
-                              <td style={{ textAlign: 'right' }}>{Number(item.discount ?? 0).toFixed(2)}</td>
-                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{Number(item.line_total).toFixed(2)}</td>
+                              <td style={{ textAlign: 'right' }}>{formatCurrency(item.unit_cost)}</td>
+                              <td style={{ textAlign: 'right' }}>{formatCurrency(item.discount ?? 0)}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.line_total)}</td>
                               <td style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: 12 }}>{item.batch_number ?? '—'}</td>
                               <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : '—'}</td>
                               {hasPermission('MANAGE_PURCHASES') && (
@@ -1007,7 +1017,7 @@ export default function PurchasesPage() {
                           {viewPayments.map((p) => (
                             <tr key={p.payment_id}>
                               <td style={{ whiteSpace: 'nowrap' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
-                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{Number(p.amount).toFixed(2)}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(p.amount)}</td>
                               <td>{p.payment_method || '—'}</td>
                               <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.reference_number || '—'}</td>
                             </tr>
@@ -1108,7 +1118,7 @@ export default function PurchasesPage() {
                       <button key={p.product_id} type="button" style={{ display: 'block', width: '100%', padding: '6px 10px', textAlign: 'left', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontSize: 13 }}
                         onClick={() => handleSelectProduct(p)}>
                         <div style={{ fontWeight: 600 }}>{p.product_name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>SKU: {p.sku} | Cost: {Number(p.cost_price).toFixed(2)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>SKU: {p.sku} | Cost: {formatCurrency(p.cost_price)}</div>
                       </button>
                     ))}
                   </div>
@@ -1123,7 +1133,7 @@ export default function PurchasesPage() {
                     <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>UoM *</label>
                     <select className="input" value={itemForm.uom_id} onChange={(e) => setItemFormVal('uom_id', e.target.value)}>
                       <option value="">Select UoM</option>
-                      {uoms.map((u) => <option key={u.uom_id} value={u.uom_id}>{u.abbreviation || u.uom_name}</option>)}
+                      {uoms.filter((u) => u.is_active || u.uom_id === itemForm.uom_id).map((u) => <option key={u.uom_id} value={u.uom_id}>{u.symbol || u.uom_name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -1142,12 +1152,12 @@ export default function PurchasesPage() {
                   </div>
                 </div>
                 <div style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)', textAlign: 'right', fontWeight: 600 }}>
-                  Line Total: {((parseFloat(itemForm.quantity) || 0) * (parseFloat(itemForm.unit_price) || 0) - (parseFloat(itemForm.discount) || 0)).toFixed(2)}
+                  Line Total: {formatCurrency((parseFloat(itemForm.quantity) || 0) * (parseFloat(itemForm.unit_price) || 0) - (parseFloat(itemForm.discount) || 0))}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-3)' }}>
                   <div>
-                    <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Expiry Date</label>
-                    <input type="date" className="input" value={itemForm.expiry_date} onChange={(e) => setItemFormVal('expiry_date', e.target.value)} />
+                    <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Expiry Date {productMeta[itemForm.product_id]?.expiry_required ? '*' : ''}</label>
+                    <input type="date" className="input" value={itemForm.expiry_date} onChange={(e) => setItemFormVal('expiry_date', e.target.value)} required={!!productMeta[itemForm.product_id]?.expiry_required} />
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Batch #</label>

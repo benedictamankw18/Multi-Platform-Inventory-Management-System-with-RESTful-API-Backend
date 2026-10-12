@@ -608,6 +608,146 @@ input[type='submit'] {
   white-space: nowrap;
 }
 
+/* ---- Sales trend chart ---- */
+.trend-heading {
+  flex-wrap: wrap;
+}
+
+.trend-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  background: var(--bg);
+}
+
+.segmented__btn {
+  border: none;
+  background: transparent;
+  color: var(--secondary);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold, 600);
+  padding: 4px 10px;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.segmented__btn:hover {
+  color: var(--text-primary);
+}
+
+.segmented__btn--active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.trend-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.trend-stat {
+  display: grid;
+  gap: 2px;
+}
+
+.trend-stat span {
+  font-size: var(--text-caption);
+  color: var(--secondary);
+}
+
+.trend-stat strong {
+  font-size: var(--text-h5, 1.1rem);
+  color: var(--text-primary);
+}
+
+.trend-up {
+  color: var(--success);
+}
+
+.trend-down {
+  color: var(--danger);
+}
+
+.trend-chart {
+  position: relative;
+  width: 100%;
+}
+
+.trend-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.trend-axis-label {
+  fill: var(--secondary);
+  font-size: 10px;
+}
+
+.trend-guide {
+  stroke: var(--secondary);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.trend-bar {
+  opacity: 0.85;
+}
+
+.trend-bar--active {
+  opacity: 1;
+}
+
+.trend-tooltip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  font-size: var(--text-caption);
+  color: var(--text-primary);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.trend-tooltip strong {
+  color: var(--text-primary);
+}
+
+.trend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@media (max-width: 720px) {
+  .trend-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ---- Metric cards (KPI) ---- */
 .metrics-grid {
   display: grid;

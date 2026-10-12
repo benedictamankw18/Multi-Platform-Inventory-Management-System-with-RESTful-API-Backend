@@ -647,28 +647,47 @@ export async function uploadCategoryImage(categoryId: string, file: File) {
 export type UnitOfMeasure = {
   uom_id: string
   uom_name: string
-  abbreviation: string
+  description: string | null
+  symbol: string | null
+  conversion_factor: number
   is_active: boolean
+  created_at?: string
+  updated_at?: string
 }
 
-export async function getUnitsOfMeasure() {
-  const { data } = await api.get('/units-of-measure')
+export async function getUnitsOfMeasure(params?: Record<string, unknown>) {
+  const { data } = await api.get('/units-of-measure', { params })
   return data
+}
+
+export async function getUnitOfMeasure(id: string) {
+  const { data } = await api.get(`/units-of-measure/${id}`)
+  return data.data
 }
 
 export async function createUnitOfMeasure(body: Record<string, unknown>) {
   const { data } = await api.post('/units-of-measure', body)
-  return data
+  return data.data
 }
 
 export async function updateUnitOfMeasure(id: string, body: Record<string, unknown>) {
   const { data } = await api.put(`/units-of-measure/${id}`, body)
-  return data
+  return data.data
 }
 
 export async function deleteUnitOfMeasure(id: string) {
   const { data } = await api.delete(`/units-of-measure/${id}`)
-  return data
+  return data.data
+}
+
+export async function activateUnitOfMeasure(id: string) {
+  const { data } = await api.post(`/units-of-measure/${id}/activate`)
+  return data.data
+}
+
+export async function deactivateUnitOfMeasure(id: string) {
+  const { data } = await api.post(`/units-of-measure/${id}/deactivate`)
+  return data.data
 }
 
 // ---- Suppliers -------------------------------------------------------------
@@ -1205,6 +1224,40 @@ export async function getProfitReport(params?: { startDate?: string; endDate?: s
   return data.data
 }
 
+export type SalesTrendPoint = {
+  bucket: string
+  revenue: number
+  orders: number
+  profit: number
+}
+
+export type SalesTrendTotals = {
+  revenue: number
+  orders: number
+  profit: number
+}
+
+export type SalesTrendGranularity = 'day' | 'week' | 'month'
+
+export type SalesTrendResponse = {
+  granularity: SalesTrendGranularity
+  startDate: string
+  endDate: string
+  points: SalesTrendPoint[]
+  totals: SalesTrendTotals
+  previous: SalesTrendTotals
+}
+
+export async function getSalesTrend(params: {
+  startDate: string
+  endDate: string
+  granularity?: SalesTrendGranularity
+  branchId?: string
+}) {
+  const { data } = await api.get<{ data: SalesTrendResponse }>('/reports/sales-trend', { params })
+  return data.data
+}
+
 export type AnnualSalesItem = {
   year: string
   transactions: number
@@ -1301,8 +1354,23 @@ export type ProductBatch = {
   updated_at: string
 }
 
-export async function getBatches(params?: { product_id?: string; branch_id?: string; status?: string; page?: number; limit?: number }) {
-  const { data } = await api.get<{ items: ProductBatch[]; total: number }>('/batches', { params })
+export type ProductBatchRow = ProductBatch & {
+  product_name?: string | null
+  sku?: string | null
+  branch_name?: string | null
+  days_to_expiry?: number | null
+}
+
+export async function getBatches(params?: {
+  product_id?: string
+  branch_id?: string
+  status?: string
+  expiringWithinDays?: number
+  includeEmpty?: boolean
+  page?: number
+  limit?: number
+}) {
+  const { data } = await api.get<{ items: ProductBatchRow[]; total: number }>('/batches', { params })
   return data
 }
 

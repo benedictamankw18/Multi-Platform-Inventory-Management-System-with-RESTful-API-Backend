@@ -7,11 +7,13 @@
 
 const productRepo = require('../repositories/product.repository');
 const productBranchInventoryRepo = require('../repositories/productBranchInventory.repository');
+const productBatchRepo = require('../repositories/productBatch.repository');
 const auditRepo = require('../repositories/audit.repository');
 const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const priceHistoryService = require('./priceHistory.service');
+const productBatchService = require('./productBatch.service');
 
 function toNumber(v, fallback) {
   if (v === undefined || v === null || v === '') return fallback;
@@ -74,6 +76,40 @@ async function upsertBranchInventory(client, productId, payload) {
   }, client);
 }
 
+/**
+ * When a product is switched to expiry-tracked, any stock recorded while it was
+ * untracked has no batch row. The batch ledger invariant
+ *   SUM(product_batches.quantity_on_hand WHERE status IN ('ACTIVE','EXPIRED'))
+ *     = product_branch_inventory.quantity_on_hand
+ * would therefore be broken (FEFO and the expiry report would ignore that stock).
+ * Fill the uncovered difference for each branch with a sentinel (never-expiring)
+ * batch, mirroring the sentinel fill already used by allocateFefo.
+ */
+async function backfillSentinelBatches(client, product, actorId) {
+  const inventories = await productBranchInventoryRepo.listInventoriesByProduct(product.product_id, client);
+  for (const inv of inventories) {
+    const aggregate = toNumber(inv.quantity_on_hand, 0);
+    if (aggregate <= 0) continue;
+
+    const covered = await productBatchRepo.sumOnHand(product.product_id, inv.branch_id, client);
+    const gap = aggregate - covered;
+    if (gap <= 0) continue;
+
+    await productBatchRepo.addStock(
+      {
+        product_id: product.product_id,
+        branch_id: inv.branch_id,
+        batch_number: null,
+        expiry_date: null,
+        quantity: gap,
+        cost_price: product.cost_price,
+        created_by: actorId,
+      },
+      client,
+    );
+  }
+}
+
 exports.createProduct = async (payload, actorId = null) => {
   // Basic required fields
   const {
@@ -107,6 +143,7 @@ exports.createProduct = async (payload, actorId = null) => {
       await client.query('BEGIN');
       created = await productRepo.createProduct({ productId, sku, productName, baseUomId, ...payload, barcode: resolvedBarcode }, client);
       await upsertBranchInventory(client, created.product_id, payload);
+      await productBatchService.reconcileBatchLedger(client, { product: created, branch_id: payload.branch_id });
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');
@@ -153,14 +190,59 @@ exports.updateProduct = async (productId, fields, actorId = null) => {
     if (dup) throw new AppError('Another product already uses this barcode.', { status: 409 });
   }
 
-  const updated = await productRepo.updateProduct(productId, fields);
-  if (fields.branch_id) {
-    await upsertBranchInventory(db, productId, fields);
+  // Flipping expiry tracking on must also seed the batch ledger so the
+  // aggregate and ledger stay in sync. Run the product update, the optional
+  // branch-inventory upsert and the sentinel backfill in one transaction.
+  const toggledExpiryOn =
+    !existing.expiry_required &&
+    (fields.expiry_required === true || fields.expiry_required === 'true');
+
+  let updated;
+  if (toggledExpiryOn) {
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      updated = await productRepo.updateProduct(productId, fields, client);
+      if (fields.branch_id) {
+        await upsertBranchInventory(client, productId, fields);
+      }
+      await backfillSentinelBatches(client, updated, actorId);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } else {
+    if (fields.branch_id) {
+      // Direct branch-inventory edit: keep the batch ledger in step with the
+      // new aggregate in the same transaction.
+      const client = await db.connect();
+      try {
+        await client.query('BEGIN');
+        updated = await productRepo.updateProduct(productId, fields, client);
+        await upsertBranchInventory(client, productId, fields);
+        await productBatchService.reconcileBatchLedger(client, { product: updated, branch_id: fields.branch_id });
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    } else {
+      updated = await productRepo.updateProduct(productId, fields);
+    }
   }
   await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT', 'PRODUCT', productId, fields);
 
-  const priceFields = ['retail_price', 'cost_price', 'wholesale_price'];
-  for (const field of priceFields) {
+  const priceFields = {
+    retail_price: 'RETAIL',
+    cost_price: 'COST',
+    wholesale_price: 'WHOLESALE',
+  };
+  for (const [field, priceType] of Object.entries(priceFields)) {
     if (field in fields && Number(fields[field]) !== Number(existing[field] || 0)) {
       const oldVal = existing[field] != null ? Number(existing[field]) : null;
       const newVal = Number(fields[field]);
@@ -169,6 +251,8 @@ exports.updateProduct = async (productId, fields, actorId = null) => {
         old_price: oldVal,
         price: newVal,
         changed_by: actorId,
+        price_type: priceType,
+        source: 'MANUAL',
       }).catch((e) => console.error('price history error', e.message));
     }
   }

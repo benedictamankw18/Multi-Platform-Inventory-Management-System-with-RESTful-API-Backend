@@ -15,6 +15,12 @@
  * process (observed at boot on offline/DNS-blocked machines). Instead we
  * manage the database file ourselves and open it directly with `maxmind`,
  * so geolocation degrades to null instead of crashing the server.
+ *
+ * The first run may need to download the database. That load happens in the
+ * background (triggered at boot by warmUpGeoip) and is never awaited by a
+ * request: resolveLocation returns null until the reader is ready, so a slow
+ * or unreachable mirror cannot stall login. A bounded timeout + cooldown stops
+ * a hung download from retrying on every request.
  */
 
 const maxmind = require('maxmind');
@@ -37,7 +43,23 @@ const PACKAGE_DB_DIR = path.resolve(
 );
 const PACKAGE_DB_PATH = path.join(PACKAGE_DB_DIR, `${DB_NAME}.mmdb`);
 
-let readerPromise = null;
+// Give up on a slow/unreachable download so it can be retried later; requests
+// are never blocked on it either way.
+const LOAD_TIMEOUT_MS = 60 * 1000;
+const RETRY_COOLDOWN_MS = 10 * 60 * 1000;
+
+let reader = null;
+let loading = false;
+let nextRetryAt = 0;
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    if (timer.unref) timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 async function ensureDatabase() {
   if (fs.existsSync(DB_PATH)) return DB_PATH;
@@ -49,43 +71,49 @@ async function ensureDatabase() {
     return DB_PATH;
   }
 
-  // Fresh download. Awaited + caught here so an offline first run cannot
-  // reject the caller or leave an orphaned (crash-prone) promise behind.
+  // Fresh download.
   await fsp.mkdir(STORAGE_DIR, { recursive: true });
   const geolite2 = await import('geolite2-redist');
   await geolite2.downloadDbs({ dbList: [DB_NAME], path: STORAGE_DIR });
   return DB_PATH;
 }
 
-function loadReader() {
-  return (async () => {
+// Kick off a single background load attempt. Never awaited by a request path.
+function startLoading() {
+  if (reader || loading) return;
+  if (Date.now() < nextRetryAt) return;
+
+  loading = true;
+  (async () => {
     try {
-      const dbPath = await ensureDatabase();
-      return await maxmind.open(dbPath);
+      const dbPath = await withTimeout(ensureDatabase(), LOAD_TIMEOUT_MS, 'geoip download');
+      reader = await withTimeout(maxmind.open(dbPath), 10000, 'geoip open');
+      console.log('[geoip] GeoLite2 database ready');
     } catch (err) {
-      // Transient failure (e.g. first-run download while offline): drop the
-      // cached promise so the next call retries, but do not reject callers.
-      console.error('[geoip] failed to open GeoLite2 database:', err && err.message);
-      readerPromise = null;
-      return null;
+      // Transient failure (offline first run, slow mirror): schedule a retry.
+      console.error('[geoip] failed to load GeoLite2 database:', err && err.message);
+      nextRetryAt = Date.now() + RETRY_COOLDOWN_MS;
+    } finally {
+      loading = false;
     }
   })();
 }
 
-function getReader() {
-  if (!readerPromise) readerPromise = loadReader();
-  return readerPromise;
-}
-
 async function warmUpGeoip() {
-  await getReader();
+  startLoading();
 }
 
 async function resolveLocation(ip) {
   if (!ip || typeof ip !== 'string') return null;
+
+  // Never block the caller on the initial download: if the reader is not ready,
+  // ensure a load is in flight and return null for now.
+  if (!reader) {
+    startLoading();
+    return null;
+  }
+
   try {
-    const reader = await getReader();
-    if (!reader) return null;
     const record = reader.get(ip);
     if (!record) return null;
     const city = record.city && record.city.names && record.city.names.en;

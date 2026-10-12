@@ -1,8 +1,11 @@
 const userBranchService = require('../services/userBranch.service');
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[userBranch.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 exports.createUserBranch = async (req, res) => {

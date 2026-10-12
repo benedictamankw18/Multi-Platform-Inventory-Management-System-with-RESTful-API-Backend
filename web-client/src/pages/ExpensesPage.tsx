@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
@@ -37,6 +38,7 @@ const TEMPLATE_HEADERS = ['Category', 'Amount', 'Date', 'Notes']
 export default function ExpensesPage() {
   const { toast } = useToast()
   const { hasPermission, selectedBranch } = useAuth()
+  const { currency, formatCurrency } = useCurrency()
 
   const [items, setItems] = useState<Expense[]>([])
   const [total, setTotal] = useState(0)
@@ -281,7 +283,7 @@ export default function ExpensesPage() {
         Date: ex.expense_date ? new Date(ex.expense_date).toLocaleDateString() : '',
         Category: catMap[ex.category ?? ''] ?? ex.category,
         Description: ex.description ?? '',
-        Amount: Number(ex.amount).toFixed(2),
+        [`Amount (${currency})`]: Number(ex.amount).toFixed(2),
         Branch: branchMap[ex.branch_id ?? ''] ?? ex.branch_id,
       }))
       const ws = XLSX.utils.json_to_sheet(rows)
@@ -300,7 +302,7 @@ export default function ExpensesPage() {
         Date: ex.expense_date ? new Date(ex.expense_date).toLocaleDateString() : '',
         Category: catMap[ex.category ?? ''] ?? ex.category,
         Description: ex.description ?? '',
-        Amount: Number(ex.amount).toFixed(2),
+        [`Amount (${currency})`]: Number(ex.amount).toFixed(2),
         Branch: branchMap[ex.branch_id ?? ''] ?? ex.branch_id,
       }))
       const ws = XLSX.utils.json_to_sheet(rows)
@@ -325,7 +327,7 @@ export default function ExpensesPage() {
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
       autoTable(doc, {
         startY: 34,
-        head: [['Date', 'Category', 'Description', 'Amount', 'Branch']],
+        head: [['Date', 'Category', 'Description', `Amount (${currency})`, 'Branch']],
         body: data.map((ex: Expense) => [
           ex.expense_date ? new Date(ex.expense_date).toLocaleDateString() : '',
           catMap[ex.category ?? ''] ?? ex.category,
@@ -519,7 +521,7 @@ export default function ExpensesPage() {
                   <td style={{ whiteSpace: 'nowrap' }}>{ex.expense_date ? new Date(ex.expense_date).toLocaleDateString() : '—'}</td>
                   <td><span className="badge badge--info">{catMap[ex.category ?? ''] ?? '—'}</span></td>
                   <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.description || '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(ex.amount).toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(ex.amount)}</td>
                   <td>{branchMap[ex.branch_id ?? ''] ?? '—'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
@@ -606,7 +608,7 @@ export default function ExpensesPage() {
               {[
                 ['Date', viewing.expense_date ? new Date(viewing.expense_date).toLocaleDateString() : '—'],
                 ['Category', catMap[viewing.category ?? ''] ?? '—'],
-                ['Amount', `${Number(viewing.amount).toFixed(2)}`],
+                ['Amount', formatCurrency(viewing.amount)],
                 ['Branch', branchMap[viewing.branch_id ?? ''] ?? '—'],
               ].map(([label, val]) => (
                 <div key={label} style={{ padding: 'var(--space-3)', background: 'var(--bg)', borderRadius: 'var(--radius-button)', border: '1px solid var(--border)' }}>

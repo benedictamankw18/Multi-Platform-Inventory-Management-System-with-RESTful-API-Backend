@@ -195,9 +195,12 @@ async function count(req, res, next) {
   }
 }
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[audit.controller]', err.message);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 // ---------------------------------------------------------------------------

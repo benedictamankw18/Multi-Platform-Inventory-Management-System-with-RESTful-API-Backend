@@ -87,6 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
+  // The API layer emits `auth:expired` when a refresh fails or a token is
+  // rejected (after clearing persisted tokens). Reset in-memory state so
+  // ProtectedRoute redirects to /login instead of rendering protected pages
+  // that would fire a flood of unauthenticated requests.
+  useEffect(() => {
+    const handleExpired = () => {
+      setUser(null)
+      setSelectedBranch(null)
+      setBranches([])
+      setPermissions([])
+      localStorage.removeItem('selectedBranch')
+    }
+    window.addEventListener('auth:expired', handleExpired)
+    return () => window.removeEventListener('auth:expired', handleExpired)
+  }, [])
+
   const loadPermissions = useCallback(async () => {
     try {
       const res = await api.getMyPermissions()

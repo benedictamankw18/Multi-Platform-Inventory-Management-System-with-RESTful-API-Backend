@@ -9,30 +9,33 @@ import './Layout.css'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: 'home', permission: 'VIEW_DASHBOARD' },
-  { to: '/sync', label: 'Sync & Offline', icon: 'refresh-cw', permission: '' },
-  { to: '/products', label: 'Products', icon: 'package', permission: 'VIEW_PRODUCTS' },
+  { to: '/sync', label: 'Sync & Offline', icon: 'refresh-cw', permission: 'VIEW_SYNC_PAGE' },
+  { to: '/products', label: 'Products', icon: 'package', permission: 'VIEW_PRODUCTS_PAGE' },
   { to: '/categories', label: 'Categories', icon: 'layers', permission: 'VIEW_CATEGORIES' },
+  { to: '/units-of-measure', label: 'Units of Measure', icon: 'ruler', permission: 'VIEW_CATEGORIES' },
   { to: '/inventory', label: 'Inventory', icon: 'box', permission: 'VIEW_INVENTORY' },
   { to: '/inventory/movements', label: 'Stock Movements', icon: 'repeat', permission: 'MANAGE_INVENTORY' },
   { to: '/inventory/history', label: 'Stock History', icon: 'clock', permission: 'VIEW_INVENTORY' },
   { to: '/inventory/low-stock', label: 'Low Stock Alerts', icon: 'alert-triangle', permission: 'VIEW_INVENTORY' },
+  { to: '/batches', label: 'Batches', icon: 'barcode', permission: 'VIEW_INVENTORY' },
   { to: '/transfers', label: 'Transfers', icon: 'repeat', permission: 'VIEW_INVENTORY' },
   { to: '/sales', label: 'Sales', icon: 'shopping-cart', permission: 'VIEW_SALES' },
   { to: '/pos', label: 'POS', icon: 'monitor', permission: 'CREATE_SALE' },
   { to: '/purchases', label: 'Purchase Orders', icon: 'truck', permission: 'VIEW_PURCHASES' },
   { to: '/suppliers', label: 'Suppliers', icon: 'users', permission: 'VIEW_SUPPLIERS' },
-  { to: '/customers', label: 'Customers', icon: 'user', permission: 'VIEW_CUSTOMERS' },
+  { to: '/customers', label: 'Customers', icon: 'user', permission: 'VIEW_CUSTOMERS_PAGE' },
   { to: '/branches', label: 'Branches', icon: 'map-pin', permission: 'MANAGE_BRANCHES' },
   { to: '/expenses', label: 'Expenses', icon: 'credit-card', permission: 'VIEW_EXPENSES' },
-  { to: '/reports', label: 'Reports', icon: 'bar-chart', permission: 'VIEW_REPORTS' },
+  { to: '/reports', label: 'Reports', icon: 'bar-chart', permission: 'VIEW_REPORTS_PAGE' },
+  { to: '/expiry-report', label: 'Expiry Report', icon: 'clock', permission: 'VIEW_REPORTS_PAGE' },
   { to: '/users', label: 'Users', icon: 'users', permission: 'MANAGE_USERS' },
   { to: '/roles', label: 'Roles', icon: 'shield', permission: 'MANAGE_USERS' },
   { to: '/notifications', label: 'Notifications', icon: 'bell', permission: '' },
   { to: '/notifications/create', label: 'Create Notification', icon: 'send', permission: 'MANAGE_NOTIFICATIONS' },
   { to: '/profile', label: 'My Profile', icon: 'user-circle', permission: '' },
-  { to: '/audit', label: 'Audit Logs', icon: 'file-text', permission: 'VIEW_AUDIT_LOGS' },
-  { to: '/sync/logs', label: 'Sync Logs', icon: 'refresh-cw', permission: 'VIEW_AUDIT_LOGS' },
-  { to: '/price-history', label: 'Price History', icon: 'trending-up', permission: 'VIEW_PRODUCTS' },
+  { to: '/audit', label: 'Audit Logs', icon: 'file-text', permission: 'VIEW_AUDIT_LOGS_PAGE' },
+  { to: '/sync/logs', label: 'Sync Logs', icon: 'refresh-cw', permission: 'VIEW_AUDIT_LOGS_PAGE' },
+  { to: '/price-history', label: 'Price History', icon: 'trending-up', permission: 'VIEW_PRODUCTS_PAGE' },
   { to: '/admin/queue', label: 'Message Queue', icon: 'inbox', permission: 'MANAGE_SETTINGS' },
   { to: '/admin/sms-balance', label: 'SMS Balance', icon: 'message-square', permission: 'MANAGE_SETTINGS' },
   { to: '/business-settings', label: 'Business Settings', icon: 'briefcase', permission: 'MANAGE_SETTINGS' },
@@ -43,6 +46,7 @@ const iconMap: Record<string, string> = {
   home: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1',
   package: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
   layers: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  ruler: 'M21.3 15.3a2.4 2.4 0 010 3.4l-2.6 2.6a2.4 2.4 0 01-3.4 0L2.7 8.7a2.41 2.41 0 010-3.4l2.6-2.6a2.41 2.41 0 013.4 0zm-6.8-2.8l2-2m-5-1l2-2m-5-1l2-2m7 7l2-2',
   box: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
   'shopping-cart': 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z',
   monitor: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
@@ -69,6 +73,7 @@ const iconMap: Record<string, string> = {
   send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
   'user-circle': 'M5.121 17.804A9 9 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0zm-3 5c-2.21 0-4.21.895-5.657 2.343m11.314 0A7.962 7.962 0 0112 19c-1.48 0-2.86.402-4.043 1.104M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   'message-square': 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  barcode: 'M4 6v12M8 6v12M11 6v12M15 6v12M19 6v12',
 }
 
 function Icon({ name }: { name: string }) {
@@ -156,15 +161,17 @@ export default function Layout() {
             )}
           </button>
           <div className="layout__topbar-right">
-            <button
-              type="button"
-              className={`sync-pill${isOnline ? ' sync-pill--online' : ' sync-pill--offline'}`}
-              onClick={() => navigate('/sync')}
-              title={isOnline ? 'Online — sync is up to date' : `Offline — ${pendingCount} change(s) pending sync`}
-            >
-              <span className="sync-pill__dot" />
-              {isOnline ? 'Online' : `Offline${pendingCount ? ` · ${pendingCount}` : ''}`}
-            </button>
+            {hasPermission('VIEW_SYNC_PAGE') && (
+              <button
+                type="button"
+                className={`sync-pill${isOnline ? ' sync-pill--online' : ' sync-pill--offline'}`}
+                onClick={() => navigate('/sync')}
+                title={isOnline ? 'Online — sync is up to date' : `Offline — ${pendingCount} change(s) pending sync`}
+              >
+                <span className="sync-pill__dot" />
+                {isOnline ? 'Online' : `Offline${pendingCount ? ` · ${pendingCount}` : ''}`}
+              </button>
+            )}
             {selectedBranch && (
               <button type="button" className="layout__topbar-branch" onClick={() => { clearBranch(); navigate('/select-branch') }} title="Switch branch">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M19 12H5m7-7l-7 7 7 7" /></svg>

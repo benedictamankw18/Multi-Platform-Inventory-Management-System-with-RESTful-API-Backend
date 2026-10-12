@@ -76,6 +76,15 @@ const errorHandler  = require('./middleware/error.middleware');
 
 const app = express();
 
+// When running behind a reverse proxy (e.g. nginx in Docker), trust its
+// X-Forwarded-For so req.ip, login history, and rate limiting see the real
+// client instead of the proxy. Unset = direct connections (local dev).
+// Set TRUST_PROXY=1 (one proxy hop) for the containerised deployment.
+if (process.env.TRUST_PROXY) {
+  const trustProxy = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isNaN(trustProxy) ? process.env.TRUST_PROXY : trustProxy);
+}
+
 // ---------------------------------------------------------------------------
 // 1. Security headers + CORS
 // ---------------------------------------------------------------------------

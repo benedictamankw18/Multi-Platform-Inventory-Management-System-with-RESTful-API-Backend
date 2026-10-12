@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import { useToast } from '../contexts/ToastContext'
 import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
@@ -40,6 +41,7 @@ type Tab = 'overview' | 'sales' | 'profit' | 'inventory' | 'purchases' | 'best-s
 export default function ReportsPage() {
   const { selectedBranch, hasPermission } = useAuth()
   const { toast } = useToast()
+  const { currency, formatCurrency } = useCurrency()
   const [tab, setTab] = useState<Tab>('overview')
   const resolvedBranch = selectedBranch?.branch_id
 
@@ -124,7 +126,7 @@ export default function ReportsPage() {
     const rows = bpData.map((r) => ({
       Branch: r.branch_name,
       Transactions: r.transactions,
-      'Total Sales': Number(r.total_sales).toFixed(2),
+      [`Total Sales (${currency})`]: Number(r.total_sales).toFixed(2),
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -137,7 +139,7 @@ export default function ReportsPage() {
     const rows = bpData.map((r) => ({
       Branch: r.branch_name,
       Transactions: r.transactions,
-      'Total Sales': Number(r.total_sales).toFixed(2),
+      [`Total Sales (${currency})`]: Number(r.total_sales).toFixed(2),
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const csv = XLSX.utils.sheet_to_csv(ws)
@@ -159,7 +161,7 @@ export default function ReportsPage() {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
     autoTable(doc, {
       startY: 34,
-      head: [['Branch', 'Transactions', 'Total Sales']],
+      head: [['Branch', 'Transactions', `Total Sales (${currency})`]],
       body: bpData.map((r) => [
         r.branch_name,
         String(r.transactions),
@@ -468,10 +470,10 @@ export default function ReportsPage() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-            <KpiCard label="Today's Sales" value={`${ovDaily?.total_sales ? Number(ovDaily.total_sales).toFixed(2) : '0.00'}`} sub={`${ovDaily?.transactions ?? 0} transactions`} accent="var(--primary)" />
-            <KpiCard label="Monthly Sales" value={`${ovMonthly.reduce((s, r) => s + Number(r.total_sales), 0).toFixed(2)}`} sub={`${ovMonthly.reduce((s, r) => s + r.transactions, 0)} transactions`} />
-            <KpiCard label="Annual Sales" value={`${ovAnnual.reduce((s, r) => s + Number(r.total_sales), 0).toFixed(2)}`} sub={`${ovAnnual.reduce((s, r) => s + r.transactions, 0)} transactions`} />
-            <KpiCard label="Profit (YTD)" value={`${ovProfit?.profit ? Number(ovProfit.profit).toFixed(2) : '0.00'}`} accent={ovProfit?.profit != null && Number(ovProfit.profit) < 0 ? 'var(--danger)' : 'var(--success, #16a34a)'} />
+            <KpiCard label="Today's Sales" value={formatCurrency(ovDaily?.total_sales ?? 0)} sub={`${ovDaily?.transactions ?? 0} transactions`} accent="var(--primary)" />
+            <KpiCard label="Monthly Sales" value={formatCurrency(ovMonthly.reduce((s, r) => s + Number(r.total_sales), 0))} sub={`${ovMonthly.reduce((s, r) => s + r.transactions, 0)} transactions`} />
+            <KpiCard label="Annual Sales" value={formatCurrency(ovAnnual.reduce((s, r) => s + Number(r.total_sales), 0))} sub={`${ovAnnual.reduce((s, r) => s + r.transactions, 0)} transactions`} />
+            <KpiCard label="Profit (YTD)" value={formatCurrency(ovProfit?.profit ?? 0)} accent={ovProfit?.profit != null && Number(ovProfit.profit) < 0 ? 'var(--danger)' : 'var(--success, #16a34a)'} />
             <KpiCard label="Low Stock Items" value={`${ovLowStock.length}`} accent={ovLowStock.length > 0 ? 'var(--danger)' : 'var(--success, #16a34a)'} />
             <KpiCard label="Products Tracked" value={`${ovInventory.length}`} />
           </div>
@@ -522,7 +524,7 @@ export default function ReportsPage() {
                     <tr key="daily">
                       <td>{new Date(salesDate).toLocaleDateString()}</td>
                       <td>{salesDaily.transactions}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(salesDaily.total_sales).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(salesDaily.total_sales)}</td>
                     </tr>
                   )
                 ) : salesMode === 'monthly' ? (
@@ -530,7 +532,7 @@ export default function ReportsPage() {
                     <tr key={r.day}>
                       <td>{new Date(r.day).toLocaleDateString()}</td>
                       <td>{r.transactions}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.total_sales).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(r.total_sales)}</td>
                     </tr>
                   ))
                 ) : (
@@ -538,7 +540,7 @@ export default function ReportsPage() {
                     <tr key={r.year}>
                       <td>{r.year}</td>
                       <td>{r.transactions}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.total_sales).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(r.total_sales)}</td>
                     </tr>
                   ))
                 )}
@@ -564,7 +566,7 @@ export default function ReportsPage() {
           ) : !profitData ? (
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24 }}>No profit data available for this period.</p>
           ) : (
-            <KpiCard label="Net Profit" value={Number(profitData.profit).toFixed(2)} accent={profitData.profit < 0 ? 'var(--danger)' : 'var(--success, #16a34a)'} />
+            <KpiCard label="Net Profit" value={formatCurrency(profitData.profit)} accent={profitData.profit < 0 ? 'var(--danger)' : 'var(--success, #16a34a)'} />
           )}
         </div>
       )}
@@ -632,7 +634,7 @@ export default function ReportsPage() {
                   <tr key={r.date + i}>
                     <td>{new Date(r.date).toLocaleDateString()}</td>
                     <td>{r.purchases}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.total_purchased).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(r.total_purchased)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -739,7 +741,7 @@ export default function ReportsPage() {
                   <tr key={r.branch_id}>
                     <td>{r.branch_name || '—'}</td>
                     <td>{r.transactions}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{Number(r.total_sales).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace' }}>{formatCurrency(r.total_sales)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -896,7 +898,7 @@ export default function ReportsPage() {
                     <td>{r.expiry_date ? new Date(r.expiry_date).toLocaleDateString() : '—'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.days_to_expiry) < 0 ? 'var(--danger, #ef4444)' : 'inherit' }}>{Number(r.days_to_expiry)}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.quantity_on_hand)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{Number(r.value_at_cost).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{formatCurrency(r.value_at_cost)}</td>
                     <td><span className={`badge ${expiryBadgeClass(r.expiry_status)}`}>{r.expiry_status}</span></td>
                     {canManageInventory && (
                       <td style={{ textAlign: 'right' }}>

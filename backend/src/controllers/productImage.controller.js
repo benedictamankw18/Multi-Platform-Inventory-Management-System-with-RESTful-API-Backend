@@ -1,15 +1,17 @@
 const productImageService = require('../services/productImage.service');
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[productImage.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
-function resolveImageUrl(req, relativePath) {
-  if (!relativePath) return relativePath;
-  return `${req.protocol}://${req.get('host')}${relativePath}`;
-}
-
+// Image paths are stored (and returned) as relative `/uploads/<file>` URLs, just
+// like the product list's `primary_image_url` and category images. Clients
+// resolve them against the origin they were served from, so they keep working
+// regardless of host, port or reverse proxy (nginx forwards a port-less Host).
 exports.addProductImage = async (req, res) => {
   try {
     if (!req.file) {
@@ -24,8 +26,6 @@ exports.addProductImage = async (req, res) => {
       },
       req.user && req.user.sub
     );
-
-    image.image_url = resolveImageUrl(req, image.image_url);
 
     return res.status(201).json({ image });
   } catch (err) {
@@ -48,8 +48,6 @@ exports.updateProductImage = async (req, res) => {
       req.user && req.user.sub
     );
 
-    image.image_url = resolveImageUrl(req, image.image_url);
-
     return res.status(201).json({ image });
   } catch (err) {
     return handleError(res, err);
@@ -59,9 +57,6 @@ exports.updateProductImage = async (req, res) => {
 exports.getProductImages = async (req, res) => {
   try {
     const images = await productImageService.getProductImages(req.params.id);
-    for (const img of images) {
-      img.image_url = resolveImageUrl(req, img.image_url);
-    }
     return res.status(200).json({ images });
   } catch (err) {
     return handleError(res, err);
@@ -81,7 +76,6 @@ exports.setPrimaryImage = async (req, res) => {
       await productImageService.updateProductImageNoFile(currentPrimary.image_id, { is_primary: false });
     }
     const updated = await productImageService.updateProductImageNoFile(image_id, { is_primary: true });
-    updated.image_url = resolveImageUrl(req, updated.image_url);
     return res.status(200).json({ image: updated });
   } catch (err) {
     return handleError(res, err);
@@ -91,7 +85,6 @@ exports.setPrimaryImage = async (req, res) => {
 exports.deleteProductImage = async (req, res) => {
   try {
     const image = await productImageService.deleteProductImage(req.params.id, req.user && req.user.sub);
-    image.image_url = resolveImageUrl(req, image.image_url);
     return res.status(200).json({ image });
   } catch (err) {
     return handleError(res, err);

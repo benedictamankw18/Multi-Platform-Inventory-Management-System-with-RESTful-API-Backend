@@ -1,34 +1,22 @@
+/**
+ * error.middleware.js
+ *
+ * Central error handler. The full technical error is kept in the server logs
+ * (console.error) for debugging, but the client only ever receives a safe,
+ * plain-language message produced by utils/httpError.describeError.
+ */
+
+const { describeError } = require('../utils/httpError');
+
 module.exports = (err, req, res, next) => {
+    // Full technical detail stays in the server logs for debugging.
     console.error(err);
 
-    // PostgreSQL Unique Constraint
-    if (err.code === "23505") {
-        return res.status(409).json({
-            success: false,
-            message: "Duplicate record.",
-            detail: err.detail
-        });
-    }
+    const { status, message, code } = describeError(err);
 
-    // PostgreSQL Foreign Key Constraint
-    if (err.code === "23503") {
-        return res.status(409).json({
-            success: false,
-            message: "Operation violates database constraints.",
-            detail: err.detail
-        });
-    }
-
-    // PostgreSQL Invalid Input
-    if (err.code === "22P02") {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid input."
-        });
-    }
-
-    return res.status(err.status || 500).json({
+    return res.status(status).json({
         success: false,
-        message: err.message || "Internal Server Error."
+        ...(code ? { code } : {}),
+        message,
     });
 };

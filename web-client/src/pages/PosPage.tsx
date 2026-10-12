@@ -3,6 +3,7 @@ import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import { useOffline } from '../contexts/OfflineContext'
 import ConfirmModal from '../components/ConfirmModal'
 import {
@@ -145,13 +146,14 @@ function validateSaleAmounts(
   return null
 }
 
-function formatPrice(n: number, currency = 'GHS'): string {
+function formatPrice(n: number, currency: string): string {
   return `${currency} ${n.toFixed(2)}`
 }
 
 export default function PosPage() {
   const { toast } = useToast()
   const { selectedBranch, user } = useAuth()
+  const { currency } = useCurrency()
   const searchRef = useRef<HTMLInputElement>(null)
   const barcodeRef = useRef<SVGSVGElement>(null)
 
@@ -241,10 +243,9 @@ export default function PosPage() {
     const receiptNum = receiptData.receipt?.receipt_number || ''
     const invoiceNum = saleData?.invoice_number || ''
     const total = Number(saleData?.total_amount ?? 0)
-    const currency = businessInfo.currency || 'GHS'
     const text = `Invoice: ${invoiceNum}\nReceipt: ${receiptNum}\nTotal: ${currency} ${total.toFixed(2)}\nDate: ${saleData?.sale_date || ''}`
     QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [receiptData, businessInfo.currency])
+  }, [receiptData, currency])
 
   // Default paper size comes from the printer_type system setting
   useEffect(() => {
@@ -874,7 +875,6 @@ export default function PosPage() {
 
   const receiptItems: ReceiptItem[] = receiptData?.sale?.items ?? []
   const sale = receiptData?.sale ?? lastSale
-  const currency = businessInfo.currency || 'GHS'
   const fmt = (n: number) => formatPrice(n, currency)
   const totalPaid = receiptData?.sale?.payments?.reduce((sum, p) => sum + Number(p.amount), 0)
     ?? Number(sale?.amount_paid ?? 0)
@@ -942,14 +942,14 @@ export default function PosPage() {
                           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.sku}{p.barcode ? ` · ${p.barcode}` : ''}</div>
                           {hasWholesale && (
                             <div style={{ fontSize: 11, color: 'var(--text-secondary)', opacity: 0.7 }}>
-                              Wholesale: {formatPrice(wholesale)} (min {wholesaleMin})
+                              Wholesale: {formatPrice(wholesale, currency)} (min {wholesaleMin})
                             </div>
                           )}
                         </div>
                         <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>{formatPrice(retail)}</div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{formatPrice(retail, currency)}</div>
                           {hasWholesale && (
-                            <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 500 }}>{formatPrice(wholesale)} ea @{wholesaleMin}+</div>
+                            <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 500 }}>{formatPrice(wholesale, currency)} ea @{wholesaleMin}+</div>
                           )}
                         </div>
                       </button>
@@ -988,7 +988,7 @@ export default function PosPage() {
                     <div style={{ fontSize: 13, fontWeight: 500, color: '#d97706' }}>{s.customerName}</div>
                     {s.note && <div style={{ fontSize: 11, color: '#92400e', fontStyle: 'italic', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{s.note}"</div>}
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      {s.cart.length} item{s.cart.length !== 1 ? 's' : ''} · {formatPrice(s.cart.reduce((sum, i) => sum + i.quantity * i.unit_price - i.line_discount + i.tax_amount, 0))}
+                      {s.cart.length} item{s.cart.length !== 1 ? 's' : ''} · {formatPrice(s.cart.reduce((sum, i) => sum + i.quantity * i.unit_price - i.line_discount + i.tax_amount, 0), currency)}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                       <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{new Date(s.savedAt).toLocaleDateString()}</span>
@@ -1057,7 +1057,7 @@ export default function PosPage() {
                               )}
                               {hasBothPrices && (
                                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', opacity: 0.7, marginTop: 1 }}>
-                                  Retail: {formatPrice(retailPrice)} · Wholesale: {formatPrice(wholesalePrice)} ({wholesaleMin}+)
+                                  Retail: {formatPrice(retailPrice, currency)} · Wholesale: {formatPrice(wholesalePrice, currency)} ({wholesaleMin}+)
                                 </div>
                               )}
                             </div>
@@ -1065,7 +1065,7 @@ export default function PosPage() {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: 600, fontSize: 14, color: isWholesale ? 'var(--secondary)' : 'var(--text-primary)' }}>
-                            {formatPrice(item.unit_price)}
+                            {formatPrice(item.unit_price, currency)}
                           </div>
                           {isWholesale && (
                             <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 500 }}>WHOLESALE</div>
@@ -1209,23 +1209,23 @@ export default function PosPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span>{formatPrice(subtotal, currency)}</span>
               </div>
               {totalDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14, color: '#16a34a' }}>
                   <span>Discount</span>
-                  <span>-{formatPrice(totalDiscount)}</span>
+                  <span>-{formatPrice(totalDiscount, currency)}</span>
                 </div>
               )}
               {totalTax > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Tax</span>
-                  <span>{formatPrice(totalTax)}</span>
+                  <span>{formatPrice(totalTax, currency)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '2px solid var(--border)', fontSize: 20, fontWeight: 700 }}>
                 <span>Total</span>
-                <span>{formatPrice(total)}</span>
+                <span>{formatPrice(total, currency)}</span>
               </div>
             </div>
 
@@ -1242,7 +1242,7 @@ export default function PosPage() {
                         <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontWeight: 500 }}>
                           {PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}
                         </span>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>{formatPrice(p.amount)}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>{formatPrice(p.amount, currency)}</span>
                       </div>
                       <button type="button" onClick={() => removePayment(i)}
                         style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 2, lineHeight: 1 }}>
@@ -1297,7 +1297,7 @@ export default function PosPage() {
             {remaining > 0 ? (
               <div style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remaining</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#d97706' }}>{formatPrice(remaining)}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#d97706' }}>{formatPrice(remaining, currency)}</div>
               </div>
             ) : payments.length > 0 && (
               <div style={{ padding: '12px 16px', borderRadius: 8, background: change > 0 ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.08)', border: `1px solid ${change > 0 ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.15)'}` }}>
@@ -1305,7 +1305,7 @@ export default function PosPage() {
                   {change > 0 ? 'Change Due' : 'Fully Paid'}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a' }}>
-                  {change > 0 ? formatPrice(change) : formatPrice(total)}
+                  {change > 0 ? formatPrice(change, currency) : formatPrice(total, currency)}
                 </div>
               </div>
             )}
@@ -1456,7 +1456,7 @@ export default function PosPage() {
                             {s.cart.length} item{s.cart.length !== 1 ? 's' : ''}
                           </span>
                           <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
-                            {formatPrice(total)}
+                            {formatPrice(total, currency)}
                           </span>
                           <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                             {(s.payments ?? []).map((p) => PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method).join(', ') || '—'}
@@ -1525,7 +1525,7 @@ export default function PosPage() {
                           )}
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600 }}>{formatPrice(s.total_amount)}</div>
+                          <div style={{ fontSize: 14, fontWeight: 600 }}>{formatPrice(s.total_amount, currency)}</div>
                           <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--bg)', border: `1px solid ${statusColor}`, color: statusColor, whiteSpace: 'nowrap', textTransform: 'uppercase', fontWeight: 600 }}>
                             {s.status}
                           </span>

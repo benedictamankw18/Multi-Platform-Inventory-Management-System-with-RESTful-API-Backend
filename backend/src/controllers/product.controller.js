@@ -6,9 +6,12 @@
 
 const productService = require('../services/product.service');
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[product.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 exports.createProduct = async (req, res) => {

@@ -23,9 +23,12 @@ const userService = require('../services/user.service');
 const authService = require('../services/auth.service');
 const userBranchRepo = require('../repositories/userBranch.repository');
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[user.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 function actorId(req) {

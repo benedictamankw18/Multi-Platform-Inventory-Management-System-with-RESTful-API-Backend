@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
 import QRCode from 'qrcode'
 import * as XLSX from 'xlsx'
@@ -75,6 +76,7 @@ function normalizeHeader(name: string): string {
 export default function SuppliersPage() {
   const { toast } = useToast()
   const { hasPermission } = useAuth()
+  const { currency } = useCurrency()
   const [items, setItems] = useState<Supplier[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -169,10 +171,10 @@ export default function SuppliersPage() {
 
   useEffect(() => {
     if (!lastPayment) { setQrDataUrl(null); return }
-    const cur = receiptBusinessInfo.currency || 'GHS'
+    const cur = currency
     const text = `Supplier Payment\nSupplier: ${viewing?.supplier_name ?? ''}\nAmount: ${cur} ${Number(lastPayment.amount ?? 0).toFixed(2)}\nMethod: ${lastPayment.payment_method ?? ''}\nDate: ${lastPayment.payment_date ?? ''}\nRef: ${lastPayment.reference_number ?? ''}`
     QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [lastPayment, receiptBusinessInfo.currency])
+  }, [lastPayment, currency])
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -966,7 +968,7 @@ export default function SuppliersPage() {
                 <div style={{ marginBottom: 'var(--space-4)' }}>
                   <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Amount *</label>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid', borderColor: paymentFocused ? 'var(--primary)' : 'var(--border)', borderRadius: 'var(--radius-input)', background: 'var(--bg)', overflow: 'hidden', boxShadow: paymentFocused ? '0 0 0 3px rgba(37, 99, 235, 0.12)' : 'none', transition: 'border-color 150ms ease, box-shadow 150ms ease' }}>
-                    <span style={{ padding: '0 12px', fontSize: 18, fontWeight: 600, color: 'var(--text-secondary)', borderRight: '1px solid var(--border)' }}>{receiptBusinessInfo.currency || 'GHS'}</span>
+                    <span style={{ padding: '0 12px', fontSize: 18, fontWeight: 600, color: 'var(--text-secondary)', borderRight: '1px solid var(--border)' }}>{currency}</span>
                     <input type="number" step="0.01" min="0" value={paymentForm.amount} onChange={(e) => setPaymentForm((p) => ({ ...p, amount: e.target.value }))} placeholder="0.00" autoFocus
                       onFocus={() => setPaymentFocused(true)} onBlur={() => setPaymentFocused(false)}
                       style={{ flex: 1, border: 'none', background: 'transparent', padding: '14px 16px', fontSize: 22, fontWeight: 700, outline: 'none', fontFamily: 'monospace', textAlign: 'right' }} />
@@ -1006,7 +1008,7 @@ export default function SuppliersPage() {
               {paymentForm.amount && parseFloat(paymentForm.amount) > 0 && (
                 <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Paying</span>
-                  <span style={{ fontSize: 18, fontWeight: 700 }}>{receiptBusinessInfo.currency || 'GHS'} {parseFloat(paymentForm.amount).toFixed(2)}</span>
+                  <span style={{ fontSize: 18, fontWeight: 700 }}>{currency} {parseFloat(paymentForm.amount).toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -1131,7 +1133,7 @@ export default function SuppliersPage() {
             <div className="receipt-section receipt-totals">
               <div className="receipt-row receipt-total-row">
                 <span>Amount Paid</span>
-                <span>{(receiptBusinessInfo.currency || 'GHS')} {Number(lastPayment.amount ?? 0).toFixed(2)}</span>
+                <span>{(currency)} {Number(lastPayment.amount ?? 0).toFixed(2)}</span>
               </div>
             </div>
           )}

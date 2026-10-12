@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import { useToast } from '../contexts/ToastContext'
 import ConfirmModal from '../components/ConfirmModal'
 import * as XLSX from 'xlsx'
@@ -55,6 +56,7 @@ const emptyForm = {
 export default function ProductsPage() {
   const { toast } = useToast()
   const { selectedBranch, hasPermission } = useAuth()
+  const { currency, formatCurrency } = useCurrency()
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
   const [showLabels, setShowLabels] = useState(false)
@@ -141,8 +143,20 @@ export default function ProductsPage() {
   }, [])
 
   const catMap = Object.fromEntries(categories.map((c: Category) => [c.category_id, c.category_name]))
-  const uomMap = Object.fromEntries(uoms.map((u: UnitOfMeasure) => [u.uom_id, u.abbreviation || u.uom_name]))
+  const uomMap = Object.fromEntries(uoms.map((u: UnitOfMeasure) => [u.uom_id, u.symbol || u.uom_name]))
   const supMap = Object.fromEntries(suppliers.map((s: Supplier) => [s.supplier_id, s.supplier_name]))
+
+  // Only active units are selectable; a deactivated unit must not be offered in
+  // the pickers. The one already on the record is kept so editing a product that
+  // references a since-deactivated unit doesn't silently drop it.
+  const selectableUoms = (selectedId?: string) => {
+    const active = uoms.filter((u) => u.is_active)
+    if (selectedId && !active.some((u) => u.uom_id === selectedId)) {
+      const current = uoms.find((u) => u.uom_id === selectedId)
+      if (current) return [...active, current]
+    }
+    return active
+  }
 
   function set<K extends keyof typeof emptyForm>(key: K, val: (typeof emptyForm)[K]) {
     setForm((f) => ({ ...f, [key]: val }))
@@ -467,7 +481,7 @@ export default function ProductsPage() {
           if (sup) body.supplier_id = sup.supplier_id
         }
         if (row['Base UoM']) {
-          const uom = uoms.find((u) => (u.abbreviation || u.uom_name).toLowerCase() === String(row['Base UoM']).toLowerCase())
+          const uom = uoms.find((u) => (u.symbol || u.uom_name).toLowerCase() === String(row['Base UoM']).toLowerCase())
           if (uom) body.base_uom_id = uom.uom_id
         }
         if (selectedBranch?.branch_id) {
@@ -520,8 +534,8 @@ export default function ProductsPage() {
         'Category': catMap[p.category_id ?? ''] || '',
         'Supplier': supMap[p.supplier_id ?? ''] || '',
         'Base UoM': uomMap[p.base_uom_id] || '',
-        'Cost Price': p.cost_price,
-        'Retail Price': p.retail_price,
+        [`Cost Price (${currency})`]: p.cost_price,
+        [`Retail Price (${currency})`]: p.retail_price,
         'Tax Rate': p.tax_rate,
         'Minimum Stock': p.minimum_stock,
         'Maximum Stock': p.maximum_stock ?? '',
@@ -781,8 +795,8 @@ export default function ProductsPage() {
                   <td>{p.brand || '—'}</td>
                   <td>{p.category_id ? (catMap[p.category_id] ?? '—') : '—'}</td>
                   <td>{uomMap[p.base_uom_id] ?? '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{p.retail_price != null ? Number(p.retail_price).toFixed(2) : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{p.cost_price != null ? Number(p.cost_price).toFixed(2) : '—'}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(p.retail_price)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(p.cost_price)}</td>
                   <td><span className={`badge ${p.is_active ? 'badge--success' : 'badge--danger'}`}>{p.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -861,8 +875,8 @@ export default function ProductsPage() {
                 {/* Key info */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3) var(--space-4)', alignContent: 'start' }}>
                   <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Status</span><div><span className={`badge ${viewing.is_active ? 'badge--success' : 'badge--danger'}`}>{viewing.is_active ? 'Active' : 'Inactive'}</span></div></div>
-                  <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Retail Price</span><div style={{ fontWeight: 600, fontSize: 'var(--text-h5)' }}>{viewing.retail_price != null ? `$${Number(viewing.retail_price).toFixed(2)}` : '—'}</div></div>
-                  <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Cost Price</span><div>{viewing.cost_price != null ? `$${Number(viewing.cost_price).toFixed(2)}` : '—'}</div></div>
+                  <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Retail Price</span><div style={{ fontWeight: 600, fontSize: 'var(--text-h5)' }}>{formatCurrency(viewing.retail_price)}</div></div>
+                  <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Cost Price</span><div>{formatCurrency(viewing.cost_price)}</div></div>
                   <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Tax Rate</span><div>{viewing.tax_rate != null ? `${viewing.tax_rate}%` : '—'}</div></div>
                   <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>Category</span><div>{catMap[viewing.category_id ?? ''] || '—'}</div></div>
                   <div><span style={{ fontSize: 'var(--text-caption)', color: 'var(--secondary)' }}>UoM</span><div>{uomMap[viewing.base_uom_id ?? ''] || '—'}</div></div>
@@ -1120,7 +1134,7 @@ export default function ProductsPage() {
                   <span>Base UoM {modal === 'create' && '*'}</span>
                   <select value={form.base_uom_id} onChange={(e) => set('base_uom_id', e.target.value)}>
                     <option value="">Select...</option>
-                    {uoms.map((u) => <option key={u.uom_id} value={u.uom_id}>{u.abbreviation || u.uom_name}</option>)}
+                    {selectableUoms(form.base_uom_id).map((u) => <option key={u.uom_id} value={u.uom_id}>{u.symbol || u.uom_name}</option>)}
                   </select>
                 </div>
               </div>
@@ -1137,7 +1151,7 @@ export default function ProductsPage() {
                   <span>Wholesale UoM</span>
                   <select value={form.wholesale_uom_id} onChange={(e) => set('wholesale_uom_id', e.target.value)}>
                     <option value="">None</option>
-                    {uoms.map((u) => <option key={u.uom_id} value={u.uom_id}>{u.abbreviation || u.uom_name}</option>)}
+                    {selectableUoms(form.wholesale_uom_id).map((u) => <option key={u.uom_id} value={u.uom_id}>{u.symbol || u.uom_name}</option>)}
                   </select>
                 </div>
                 <div className="field"><span>Conversion Factor</span><input type="number" step="0.01" min="0" value={form.wholesale_conversion_factor} onChange={(e) => set('wholesale_conversion_factor', e.target.value)} placeholder="e.g. 12" /></div>

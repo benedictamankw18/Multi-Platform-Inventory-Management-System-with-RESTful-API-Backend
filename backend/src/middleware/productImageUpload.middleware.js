@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { describeError } = require('../utils/httpError');
 
 const uploadPath = path.join(process.cwd(), 'uploads');
 const allowedMimeTypes = ['image/png', 'image/jpeg'];
@@ -47,6 +48,15 @@ module.exports = (req, res, next) => {
       return res.status(413).json({ message: 'Image file must be 5MB or smaller.' });
     }
 
-    return res.status(err.status || 400).json({ message: err.message });
+    // Any other multer-level problem (unexpected field, too many files, ...) gets
+    // a plain message rather than multer's raw wording.
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: 'The image could not be uploaded. Please try a different file.' });
+    }
+
+    // Our fileFilter (and anything else) goes through the shared safe-message
+    // helper so no technical text reaches the client.
+    const { status, message } = describeError(err);
+    return res.status(status).json({ message });
   });
 };

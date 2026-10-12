@@ -37,6 +37,11 @@ const PUSH_BLOCKED_ENTITIES = new Set([
   'product-batches',
   'batches',
   'product_batches',
+  // The aggregate is server-authoritative too: it is only ever moved together
+  // with the batch ledger, which happens in server-side transaction paths.
+  'inventories',
+  'inventory',
+  'product_branch_inventory',
 ]);
 
 // Branch-scoped pull filters: which column(s) narrow an entity's rows to a

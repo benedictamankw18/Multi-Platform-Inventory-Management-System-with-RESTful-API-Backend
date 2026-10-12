@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -51,6 +52,7 @@ function normalizeHeader(name: string): string {
 export default function CustomersPage() {
   const { toast } = useToast()
   const { hasPermission } = useAuth()
+  const { formatCurrency } = useCurrency()
   const [items, setItems] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -785,7 +787,7 @@ export default function CustomersPage() {
                           {viewPayments.map((p) => (
                             <tr key={p.payment_id}>
                               <td style={{ whiteSpace: 'nowrap' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
-                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.amount != null ? Number(p.amount).toFixed(2) : '—'}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(p.amount)}</td>
                               <td>{p.payment_method || '—'}</td>
                             </tr>
                           ))}

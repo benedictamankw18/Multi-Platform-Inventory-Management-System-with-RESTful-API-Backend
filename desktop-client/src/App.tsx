@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { OfflineProvider } from './contexts/OfflineContext'
+import { BusinessSettingsProvider } from './contexts/BusinessSettingsContext'
 import Layout from './components/Layout'
 import AuthScreen from './components/AuthScreen'
 import SplashScreen from './components/SplashScreen'
@@ -10,10 +11,12 @@ import DashboardPage from './pages/DashboardPage'
 import SyncPage from './pages/SyncPage'
 import ProductsPage from './pages/ProductsPage'
 import CategoriesPage from './pages/CategoriesPage'
+import UnitsOfMeasurePage from './pages/UnitsOfMeasurePage'
 import InventoryPage from './pages/InventoryPage'
 import StockMovementsPage from './pages/StockMovementsPage'
 import InventoryHistoryPage from './pages/InventoryHistoryPage'
 import LowStockAlertsPage from './pages/LowStockAlertsPage'
+import BatchesPage from './pages/BatchesPage'
 import TransfersPage from './pages/TransfersPage'
 import SalesPage from './pages/SalesPage'
 import PosPage from './pages/PosPage'
@@ -23,6 +26,7 @@ import CustomersPage from './pages/CustomersPage'
 import BranchesPage from './pages/BranchesPage'
 import ExpensesPage from './pages/ExpensesPage'
 import ReportsPage from './pages/ReportsPage'
+import ExpiryReportPage from './pages/ExpiryReportPage'
 import UsersPage from './pages/UsersPage'
 import RolesPage from './pages/RolesPage'
 import NotificationsPage from './pages/NotificationsPage'
@@ -124,30 +128,33 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="sync" element={<SyncPage />} />
-        <Route path="products" element={<PermissionRoute permission="VIEW_PRODUCTS"><ProductsPage /></PermissionRoute>} />
+        <Route path="sync" element={<PermissionRoute permission="VIEW_SYNC_PAGE"><SyncPage /></PermissionRoute>} />
+        <Route path="products" element={<PermissionRoute permission="VIEW_PRODUCTS_PAGE"><ProductsPage /></PermissionRoute>} />
         <Route path="categories" element={<PermissionRoute permission="VIEW_CATEGORIES"><CategoriesPage /></PermissionRoute>} />
+        <Route path="units-of-measure" element={<PermissionRoute permission="VIEW_CATEGORIES"><UnitsOfMeasurePage /></PermissionRoute>} />
         <Route path="inventory" element={<PermissionRoute permission="VIEW_INVENTORY"><InventoryPage /></PermissionRoute>} />
         <Route path="inventory/movements" element={<PermissionRoute permission="MANAGE_INVENTORY"><StockMovementsPage /></PermissionRoute>} />
         <Route path="inventory/history" element={<PermissionRoute permission="VIEW_INVENTORY"><InventoryHistoryPage /></PermissionRoute>} />
         <Route path="inventory/low-stock" element={<PermissionRoute permission="VIEW_INVENTORY"><LowStockAlertsPage /></PermissionRoute>} />
+        <Route path="batches" element={<PermissionRoute permission="VIEW_INVENTORY"><BatchesPage /></PermissionRoute>} />
         <Route path="transfers" element={<PermissionRoute permission="VIEW_INVENTORY"><TransfersPage /></PermissionRoute>} />
         <Route path="sales" element={<PermissionRoute permission="VIEW_SALES"><SalesPage /></PermissionRoute>} />
         <Route path="pos" element={<PermissionRoute permission="CREATE_SALE"><PosPage /></PermissionRoute>} />
         <Route path="purchases" element={<PermissionRoute permission="VIEW_PURCHASES"><PurchasesPage /></PermissionRoute>} />
         <Route path="suppliers" element={<PermissionRoute permission="VIEW_SUPPLIERS"><SuppliersPage /></PermissionRoute>} />
-        <Route path="customers" element={<PermissionRoute permission="VIEW_CUSTOMERS"><CustomersPage /></PermissionRoute>} />
+        <Route path="customers" element={<PermissionRoute permission="VIEW_CUSTOMERS_PAGE"><CustomersPage /></PermissionRoute>} />
         <Route path="branches" element={<PermissionRoute permission="MANAGE_BRANCHES"><BranchesPage /></PermissionRoute>} />
         <Route path="expenses" element={<PermissionRoute permission="VIEW_EXPENSES"><ExpensesPage /></PermissionRoute>} />
-        <Route path="reports" element={<PermissionRoute permission="VIEW_REPORTS"><ReportsPage /></PermissionRoute>} />
+        <Route path="reports" element={<PermissionRoute permission="VIEW_REPORTS_PAGE"><ReportsPage /></PermissionRoute>} />
+        <Route path="expiry-report" element={<PermissionRoute permission="VIEW_REPORTS_PAGE"><ExpiryReportPage /></PermissionRoute>} />
         <Route path="users" element={<PermissionRoute permission="MANAGE_USERS"><UsersPage /></PermissionRoute>} />
         <Route path="roles" element={<PermissionRoute permission="MANAGE_USERS"><RolesPage /></PermissionRoute>} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="notifications/create" element={<PermissionRoute permission="MANAGE_NOTIFICATIONS"><CreateNotificationPage /></PermissionRoute>} />
         <Route path="profile" element={<UserProfilePage />} />
-        <Route path="audit" element={<PermissionRoute permission="VIEW_AUDIT_LOGS"><AuditLogsPage /></PermissionRoute>} />
-        <Route path="sync/logs" element={<PermissionRoute permission="VIEW_AUDIT_LOGS"><SyncLogsPage /></PermissionRoute>} />
-        <Route path="price-history" element={<PermissionRoute permission="VIEW_PRODUCTS"><PriceHistoryPage /></PermissionRoute>} />
+        <Route path="audit" element={<PermissionRoute permission="VIEW_AUDIT_LOGS_PAGE"><AuditLogsPage /></PermissionRoute>} />
+        <Route path="sync/logs" element={<PermissionRoute permission="VIEW_AUDIT_LOGS_PAGE"><SyncLogsPage /></PermissionRoute>} />
+        <Route path="price-history" element={<PermissionRoute permission="VIEW_PRODUCTS_PAGE"><PriceHistoryPage /></PermissionRoute>} />
         <Route path="admin/queue" element={<PermissionRoute permission="MANAGE_SETTINGS"><MessageQueuePage /></PermissionRoute>} />
         <Route path="admin/sms-balance" element={<PermissionRoute permission="MANAGE_SETTINGS"><SmsBalancePage /></PermissionRoute>} />
         <Route path="business-settings" element={<PermissionRoute permission="MANAGE_SETTINGS"><BusinessSettingsPage /></PermissionRoute>} />
@@ -162,14 +169,16 @@ function AppRoutes() {
 function App() {
   return (
     <HashRouter>
-      <OfflineProvider>
-        <AuthProvider>
-          <ToastProvider>
-            <BusinessBranding />
-            <AppRoutes />
-          </ToastProvider>
-        </AuthProvider>
-      </OfflineProvider>
+      <BusinessSettingsProvider>
+        <OfflineProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <BusinessBranding />
+              <AppRoutes />
+            </ToastProvider>
+          </AuthProvider>
+        </OfflineProvider>
+      </BusinessSettingsProvider>
     </HashRouter>
   )
 }
