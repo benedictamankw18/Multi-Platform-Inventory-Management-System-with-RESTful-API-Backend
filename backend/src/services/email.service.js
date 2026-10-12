@@ -2,6 +2,7 @@ const mailConfig = require('../config/mail');
 const businessRepo = require('../repositories/business.repository');
 
 let cachedBusiness = null;
+let warnedNotConfigured = false;
 
 async function getBusinessInfo() {
   if (cachedBusiness) return cachedBusiness;
@@ -86,7 +87,25 @@ function buildLayout(contentHtml, biz) {
 </html>`;
 }
 
+function logFallback({ to, subject, text } = {}) {
+  console.log('EMAIL TO:', to);
+  console.log('SUBJECT:', subject);
+  console.log('TEXT:', text);
+}
+
 async function sendMail({ to, subject, text, html } = {}) {
+  // No SMTP host configured: skip the transport entirely instead of attempting a
+  // connection (which would fail with ECONNREFUSED against localhost). Log the
+  // message so the app keeps working — password-reset links stay retrievable.
+  if (!mailConfig.configured) {
+    if (!warnedNotConfigured) {
+      console.warn('[email.service] Email_HOST is not set — e-mail is disabled; messages will be logged only.');
+      warnedNotConfigured = true;
+    }
+    logFallback({ to, subject, text });
+    return { success: false, error: 'EMAIL_NOT_CONFIGURED' };
+  }
+
   try {
     const nodemailer = require('nodemailer');
     // Implicit TLS (secure: true) on port 465; STARTTLS otherwise. Email_SECURE overrides.
@@ -111,9 +130,7 @@ async function sendMail({ to, subject, text, html } = {}) {
     return { success: true, info };
   } catch (err) {
     console.warn('[email.service] nodemailer not available or send failed, falling back to log. Error:', err && err.message);
-    console.log('EMAIL TO:', to);
-    console.log('SUBJECT:', subject);
-    console.log('TEXT:', text);
+    logFallback({ to, subject, text });
     return { success: false, error: err && err.message };
   }
 }

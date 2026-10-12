@@ -3,6 +3,7 @@
 require('dotenv').config();
 const queueService = require('../services/queue.service');
 const notificationService = require('../services/notification.service');
+const authRepo = require('../repositories/auth.repository');
 
 const LOW_STOCK_SCAN_INTERVAL_MS =
   (Number(process.env.LOW_STOCK_SCAN_INTERVAL_MIN || 30) || 30) * 60 * 1000;
@@ -11,10 +12,14 @@ const EXPIRY_ALERT_SCAN_INTERVAL_MS =
   (Number(process.env.EXPIRY_ALERT_SCAN_INTERVAL_MIN || 1440) || 1440) * 60 * 1000;
 const EXPIRY_ALERT_WINDOW_DAYS = Number(process.env.EXPIRY_ALERT_WINDOW_DAYS || 7) || 7;
 
+const SESSION_PURGE_INTERVAL_MS =
+  (Number(process.env.SESSION_PURGE_INTERVAL_MIN || 1440) || 1440) * 60 * 1000;
+
 async function runLoop() {
   const intervalMs = Number(process.env.QUEUE_WORKER_INTERVAL_MS || 30000);
   let lastLowStockScanAt = 0;
   let lastExpiryAlertScanAt = 0;
+  let lastSessionPurgeAt = 0;
   console.log('[queue.worker] starting, intervalMs=', intervalMs);
   while (true) {
     try {
@@ -48,6 +53,19 @@ async function runLoop() {
         }
       } catch (e) {
         console.error('[queue.worker] expiry scan error', e && e.message);
+      }
+    }
+    // Periodic session housekeeping — delete revoked / long-expired sessions so
+    // user_sessions does not grow unbounded. Daily by default.
+    if (Date.now() - lastSessionPurgeAt >= SESSION_PURGE_INTERVAL_MS) {
+      lastSessionPurgeAt = Date.now();
+      try {
+        const removed = await authRepo.purgeStaleSessions();
+        if (removed) {
+          console.log('[queue.worker] purged stale sessions', removed);
+        }
+      } catch (e) {
+        console.error('[queue.worker] session purge error', e && e.message);
       }
     }
     // eslint-disable-next-line no-await-in-loop
