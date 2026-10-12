@@ -16,6 +16,8 @@ router.get('/', authenticate, checkPermission('VIEW_CATEGORIES'), listUomsValida
 router.post('/', authenticate, checkPermission('MANAGE_CATEGORIES'), createUomValidation, validate, uomController.createUom);
 router.get('/:id', authenticate, checkPermission('VIEW_CATEGORIES'), uomIdValidation, validate, uomController.getUomById);
 router.put('/:id', authenticate, checkPermission('MANAGE_CATEGORIES'), updateUomValidation, validate, uomController.updateUom);
+router.post('/:id/deactivate', authenticate, checkPermission('MANAGE_CATEGORIES'), uomIdValidation, validate, uomController.deactivateUom);
+router.post('/:id/activate', authenticate, checkPermission('MANAGE_CATEGORIES'), uomIdValidation, validate, uomController.activateUom);
 router.delete('/:id', authenticate, checkPermission('MANAGE_CATEGORIES'), uomIdValidation, validate, uomController.deleteUom);
 
 module.exports = router;

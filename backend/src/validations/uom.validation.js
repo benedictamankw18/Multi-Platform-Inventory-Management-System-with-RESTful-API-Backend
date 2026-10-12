@@ -31,21 +31,28 @@ const conversionFactorValidation = body('conversion_factor')
   .withMessage('conversion_factor must be a positive number.')
   .toFloat();
 
+const isActiveValidation = body('is_active')
+  .optional()
+  .isBoolean()
+  .withMessage('is_active must be a boolean.');
+
 const createUomValidation = [
   nameValidation,
   symbolValidation,
   conversionFactorValidation,
+  isActiveValidation,
   body('description').optional({ nullable: true }).isLength({ max: 400 }),
 ];
 
 const updateUomValidation = [
   ...uomIdValidation,
   body()
-    .custom((value) => ['name', 'symbol', 'conversion_factor', 'description'].some((field) => value[field] !== undefined))
+    .custom((value) => ['name', 'symbol', 'conversion_factor', 'description', 'is_active'].some((field) => value[field] !== undefined))
     .withMessage('At least one updatable field is required.'),
   optionalNameValidation,
   symbolValidation,
   conversionFactorValidation,
+  isActiveValidation,
   body('description').optional({ nullable: true }).isLength({ max: 400 }),
 ];
 
@@ -53,6 +60,8 @@ const listUomsValidation = [
   query('q').optional().trim().isLength({ max: 100 }).withMessage('q must be at most 100 characters.'),
   query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer.'),
   query('limit').optional().isInt({ min: 1, max: 10000 }).withMessage('limit must be between 1 and 10000.'),
+  query('isActive').optional().isIn(['true', 'false']).withMessage("isActive must be 'true' or 'false'."),
+  query('includeInactive').optional().isBoolean().withMessage('includeInactive must be a boolean.'),
 ];
 
 module.exports = {

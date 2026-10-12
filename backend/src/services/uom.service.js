@@ -15,6 +15,7 @@ function normalizePayload(payload = {}) {
     description: payload.description,
     symbol: payload.symbol,
     conversion_factor: payload.conversion_factor,
+    is_active: payload.is_active,
   };
 }
 
@@ -22,6 +23,11 @@ function formatUom(row) {
   if (!row) return null;
   return {
     ...row,
+    // pg returns `numeric` columns as strings; expose a real number to clients.
+    conversion_factor:
+      row.conversion_factor === null || row.conversion_factor === undefined
+        ? null
+        : Number(row.conversion_factor),
     name: row.uom_name,
   };
 }
@@ -57,6 +63,7 @@ async function createUom(payload = {}, createdBy = null) {
       description: normalized.description,
       symbol: normalized.symbol,
       conversion_factor: normalized.conversion_factor ?? 1,
+      is_active: normalized.is_active !== undefined ? normalized.is_active : true,
     });
 
     await auditRepo.writeLog(actorId(createdBy), 'CREATE_UOM', 'UNIT_OF_MEASURE', created.uom_id, {
@@ -81,12 +88,17 @@ async function getUomById(id) {
 
 async function listUoms(query = {}) {
   const page = Math.max(Number(query.page) || 1, 1);
-  const limit = Math.min(Number(query.limit) || 25, 100);
+  const limit = Math.min(Number(query.limit) || 25, 10000);
   const offset = (page - 1) * limit;
-  const rows = await uomRepo.listUoms({ q: query.q, limit, offset });
+
+  const [rows, total] = await Promise.all([
+    uomRepo.listUoms({ q: query.q, isActive: query.isActive, limit, offset }),
+    uomRepo.countUoms({ q: query.q, isActive: query.isActive }),
+  ]);
 
   return {
     units: rows.map(formatUom),
+    total,
     pagination: { page, limit },
   };
 }
@@ -116,6 +128,28 @@ async function updateUom(id, payload = {}, performedBy = null) {
   }
 }
 
+async function deactivateUom(id, performedBy = null) {
+  const existing = await requireUom(id);
+  if (!existing.is_active) {
+    return { alreadyInState: true, uom: formatUom(existing) };
+  }
+
+  const updated = await uomRepo.deactivateUom(id);
+  await auditRepo.writeLog(actorId(performedBy), 'DEACTIVATE_UOM', 'UNIT_OF_MEASURE', id);
+  return { alreadyInState: false, uom: formatUom(updated) };
+}
+
+async function activateUom(id, performedBy = null) {
+  const existing = await requireUom(id);
+  if (existing.is_active) {
+    return { alreadyInState: true, uom: formatUom(existing) };
+  }
+
+  const updated = await uomRepo.activateUom(id);
+  await auditRepo.writeLog(actorId(performedBy), 'ACTIVATE_UOM', 'UNIT_OF_MEASURE', id);
+  return { alreadyInState: false, uom: formatUom(updated) };
+}
+
 async function deleteUom(id, performedBy = null) {
   await requireUom(id);
   try {
@@ -138,5 +172,7 @@ module.exports = {
   getUomById,
   listUoms,
   updateUom,
+  deactivateUom,
+  activateUom,
   deleteUom,
 };
