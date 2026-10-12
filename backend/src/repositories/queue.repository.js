@@ -21,7 +21,7 @@ async function markProcessing(id) {
 }
 
 async function markDone(id) {
-  const q = `UPDATE ${TABLE} SET status = 'DONE', updated_at = now() WHERE id = $1 RETURNING *`;
+  const q = `UPDATE ${TABLE} SET status = 'COMPLETED', updated_at = now() WHERE id = $1 RETURNING *`;
   const { rows } = await client.query(q, [id]);
   return rows[0];
 }

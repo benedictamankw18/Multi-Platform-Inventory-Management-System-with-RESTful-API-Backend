@@ -18,6 +18,7 @@ const STATUS_VARIANTS: Record<string, string> = {
   PENDING: 'warning',
   PROCESSING: 'info',
   COMPLETED: 'success',
+  DONE: 'success',
   FAILED: 'danger',
   CANCELLED: 'secondary',
 }
