@@ -1,0 +1,169 @@
+name: inventory
+
+# Production stack: Postgres + Redis + API + queue worker + nginx (web).
+# Copy `.env.docker.example` to `.env` in the repo root before `docker compose up`;
+# Compose loads it automatically. Secrets are interpolated from that file only.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-multiplatforminventorysystem}
+      # Initial administrator created on first init (see database/docker-init/02-seed.sh).
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      SEED_BRANCH_NAME: ${SEED_BRANCH_NAME:-Main Branch}
+    volumes:
+      # postgres:18 stores data under /var/lib/postgresql/18/docker, so the
+      # volume mounts at /var/lib/postgresql (the pre-18 /data path is rejected).
+      - pgdata:/var/lib/postgresql
+      - ./database/docker-init/01-schema.sh:/docker-entrypoint-initdb.d/01-schema.sh:ro
+      - ./database/docker-init/02-seed.sh:/docker-entrypoint-initdb.d/02-seed.sh:ro
+      - ./database/inventory_management_database_schema.sql:/schema/inventory_management_database_schema.sql:ro
+      - ./database/seed-permissions.sql:/docker-entrypoint-initdb.d/03-seed-permissions.sql:ro
+      # Additive migrations, applied after schema + seeds (fresh volume only).
+      - ./database/docker-init/04-migrations.sh:/docker-entrypoint-initdb.d/04-migrations.sh:ro
+      - ./database/migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [app]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [app]
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "8040"
+      # nginx sits in front of the API on the same network (one proxy hop).
+      TRUST_PROXY: "1"
+      # The dedicated queue-worker service owns the worker loop.
+      RUN_QUEUE_WORKER: "false"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-multiplatforminventorysystem}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?set ACCESS_TOKEN_SECRET in .env}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?set REFRESH_TOKEN_SECRET in .env}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+      SESSION_INACTIVITY_TIMEOUT_MINUTES: ${SESSION_INACTIVITY_TIMEOUT_MINUTES:-30}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      QUEUE_WORKER_INTERVAL_MS: ${QUEUE_WORKER_INTERVAL_MS:-30000}
+      QUEUE_MAX_RETRIES: ${QUEUE_MAX_RETRIES:-5}
+      AGOOSMS_API_URL: ${AGOOSMS_API_URL:-}
+      AGOOSMS_API_KEY: ${AGOOSMS_API_KEY:-}
+      AGOOSMS_SENDER_ID: ${AGOOSMS_SENDER_ID:-}
+      Email_HOST: ${Email_HOST:-}
+      Email_PORT: ${Email_PORT:-587}
+      Email_USER: ${Email_USER:-}
+      Email_PASSWORD: ${Email_PASSWORD:-}
+      Email_SECURE: ${Email_SECURE:-false}
+      APP_URL: ${APP_URL:-}
+    volumes:
+      - uploads:/app/uploads
+      - geoipdata:/app/data
+    ports:
+      - "${API_PORT:-8040}:8040"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8040/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [app]
+
+  queue-worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["node", "src/worker/queue.worker.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-multiplatforminventorysystem}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379
+      QUEUE_WORKER_INTERVAL_MS: ${QUEUE_WORKER_INTERVAL_MS:-30000}
+      QUEUE_MAX_RETRIES: ${QUEUE_MAX_RETRIES:-5}
+      AGOOSMS_API_URL: ${AGOOSMS_API_URL:-}
+      AGOOSMS_API_KEY: ${AGOOSMS_API_KEY:-}
+      AGOOSMS_SENDER_ID: ${AGOOSMS_SENDER_ID:-}
+      Email_HOST: ${Email_HOST:-}
+      Email_PORT: ${Email_PORT:-587}
+      Email_USER: ${Email_USER:-}
+      Email_PASSWORD: ${Email_PASSWORD:-}
+      Email_SECURE: ${Email_SECURE:-false}
+      APP_URL: ${APP_URL:-}
+    volumes:
+      - geoipdata:/app/data
+    networks: [app]
+
+  web:
+    build:
+      context: ./web-client
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-80}:80"
+    networks: [app]
+
+  # Optional local mail catcher (development aid). Not started by a plain
+  # `docker compose up`; enable it with:
+  #   docker compose --profile mail up -d
+  # SMTP is on :1025 and the web UI on http://localhost:8025. Point Email_HOST at
+  # "mailpit" and Email_PORT at 1025 in .env to route outgoing mail here.
+  mailpit:
+    image: axllent/mailpit
+    profiles: ["mail"]
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks: [app]
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  geoipdata:
+
+networks:
+  app:
+    driver: bridge

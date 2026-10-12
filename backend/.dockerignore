@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log*
+
+# local/dev environment and secrets — never bake into the image
+.env
+.env.*
+
+# runtime data (provided via volumes)
+logs
+uploads
+data
+
+# local tooling
+.vscode
+.idea
+coverage
+*.log
