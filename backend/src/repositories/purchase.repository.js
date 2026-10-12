@@ -57,7 +57,9 @@ async function listPurchaseOrders({ q: search, supplierId, status, branchId, lim
   if (where.length) base += ` WHERE ` + where.join(' AND ');
   params.push(limit);
   params.push(offset);
-  base += ` ORDER BY order_date DESC NULLS LAST LIMIT $${params.length-1} OFFSET $${params.length}`;
+  // Newest-created first. created_at is NOT NULL; po_id is a stable tiebreaker so
+  // paginated pages do not shuffle when several POs share a timestamp.
+  base += ` ORDER BY created_at DESC, po_id DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
   const { rows } = await client.query(base, params);
   return rows;
 }
@@ -99,9 +101,16 @@ async function reactivatePurchaseOrder(po_id) {
 
 async function recalculateTotal(po_id, txClient = null) {
   const db = txClient || client;
+  // total_amount is always derived from the line items plus the order-level
+  // shipping / tax / discount, so the stored total matches what the UI shows
+  // and what recordPayment compares against.
   const q = `
     UPDATE ${TABLE} po
-    SET total_amount = COALESCE((SELECT SUM(line_total) FROM purchase_order_items WHERE po_id = $1), 0)
+    SET total_amount =
+          COALESCE((SELECT SUM(line_total) FROM purchase_order_items WHERE po_id = $1), 0)
+        + COALESCE(po.shipping_cost, 0)
+        + COALESCE(po.tax_amount, 0)
+        - COALESCE(po.discount_amount, 0)
     WHERE po.po_id = $1
     RETURNING total_amount`;
   const { rows } = await db.query(q, [po_id]);

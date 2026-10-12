@@ -2,16 +2,29 @@ const db = require('../config/db');
 
 const TABLE = 'price_history';
 
-exports.createPriceHistory = async ({ history_id, product_id, old_price = null, new_price = null, changed_by = null, effective_date = null } = {}, client = db) => {
-  // If an effective_date is supplied, insert it into created_at column
+exports.createPriceHistory = async ({
+  history_id,
+  product_id,
+  old_price = null,
+  new_price = null,
+  changed_by = null,
+  effective_date = null,
+  price_type = null,
+  source = null,
+  reference_type = null,
+  reference_id = null,
+} = {}, client = db) => {
+  const cols = ['history_id', 'product_id', 'old_price', 'new_price', 'changed_by', 'price_type', 'source', 'reference_type', 'reference_id'];
+  const params = [history_id, product_id || null, old_price, new_price, changed_by || null, price_type, source, reference_type, reference_id];
+
+  // If an effective_date is supplied, insert it into created_at column.
   if (effective_date) {
-    const q = `INSERT INTO ${TABLE} (history_id, product_id, old_price, new_price, changed_by, created_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`;
-    const params = [history_id, product_id || null, old_price, new_price, changed_by || null, effective_date];
-    const { rows } = await client.query(q, params);
-    return rows[0];
+    cols.push('created_at');
+    params.push(effective_date);
   }
-  const q = `INSERT INTO ${TABLE} (history_id, product_id, old_price, new_price, changed_by) VALUES ($1,$2,$3,$4,$5) RETURNING *`;
-  const params = [history_id, product_id || null, old_price, new_price, changed_by || null];
+
+  const placeholders = cols.map((_, i) => `$${i + 1}`);
+  const q = `INSERT INTO ${TABLE} (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
   const { rows } = await client.query(q, params);
   return rows[0];
 };

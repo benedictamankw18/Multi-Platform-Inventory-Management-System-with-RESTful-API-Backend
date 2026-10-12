@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import { searchProducts, getPriceHistory } from '../services/api'
 
 interface PriceRecord {
@@ -11,9 +12,14 @@ interface PriceRecord {
   changed_by: string | null
   changed_by_name: string | null
   created_at: string
+  price_type: string | null
+  source: string | null
+  reference_type: string | null
+  reference_id: string | null
 }
 
 export default function PriceHistoryPage() {
+  const { formatCurrency } = useCurrency()
   const [records, setRecords] = useState<PriceRecord[]>([])
   const [products, setProducts] = useState<Array<{ product_id: string; product_name: string }>>([])
   const [productSearch, setProductSearch] = useState('')
@@ -84,14 +90,16 @@ export default function PriceHistoryPage() {
                 <th style={{ textAlign: 'right' }}>Old Price</th>
                 <th style={{ textAlign: 'right' }}>New Price</th>
                 <th style={{ textAlign: 'right' }}>Difference</th>
+                <th>Type</th>
+                <th>Source</th>
                 <th>Changed By</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr key="loading"><td colSpan={6}><div className="empty-state"><div className="skeleton skeleton--row" /><div className="skeleton skeleton--row" /></div></td></tr>
+                <tr key="loading"><td colSpan={8}><div className="empty-state"><div className="skeleton skeleton--row" /><div className="skeleton skeleton--row" /></div></td></tr>
               ) : records.length === 0 ? (
-                <tr key="empty"><td colSpan={6}><div className="empty-state"><p>No price history found.</p></div></td></tr>
+                <tr key="empty"><td colSpan={8}><div className="empty-state"><p>No price history found.</p></div></td></tr>
               ) : records.map((r) => (
                 <tr key={r.price_history_id}>
                   <td>
@@ -105,10 +113,16 @@ export default function PriceHistoryPage() {
                     </div>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleString()}</td>
-                  <td style={{ textAlign: 'right' }}>{Number(r.old_price).toFixed(2)}</td>
-                  <td style={{ textAlign: 'right' }}>{Number(r.new_price).toFixed(2)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(r.old_price)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(r.new_price)}</td>
                   <td style={{ textAlign: 'right', color: r.new_price > r.old_price ? 'var(--danger)' : r.new_price < r.old_price ? 'var(--success)' : undefined }}>
-                    {(r.new_price - r.old_price) > 0 ? '+' : ''}{(r.new_price - r.old_price).toFixed(2)}
+                    {(r.new_price - r.old_price) > 0 ? '+' : ''}{formatCurrency(r.new_price - r.old_price)}
+                  </td>
+                  <td>{r.price_type || '—'}</td>
+                  <td>
+                    {r.source === 'PURCHASE' ? (
+                      <span title={r.reference_id || undefined}>PURCHASE</span>
+                    ) : (r.source || '—')}
                   </td>
                   <td>{r.changed_by_name || '—'}</td>
                 </tr>

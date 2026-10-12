@@ -4,12 +4,19 @@ const purchaseRepo = require('../repositories/purchase.repository');
 const purchaseItemRepo = require('../repositories/purchaseItem.repository');
 const supplierPaymentRepo = require('../repositories/supplierPayment.repository');
 const auditRepo = require('../repositories/audit.repository');
+const productRepo = require('../repositories/product.repository');
 const inventoryService = require('./inventory.service');
+const priceHistoryService = require('./priceHistory.service');
+const { generateBatchNumber } = require('../utils/batchNumber');
 const AppError = require('../utils/AppError');
 
-async function createPurchase({ supplier_id, order_number, order_date, branch_id, expected_delivery_date, status, total_amount, createdBy }) {
+async function createPurchase({ supplier_id, order_number, order_date, branch_id, expected_delivery_date, status, shipping_cost, tax_amount, discount_amount, notes, createdBy }) {
   const id = uuidv4();
-  const created = await purchaseRepo.createPurchaseOrder({ po_id: id, supplier_id, po_number: order_number, branch_id, order_date, expected_delivery_date, status, total_amount, created_by: createdBy });
+  // total_amount is derived by the server (line items + shipping + tax - discount);
+  // any client-supplied value is ignored so the stored total always matches the view.
+  await purchaseRepo.createPurchaseOrder({ po_id: id, supplier_id, po_number: order_number, branch_id, order_date, expected_delivery_date, status, total_amount: 0, shipping_cost, tax_amount, discount_amount, notes, created_by: createdBy });
+  await purchaseRepo.recalculateTotal(id);
+  const created = await purchaseRepo.getPurchaseOrderById(id);
   try {
     await auditRepo.writeLog(createdBy, 'create_purchase', 'PURCHASE', id, { order_number, supplier_id });
   } catch (e) {
@@ -29,9 +36,15 @@ async function listPurchases(query) {
 }
 
 async function updatePurchase(id, patch, performedBy) {
-  const updated = await purchaseRepo.updatePurchaseOrder(id, patch);
+  // total_amount is always derived; never accept a client-supplied value.
+  const cleanPatch = { ...patch };
+  delete cleanPatch.total_amount;
+
+  await purchaseRepo.updatePurchaseOrder(id, cleanPatch);
+  await purchaseRepo.recalculateTotal(id);
+  const updated = await purchaseRepo.getPurchaseOrderById(id);
   try {
-    await auditRepo.writeLog(performedBy, 'update_purchase', 'PURCHASE', id, patch);
+    await auditRepo.writeLog(performedBy, 'update_purchase', 'PURCHASE', id, cleanPatch);
   } catch (e) {
     console.error('audit error', e.message);
   }
@@ -102,6 +115,11 @@ async function receivePurchase(id, receiverId) {
     for (const item of items) {
       const qty = Number(item.quantity_received > 0 ? item.quantity_received : item.quantity_ordered);
       if (!(qty > 0)) continue;
+
+      // Auto-assign a lot number when the PO line did not carry one, so every
+      // receipt is traceable back to its source document.
+      const batchNumber = item.batch_number || generateBatchNumber(po);
+
       await inventoryService.createTransaction({
         product_id: item.product_id,
         branch_id: po.branch_id,
@@ -110,16 +128,42 @@ async function receivePurchase(id, receiverId) {
         reference_type: 'PURCHASE',
         reference_id: po.po_id,
         unit_cost: item.unit_cost,
-        // Lot identity captured on the PO line, carried into the batch ledger.
-        batch_number: item.batch_number || null,
+        // Lot identity captured on the PO line (or auto-assigned), carried into
+        // the batch ledger.
+        batch_number: batchNumber,
         expiry_date: item.expiry_date || null,
         notes: `PO receipt ${po.po_number || id}`,
         performedBy: receiverId,
         client,
       });
-      if (Number(item.quantity_received) !== qty) {
-        await purchaseItemRepo.updatePurchaseItem(item.po_item_id, { quantity_received: qty }, client);
+
+      // Reflect the assigned lot (and the received quantity) back on the PO line
+      // so the order view shows the same lot the ledger holds.
+      if (Number(item.quantity_received) !== qty || (item.batch_number || null) !== batchNumber) {
+        await purchaseItemRepo.updatePurchaseItem(item.po_item_id, { quantity_received: qty, batch_number: batchNumber }, client);
       }
+
+      // A receipt sets the product's cost to the received unit cost and records
+      // the change, so Price History reflects purchase orders as well as manual
+      // edits.
+      const product = await productRepo.getProductById(item.product_id, client);
+      const oldCost = product && product.cost_price != null ? Number(product.cost_price) : null;
+      const newCost = Number(item.unit_cost);
+      if (product && oldCost !== newCost) {
+        await priceHistoryService.createPriceHistory({
+          product_id: item.product_id,
+          old_price: oldCost,
+          price: newCost,
+          changed_by: receiverId,
+          price_type: 'COST',
+          source: 'PURCHASE',
+          reference_type: 'PURCHASE',
+          reference_id: po.po_id,
+          client,
+        });
+        await productRepo.updateProduct(item.product_id, { cost_price: newCost }, client);
+      }
+
       stocked.push({ product_id: item.product_id, quantity: qty });
     }
 

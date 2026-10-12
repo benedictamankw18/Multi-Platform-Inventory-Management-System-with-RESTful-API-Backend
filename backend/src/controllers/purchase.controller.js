@@ -10,6 +10,10 @@ async function createPurchase(req, res, next) {
       expected_delivery_date: req.body.expected_delivery_date,
       status: req.body.status,
       total_amount: req.body.total_amount,
+      shipping_cost: req.body.shipping_cost,
+      tax_amount: req.body.tax_amount,
+      discount_amount: req.body.discount_amount,
+      notes: req.body.notes,
       createdBy: req.user ? req.user.sub : null,
     });
     res.status(201).json({ data: created });

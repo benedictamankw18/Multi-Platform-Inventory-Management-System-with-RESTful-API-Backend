@@ -3,16 +3,30 @@ const priceHistoryRepo = require('../repositories/priceHistory.repository');
 const productRepo = require('../repositories/product.repository');
 const auditRepo = require('../repositories/audit.repository');
 
-async function createPriceHistory({ product_id, price, old_price, effective_date = null, changed_by = null } = {}) {
+async function createPriceHistory({
+  product_id,
+  price,
+  old_price,
+  effective_date = null,
+  changed_by = null,
+  price_type = null,
+  source = null,
+  reference_type = null,
+  reference_id = null,
+  client = null,
+} = {}) {
   const product = await productRepo.getProductById(product_id);
   if (!product) throw new Error('Product not found');
 
   const oldVal = old_price !== undefined ? old_price : (product.retail_price != null ? product.retail_price : product.cost_price);
   const history_id = uuidv4();
-  const created = await priceHistoryRepo.createPriceHistory({ history_id, product_id, old_price: oldVal, new_price: price, changed_by, effective_date });
+  const created = await priceHistoryRepo.createPriceHistory(
+    { history_id, product_id, old_price: oldVal, new_price: price, changed_by, effective_date, price_type, source, reference_type, reference_id },
+    client || undefined,
+  );
 
   try {
-    await auditRepo.writeLog(changed_by, 'create_price_history', 'PRICE_HISTORY', history_id, { product_id, old_price: oldVal, new_price: price });
+    await auditRepo.writeLog(changed_by, 'create_price_history', 'PRICE_HISTORY', history_id, { product_id, old_price: oldVal, new_price: price, price_type, source, reference_type, reference_id });
   } catch (e) {
     console.error('audit error', e.message);
   }

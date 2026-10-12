@@ -17,6 +17,9 @@ const createPurchaseValidation = [
   }),
   body('status').optional().isString().isLength({ max: 50 }),
   body('total_amount').optional().isFloat().withMessage('total_amount must be numeric.'),
+  body('shipping_cost').optional().isFloat({ min: 0 }).withMessage('shipping_cost must be a non-negative number.'),
+  body('tax_amount').optional().isFloat({ min: 0 }).withMessage('tax_amount must be a non-negative number.'),
+  body('discount_amount').optional().isFloat({ min: 0 }).withMessage('discount_amount must be a non-negative number.'),
 ];
 
 const updatePurchaseValidation = [
@@ -33,6 +36,9 @@ const updatePurchaseValidation = [
   }),
   body('status').optional().isString().isLength({ max: 50 }),
   body('total_amount').optional().isFloat(),
+  body('shipping_cost').optional().isFloat({ min: 0 }).withMessage('shipping_cost must be a non-negative number.'),
+  body('tax_amount').optional().isFloat({ min: 0 }).withMessage('tax_amount must be a non-negative number.'),
+  body('discount_amount').optional().isFloat({ min: 0 }).withMessage('discount_amount must be a non-negative number.'),
   body('payment_status').optional().isIn(['UNPAID', 'PARTIAL', 'PAID']).withMessage('payment_status must be UNPAID, PARTIAL, or PAID'),
   body('is_active').optional().isBoolean(),
 ];
