@@ -1,8 +1,11 @@
 const productBranchInventoryService = require('../services/productBranchInventory.service');
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[productBranchInventory.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 exports.createInventoryRecord = async (req, res) => {

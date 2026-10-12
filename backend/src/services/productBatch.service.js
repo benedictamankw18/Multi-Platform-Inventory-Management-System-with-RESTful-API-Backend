@@ -1,12 +1,14 @@
 /**
  * productBatch.service.js
  *
- * Batch-ledger operations for products with `products.expiry_required = true`.
- * Callers pass a transaction client so the batch ledger, the
- * `product_branch_inventory` aggregate, and any sale/transaction rows commit or
- * roll back together.
+ * Batch-ledger operations for every product that holds stock. Expiry is
+ * optional metadata: `products.expiry_required = true` still forces a lot date
+ * on receipt and drives the expiry report, but batches exist for all products
+ * so the ledger is the single lot-level source of truth. Callers pass a
+ * transaction client so the batch ledger, the `product_branch_inventory`
+ * aggregate, and any sale/transaction rows commit or roll back together.
  *
- * Invariant maintained for expiry-tracked products:
+ * Invariant maintained for all products:
  *   SUM(product_batches.quantity_on_hand WHERE status IN ('ACTIVE','EXPIRED'))
  *     = product_branch_inventory.quantity_on_hand
  */
@@ -57,8 +59,9 @@ async function addStockToBatch(
 
   const qty = toPositiveNumber(quantity);
 
-  // The feature gate: expiry-tracked products cannot receive stock without an
-  // expiry date, otherwise FEFO and the expiry report have nothing to sort on.
+  // Expiry-tracked products cannot receive stock without an expiry date,
+  // otherwise FEFO and the expiry report have nothing to sort on. Non-expiry
+  // products receive into the sentinel (never-expiring) lot.
   if (product.expiry_required && !expiry_date) {
     throw new AppError(`Expiry date is required for "${product.product_name}".`, {
       status: 400,
@@ -158,6 +161,36 @@ async function allocateFefo(client, { product, branch_id, quantity, batch_id = n
   return allocations;
 }
 
+/**
+ * Make the batch ledger match the aggregate for a product/branch. Tops up with
+ * a sentinel (never-expiring) lot when the aggregate is higher, or drains FEFO
+ * when it is lower. The direct aggregate-write paths (product create/update and
+ * the /product-branch-inventory CRUD) call this so they cannot desynchronise
+ * the ledger from `product_branch_inventory`.
+ */
+async function reconcileBatchLedger(client, { product, branch_id }) {
+  if (!product || !product.product_id || !branch_id) return;
+
+  const pbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(product.product_id, branch_id, client);
+  const aggregate = pbi ? Number(pbi.quantity_on_hand || 0) : 0;
+  const covered = await productBatchRepo.sumOnHand(product.product_id, branch_id, client);
+  const gap = aggregate - covered;
+
+  if (gap > 0) {
+    await addStockToBatch(client, {
+      product,
+      branch_id,
+      batch_number: null,
+      expiry_date: null,
+      quantity: gap,
+      cost_price: product.cost_price,
+      createdBy: null,
+    });
+  } else if (gap < 0) {
+    await allocateFefo(client, { product, branch_id, quantity: -gap });
+  }
+}
+
 async function getBatchById(batch_id) {
   const batch = await productBatchRepo.getBatchById(batch_id);
   if (!batch) throw new AppError('Batch not found.', { status: 404, code: 'BATCH_NOT_FOUND' });
@@ -166,9 +199,17 @@ async function getBatchById(batch_id) {
 
 async function listBatches(query = {}) {
   const { page = 1, limit = 25 } = query;
+  // The HTTP layer documents snake_case product_id/branch_id (see
+  // productBatch.validation.js); the repository reads camelCase. Accept either
+  // so the documented list filters actually apply.
+  const normalized = {
+    ...query,
+    productId: query.productId ?? query.product_id,
+    branchId: query.branchId ?? query.branch_id,
+  };
   const [items, total] = await Promise.all([
-    productBatchRepo.listBatches({ ...query, page, limit }),
-    productBatchRepo.countBatches(query),
+    productBatchRepo.listBatches({ ...normalized, page, limit }),
+    productBatchRepo.countBatches(normalized),
   ]);
   return { items, total };
 }
@@ -253,6 +294,7 @@ async function disposeBatch(batch_id, { disposedBy = null, notes = null } = {}) 
 module.exports = {
   addStockToBatch,
   allocateFefo,
+  reconcileBatchLedger,
   getBatchById,
   listBatches,
   listByProductAndBranch,

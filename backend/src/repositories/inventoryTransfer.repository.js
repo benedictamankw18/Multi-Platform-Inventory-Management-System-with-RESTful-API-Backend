@@ -130,15 +130,17 @@ async function approveTransfer(id, approved_by) {
   return rows[0] || null;
 }
 
-async function shipTransfer(id, shipped_by) {
+async function shipTransfer(id, shipped_by, txClient = null) {
+  const c = txClient || client;
   const q = `UPDATE ${TABLE} SET status = 'SHIPPED', shipped_by = $1, shipped_at = NOW() WHERE transfer_id = $2 RETURNING *`;
-  const { rows } = await client.query(q, [ shipped_by, id]);
+  const { rows } = await c.query(q, [ shipped_by, id]);
   return rows[0] || null;
 }
 
-async function receiveTransfer(id, received_by) {
+async function receiveTransfer(id, received_by, txClient = null) {
+  const c = txClient || client;
   const q = `UPDATE ${TABLE} SET status = 'RECEIVED', received_by = $1, received_at = NOW() WHERE transfer_id = $2 RETURNING *`;
-  const { rows } = await client.query(q, [ received_by, id]);
+  const { rows } = await c.query(q, [ received_by, id]);
   return rows[0] || null;
 }
 

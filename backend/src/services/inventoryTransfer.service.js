@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const AppError = require('../utils/AppError');
+const pool = require('../config/db');
 const transferRepo = require('../repositories/inventoryTransfer.repository');
 const auditRepo = require('../repositories/audit.repository');
 const productRepo = require('../repositories/product.repository');
@@ -8,6 +9,7 @@ const productBranchInventoryRepo = require('../repositories/productBranchInvento
 const inventoryRepo = require('../repositories/inventory.repository');
 const notificationRepo = require('../repositories/notification.repository');
 const notificationService = require('./notification.service');
+const productBatchService = require('./productBatch.service');
 
 function generateTransferNumber() {
   const now = new Date();
@@ -205,23 +207,58 @@ async function shipTransfer(id, performedBy, userBranchId) {
     throw new AppError(`Insufficient stock for "${product ? product.product_name : existing.product_id}". Available: ${available}, transfer quantity: ${existing.quantity}.`, { status: 400, code: 'INSUFFICIENT_STOCK' });
   }
 
-  const shipped = await transferRepo.shipTransfer(id, performedBy);
-
+  // Source aggregate, batch ledger (FEFO) and the shipped status move in one
+  // transaction so the ledger can never drift from the aggregate.
+  const conn = await pool.connect();
+  let shipped;
   try {
-    const sourceQty = available - Number(existing.quantity);
-    if (pbi) {
-      await productBranchInventoryRepo.updateInventory(pbi.inventory_id, { quantity_on_hand: sourceQty, available_quantity: sourceQty });
+    await conn.query('BEGIN');
+
+    const sourcePbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(
+      existing.product_id, existing.from_branch_id, conn, { forUpdate: true },
+    );
+    const sourceAvailable = sourcePbi ? Number(sourcePbi.quantity_on_hand || 0) : 0;
+    if (sourceAvailable < Number(existing.quantity)) {
+      throw new AppError(`Insufficient stock for "${product ? product.product_name : existing.product_id}". Available: ${sourceAvailable}, transfer quantity: ${existing.quantity}.`, { status: 400, code: 'INSUFFICIENT_STOCK' });
     }
+
+    shipped = await transferRepo.shipTransfer(id, performedBy, conn);
+
+    const sourceQty = sourceAvailable - Number(existing.quantity);
+    if (sourcePbi) {
+      await productBranchInventoryRepo.updateInventory(sourcePbi.inventory_id, { quantity_on_hand: sourceQty, available_quantity: sourceQty }, conn);
+    }
+
+    // FEFO out of the source ledger and carry the weighted-average lot cost to
+    // the destination so receive can recreate the lot(s).
+    const allocations = await productBatchService.allocateFefo(conn, {
+      product,
+      branch_id: existing.from_branch_id,
+      quantity: Number(existing.quantity),
+    });
+    const carriedCost = allocations && allocations.length
+      ? allocations.reduce((sum, a) => sum + Number(a.cost_price || 0) * Number(a.quantity), 0) / Number(existing.quantity)
+      : (product ? product.cost_price : null);
 
     const txId = uuidv4();
     await inventoryRepo.createTransaction({
       transaction_id: txId, product_id: existing.product_id, branch_id: existing.from_branch_id,
       transaction_type: 'TRANSFER_OUT', quantity: existing.quantity,
-      previous_quantity: available, new_quantity: sourceQty, performed_by: performedBy,
+      previous_quantity: sourceAvailable, new_quantity: sourceQty, performed_by: performedBy,
+      unit_cost: carriedCost, reference_type: 'TRANSFER', reference_id: id,
       notes: `Transfer ${shipped.transfer_number} shipped to ${existing.to_branch_name || existing.to_branch_id}`,
-    });
-  } catch (e) {
-    console.error('transfer ship inventory adjustment error', e.message);
+    }, conn);
+
+    await conn.query('COMMIT');
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (e) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
   }
 
   try {
@@ -269,28 +306,70 @@ async function receiveTransfer(id, performedBy, userBranchId) {
   if (existing.status !== 'SHIPPED') throw new AppError('Only shipped transfers can be received.', { status: 400, code: 'INVALID_STATUS' });
   if (userBranchId && existing.to_branch_id !== userBranchId) throw new AppError('Only users at the destination branch can receive this transfer.', { status: 403, code: 'WRONG_BRANCH' });
 
-  const received = await transferRepo.receiveTransfer(id, performedBy);
+  const product = await productRepo.getProductById(existing.product_id);
 
+  // Received status, destination aggregate and the destination batch ledger
+  // commit together so the ledger can never drift from the aggregate.
+  const conn = await pool.connect();
+  let received;
   try {
-    let destPbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(existing.product_id, existing.to_branch_id);
+    await conn.query('BEGIN');
+
+    received = await transferRepo.receiveTransfer(id, performedBy, conn);
+
+    const destPbi = await productBranchInventoryRepo.getInventoryByProductAndBranch(
+      existing.product_id, existing.to_branch_id, conn, { forUpdate: true },
+    );
     const destQty = destPbi ? Number(destPbi.quantity_on_hand || 0) + Number(existing.quantity) : Number(existing.quantity);
     if (destPbi) {
-      await productBranchInventoryRepo.updateInventory(destPbi.inventory_id, { quantity_on_hand: destQty, available_quantity: destQty });
+      await productBranchInventoryRepo.updateInventory(destPbi.inventory_id, { quantity_on_hand: destQty, available_quantity: destQty }, conn);
     } else {
       const inventory_id = uuidv4();
-      await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id: existing.product_id, branch_id: existing.to_branch_id, quantity_on_hand: destQty, available_quantity: destQty });
+      await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id: existing.product_id, branch_id: existing.to_branch_id, quantity_on_hand: destQty, available_quantity: destQty }, conn);
     }
+
+    // Recreate the received stock as a lot at the destination. Expiry-tracked
+    // products cannot transfer, so the carried lots have no expiry; the cost is
+    // the weighted average recorded on the matching TRANSFER_OUT row.
+    const { rows: costRows } = await conn.query(
+      `SELECT unit_cost FROM inventory_transactions
+       WHERE transaction_type = 'TRANSFER_OUT' AND reference_type = 'TRANSFER' AND reference_id = $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [id],
+    );
+    const carriedCost = costRows[0] && costRows[0].unit_cost != null
+      ? costRows[0].unit_cost
+      : (product ? product.cost_price : null);
+
+    await productBatchService.addStockToBatch(conn, {
+      product,
+      branch_id: existing.to_branch_id,
+      batch_number: null,
+      expiry_date: null,
+      quantity: Number(existing.quantity),
+      cost_price: carriedCost,
+      createdBy: performedBy,
+    });
 
     const txId = uuidv4();
     await inventoryRepo.createTransaction({
       transaction_id: txId, product_id: existing.product_id, branch_id: existing.to_branch_id,
       transaction_type: 'TRANSFER_IN', quantity: existing.quantity,
       previous_quantity: destPbi ? Number(destPbi.quantity_on_hand || 0) : 0, new_quantity: destQty,
-      performed_by: performedBy,
+      performed_by: performedBy, unit_cost: carriedCost, reference_type: 'TRANSFER', reference_id: id,
       notes: `Transfer ${received.transfer_number} received from ${existing.from_branch_name || existing.from_branch_id}`,
-    });
-  } catch (e) {
-    console.error('transfer receive inventory adjustment error', e.message);
+    }, conn);
+
+    await conn.query('COMMIT');
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (e) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
   }
 
   try {
@@ -301,7 +380,6 @@ async function receiveTransfer(id, performedBy, userBranchId) {
 
   try {
     if (existing.requested_by) {
-      const product = await productRepo.getProductById(existing.product_id);
       await notificationService.createNotification({
         title: 'Transfer Received',
         message: `Your transfer request "${received.transfer_number}" for "${product ? product.product_name : 'product'}" has been received at ${existing.to_branch_name || 'destination branch'}.`,

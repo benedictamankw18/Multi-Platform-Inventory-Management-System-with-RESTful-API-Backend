@@ -32,6 +32,13 @@ exports.listInventoriesByBranch = async (branch_id, { limit = 50, offset = 0 } =
   return rows;
 };
 
+exports.listInventoriesByProduct = async (product_id, txClient = null) => {
+  const c = txClient || db;
+  const q = `SELECT * FROM ${TABLE} WHERE product_id = $1 ORDER BY branch_id`;
+  const { rows } = await c.query(q, [product_id]);
+  return rows;
+};
+
 exports.updateInventory = async (inventory_id, patch, txClient = null) => {
   const c = txClient || db;
   const fields = [];

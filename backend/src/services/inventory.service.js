@@ -125,18 +125,29 @@ async function applyTransaction(client, { product_id, branch_id, quantity, type,
     await productBranchInventoryRepo.createInventoryRecord({ inventory_id, product_id, branch_id, quantity_on_hand: new_quantity, available_quantity: new_quantity }, client);
   }
 
-  // Batch ledger for expiry-tracked products — same transaction as the
-  // aggregate so the two can never drift apart on this code path.
-  if (product && product.expiry_required) {
-    if (transaction_type === 'STOCK_OUT') {
-      await productBatchService.allocateFefo(client, { product, branch_id, quantity: Number(quantity), batch_id });
+  // Batch ledger for every product — same transaction as the aggregate so the
+  // two can never drift apart on this code path. Expiry-tracked products still
+  // must supply a lot date on stock-in (enforced by addStockToBatch). A signed
+  // adjustment that reduces stock is treated like a stock-out (FEFO).
+  if (product) {
+    const numericQuantity = Number(quantity);
+    const isDecrement = transaction_type === 'STOCK_OUT'
+      || (transaction_type === 'ADJUSTMENT' && numericQuantity < 0);
+
+    if (isDecrement) {
+      await productBatchService.allocateFefo(client, {
+        product,
+        branch_id,
+        quantity: Math.abs(numericQuantity),
+        batch_id,
+      });
     } else {
       await productBatchService.addStockToBatch(client, {
         product,
         branch_id,
         batch_number,
         expiry_date,
-        quantity: Number(quantity),
+        quantity: numericQuantity,
         cost_price: unit_cost != null ? unit_cost : product.cost_price,
         supplier_id: product.supplier_id || null,
         po_id: reference_type === 'PURCHASE' ? reference_id : null,

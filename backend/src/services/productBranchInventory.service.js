@@ -1,8 +1,11 @@
 const productBranchInventoryRepo = require('../repositories/productBranchInventory.repository');
+const productRepo = require('../repositories/product.repository');
+const productBatchService = require('./productBatch.service');
 const auditRepo = require('../repositories/audit.repository');
 const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
 const e = require('express');
+const pool = require('../config/db');
 
 exports.createInventoryRecord = async (payload = {}, actorId = null) => {
   const { product_id: productId, branch_id: branchId, quantity, quantity_on_hand } = payload;
@@ -22,18 +25,40 @@ exports.createInventoryRecord = async (payload = {}, actorId = null) => {
   }
 
   const inventoryId = payload.inventory_id || uuidv4();
-  const created = await productBranchInventoryRepo.createInventoryRecord({
-    inventory_id: inventoryId,
-    product_id: productId,
-    branch_id: branchId,
-    quantity_on_hand: qty,
-    available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : qty,
-    reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : 0,
-    reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : 0,
-    reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : 0,
-    damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : 0,
-    expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : 0,
-  });
+
+  // The aggregate row and its batch ledger must be written together so a direct
+  // inventory create (e.g. the bulk importer) cannot leave the ledger short.
+  const conn = await pool.connect();
+  let created;
+  try {
+    await conn.query('BEGIN');
+    created = await productBranchInventoryRepo.createInventoryRecord({
+      inventory_id: inventoryId,
+      product_id: productId,
+      branch_id: branchId,
+      quantity_on_hand: qty,
+      available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : qty,
+      reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : 0,
+      reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : 0,
+      reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : 0,
+      damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : 0,
+      expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : 0,
+    }, conn);
+
+    const product = await productRepo.getProductById(productId, conn);
+    await productBatchService.reconcileBatchLedger(conn, { product, branch_id: branchId });
+
+    await conn.query('COMMIT');
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
 
   await auditRepo.writeLog(actorId, 'CREATE_PRODUCT_BRANCH_INVENTORY', 'PRODUCT_BRANCH_INVENTORY', created.inventory_id, {
     product_id: productId,
@@ -73,17 +98,36 @@ if (!existing) {
     throw new AppError('quantity must be a number.', { status: 400 });
   }
 
-  const updated = await productBranchInventoryRepo.updateInventory(inventoryId, {
-    product_id: productId || existing.product_id,
-    branch_id: branchId || existing.branch_id,
-    quantity_on_hand: qty !== undefined ? qty : existing.quantity_on_hand,
-    available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : (qty !== undefined ? qty : existing.available_quantity),
-    reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : existing.reorder_level,
-    reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : existing.reorder_quantity,
-    reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : existing.reserved_quantity,
-    damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : existing.damaged_quantity,
-    expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : existing.expired_quantity,
-  });
+  const conn = await pool.connect();
+  let updated;
+  try {
+    await conn.query('BEGIN');
+    updated = await productBranchInventoryRepo.updateInventory(inventoryId, {
+      product_id: productId || existing.product_id,
+      branch_id: branchId || existing.branch_id,
+      quantity_on_hand: qty !== undefined ? qty : existing.quantity_on_hand,
+      available_quantity: payload.available_quantity !== undefined ? Number(payload.available_quantity) : (qty !== undefined ? qty : existing.available_quantity),
+      reorder_level: payload.reorder_level !== undefined ? Number(payload.reorder_level) : existing.reorder_level,
+      reorder_quantity: payload.reorder_quantity !== undefined ? Number(payload.reorder_quantity) : existing.reorder_quantity,
+      reserved_quantity: payload.reserved_quantity !== undefined ? Number(payload.reserved_quantity) : existing.reserved_quantity,
+      damaged_quantity: payload.damaged_quantity !== undefined ? Number(payload.damaged_quantity) : existing.damaged_quantity,
+      expired_quantity: payload.expired_quantity !== undefined ? Number(payload.expired_quantity) : existing.expired_quantity,
+    }, conn);
+
+    const product = await productRepo.getProductById(updated.product_id, conn);
+    await productBatchService.reconcileBatchLedger(conn, { product, branch_id: updated.branch_id });
+
+    await conn.query('COMMIT');
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
 
   await auditRepo.writeLog(actorId, 'UPDATE_PRODUCT_BRANCH_INVENTORY', 'PRODUCT_BRANCH_INVENTORY', updated.inventory_id, {
     product_id: productId,
@@ -120,9 +164,36 @@ exports.deleteInventoryRecord = async (inventoryId, actorId = null) => {
   if (!inventoryId) {
     throw new AppError('inventory_id is required to delete inventory record.', { status: 400 });
   }
-  const deleted = await productBranchInventoryRepo.deleteInventory(inventoryId);
-  if (!deleted) {
-    throw new AppError('Inventory record not found.', { status: 404 });
+
+  const conn = await pool.connect();
+  let deleted;
+  try {
+    await conn.query('BEGIN');
+    const existing = await productBranchInventoryRepo.getInventoryById(inventoryId, conn);
+    if (!existing) {
+      throw new AppError('Inventory record not found.', { status: 404 });
+    }
+
+    // Drain the batch ledger before dropping the aggregate row so the ledger
+    // never outlives the stock it represents.
+    const product = await productRepo.getProductById(existing.product_id, conn);
+    const onHand = Number(existing.quantity_on_hand) || 0;
+    if (product && onHand > 0) {
+      await productBatchService.allocateFefo(conn, { product, branch_id: existing.branch_id, quantity: onHand });
+    }
+
+    deleted = await productBranchInventoryRepo.deleteInventory(inventoryId, conn);
+    await conn.query('COMMIT');
+  } catch (err) {
+    try {
+      await conn.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    conn.release();
   }
+
   return deleted;
 };

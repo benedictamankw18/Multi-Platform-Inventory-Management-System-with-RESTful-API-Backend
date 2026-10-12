@@ -25,8 +25,9 @@ const MERGE_CONFLICT = `(
 ) WHERE status = 'ACTIVE'`;
 
 /**
- * Add (or merge) stock into the ACTIVE batch matching the merge key. `expiry_date`
- * NULL is stored as the sentinel DATE '9999-12-31' (never expires / unknown lot).
+ * Add (or merge) stock into the ACTIVE batch matching the merge key. A NULL
+ * `expiry_date` is stored as NULL (no expiry) so the UI renders it as "—"; the
+ * unique index COALESCEs NULL to the sentinel only for merge-key purposes.
  * On merge the batch cost becomes the weighted average of the old and new stock.
  */
 async function addStock(
@@ -50,7 +51,7 @@ async function addStock(
       (product_id, branch_id, supplier_id, po_id, batch_number, expiry_date,
        received_date, cost_price, quantity_received, quantity_on_hand, status, created_by)
     VALUES
-      ($1, $2, $3, $4, $5, COALESCE($6, DATE '9999-12-31'),
+      ($1, $2, $3, $4, $5, $6,
        COALESCE($7, current_date), $8, $9, $9, 'ACTIVE', $10)
     ON CONFLICT ${MERGE_CONFLICT}
     DO UPDATE SET
@@ -97,7 +98,7 @@ async function listBatches(
   if (!includeEmpty) where.push(`b.quantity_on_hand > 0`);
   if (expiringWithinDays != null && expiringWithinDays !== '') {
     const d = params.push(Number(expiringWithinDays));
-    where.push(`b.expiry_date >= current_date AND b.expiry_date <= current_date + $${d}`);
+    where.push(`b.expiry_date >= current_date AND b.expiry_date <= current_date + $${d}::int`);
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -131,7 +132,7 @@ async function countBatches({ productId, branchId, status, expiringWithinDays, i
   if (!includeEmpty) where.push(`quantity_on_hand > 0`);
   if (expiringWithinDays != null && expiringWithinDays !== '') {
     const d = params.push(Number(expiringWithinDays));
-    where.push(`expiry_date >= current_date AND expiry_date <= current_date + $${d}`);
+    where.push(`expiry_date >= current_date AND expiry_date <= current_date + $${d}::int`);
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const { rows } = await c.query(`SELECT COUNT(*) AS count FROM ${TABLE} ${whereSql}`, params);
