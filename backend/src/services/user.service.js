@@ -333,5 +333,16 @@ exports.reactivateUser = async (userId, actorId = null) => {
   const updated = await userRepo.setActiveStatus(userId, true);
   await auditRepo.writeLog(getActorId(actorId), 'REACTIVATE_USER', 'USER', userId);
 
+  notificationService.createNotification({
+    title: 'Account Reactivated',
+    message: 'Your account has been reactivated by an administrator. You can sign in again.',
+    type: 'SUCCESS',
+    priority: 'NORMAL',
+    user_id: userId,
+    recipients: [userId],
+    createdBy: getActorId(actorId),
+    channels: ['in_app', 'email', 'sms'],
+  }).catch((e) => console.error('notif error', e && e.message));
+
   return { alreadyInState: false, user: sanitizeUser(updated) };
 };

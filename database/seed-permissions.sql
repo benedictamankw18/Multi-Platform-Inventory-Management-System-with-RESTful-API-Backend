@@ -33,7 +33,12 @@ INSERT INTO permissions (permission_name, description) VALUES
   ('VIEW_AUDIT_LOGS',    'View audit logs'),
   ('MANAGE_SETTINGS',    'Access and modify business settings'),
   ('MANAGE_NOTIFICATIONS', 'Create and send notifications'),
-  ('MANAGE_SYNC',          'View sync operations and receive sync failure alerts')
+  ('MANAGE_SYNC',          'View sync operations and receive sync failure alerts'),
+  ('VIEW_PRODUCTS_PAGE',   'Access the products and price history pages'),
+  ('VIEW_CUSTOMERS_PAGE',  'Access the customers page'),
+  ('VIEW_SYNC_PAGE',       'Access the sync and offline page'),
+  ('VIEW_REPORTS_PAGE',    'Access the reports and expiry report pages'),
+  ('VIEW_AUDIT_LOGS_PAGE', 'Access the audit logs and sync logs pages')
 ON CONFLICT (permission_name) DO NOTHING;
 
 -- ====== Role permission assignments ======
@@ -75,7 +80,9 @@ WHERE r.role_name = 'Manager'
     'VIEW_CUSTOMERS', 'MANAGE_CUSTOMERS',
     'VIEW_EXPENSES', 'MANAGE_EXPENSES',
     'VIEW_BRANCHES',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS', 'MANAGE_SYNC'
+    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS', 'MANAGE_SYNC',
+    'VIEW_PRODUCTS_PAGE', 'VIEW_CUSTOMERS_PAGE', 'VIEW_SYNC_PAGE',
+    'VIEW_REPORTS_PAGE', 'VIEW_AUDIT_LOGS_PAGE'
   )
 ON CONFLICT DO NOTHING;
 
@@ -96,7 +103,9 @@ WHERE r.role_name = 'Branch Manager'
     'VIEW_CUSTOMERS', 'MANAGE_CUSTOMERS',
     'VIEW_EXPENSES', 'MANAGE_EXPENSES',
     'VIEW_BRANCHES',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS'
+    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS',
+    'VIEW_PRODUCTS_PAGE', 'VIEW_CUSTOMERS_PAGE', 'VIEW_SYNC_PAGE',
+    'VIEW_REPORTS_PAGE', 'VIEW_AUDIT_LOGS_PAGE'
   )
 ON CONFLICT DO NOTHING;
 
@@ -114,7 +123,9 @@ WHERE r.role_name = 'Storekeeper'
     'VIEW_SALES', 'VIEW_CUSTOMERS',
     'VIEW_SUPPLIERS',
     'VIEW_BRANCHES',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS'
+    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS',
+    'VIEW_PRODUCTS_PAGE', 'VIEW_CUSTOMERS_PAGE', 'VIEW_SYNC_PAGE',
+    'VIEW_REPORTS_PAGE', 'VIEW_AUDIT_LOGS_PAGE'
   )
 ON CONFLICT DO NOTHING;
 
@@ -127,8 +138,7 @@ WHERE r.role_name = 'Cashier'
   AND r.deleted_at IS NULL
   AND p.permission_name IN (
     'VIEW_DASHBOARD', 'VIEW_PRODUCTS', 'CREATE_SALE', 'VIEW_SALES', 'VIEW_CUSTOMERS',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS', 'VIEW_CATEGORIES', 'VIEW_SUPPLIERS',
-    'VIEW_BRANCHES'
+    'VIEW_BRANCHES', 'VIEW_REPORTS', 'VIEW_AUDIT_LOGS'
   )
 ON CONFLICT DO NOTHING;
 
@@ -144,6 +154,8 @@ WHERE r.role_name = 'Technical'
     'VIEW_INVENTORY', 'VIEW_SALES', 'VIEW_CATEGORIES',
     'VIEW_SUPPLIERS',
     'VIEW_BRANCHES',
-    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS'
+    'VIEW_REPORTS', 'VIEW_AUDIT_LOGS',
+    'VIEW_PRODUCTS_PAGE', 'VIEW_SYNC_PAGE',
+    'VIEW_REPORTS_PAGE', 'VIEW_AUDIT_LOGS_PAGE'
   )
 ON CONFLICT DO NOTHING;
