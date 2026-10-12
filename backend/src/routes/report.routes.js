@@ -13,6 +13,7 @@ const {
     paginationValidation,
     reportQueryValidation, 
     expiryValidation,
+    salesTrendValidation,
 } = require('../validations/report.validation');
 
 router.get('/daily-sales', authenticate, checkPermission('VIEW_REPORTS'), dailySalesValidation, validate, reportController.dailySales);
@@ -25,6 +26,7 @@ router.get('/purchases', authenticate, checkPermission('VIEW_REPORTS'), rangeVal
 router.get('/best-selling', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.bestSellingProducts);
 router.get('/branch-performance', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.branchPerformance);
 router.get('/stock-movements', authenticate, checkPermission('VIEW_REPORTS'), rangeValidation, validate, reportController.stockMovements);
+router.get('/sales-trend', authenticate, checkPermission('VIEW_REPORTS'), salesTrendValidation, validate, reportController.salesTrend);
 router.get('/expiry', authenticate, checkPermission('VIEW_REPORTS'), expiryValidation, validate, reportController.expiryReport);
 router.get('/', authenticate, checkPermission('VIEW_REPORTS'), reportQueryValidation, validate, reportController.listReports);
 router.get('/export', authenticate, checkPermission('VIEW_REPORTS'), reportQueryValidation, validate, reportController.exportReport);

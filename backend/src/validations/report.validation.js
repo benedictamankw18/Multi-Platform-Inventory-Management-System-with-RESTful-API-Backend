@@ -20,6 +20,12 @@ const rangeValidation = [
   query('endDate').optional().isISO8601(),
 ];
 
+const salesTrendValidation = [
+  query('startDate').optional().isISO8601().withMessage('startDate must be an ISO date'),
+  query('endDate').optional().isISO8601().withMessage('endDate must be an ISO date'),
+  query('granularity').optional().isIn(['day', 'week', 'month']).withMessage('granularity must be day, week or month'),
+];
+
 const paginationValidation = [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1 }),
@@ -56,4 +62,5 @@ module.exports = {
   paginationValidation,
   reportQueryValidation,
   expiryValidation,
+  salesTrendValidation,
 };

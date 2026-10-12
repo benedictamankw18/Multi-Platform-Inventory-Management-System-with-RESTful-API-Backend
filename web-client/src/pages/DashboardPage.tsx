@@ -1,18 +1,21 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import api, {
   getDailySales,
-  getMonthlySales,
   getLowStock,
   getBestSelling,
   getBranchPerformance,
   getProfitReport,
   getAuditLogs,
   getNotifications,
-  type MonthlySalesDay,
+  getSalesTrend,
   type BestSellingItem,
   type BranchPerfItem,
+  type SalesTrendPoint,
+  type SalesTrendResponse,
 } from '../services/api'
+import SalesTrendChart, { type TrendMetric } from '../components/SalesTrendChart'
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -23,8 +26,39 @@ function monthStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
-function formatCurrency(n: number) {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+type Period = '7d' | '30d' | '90d' | '12m'
+
+const PERIODS: Array<{ id: Period; label: string }> = [
+  { id: '7d', label: '7D' },
+  { id: '30d', label: '30D' },
+  { id: '90d', label: '90D' },
+  { id: '12m', label: '12M' },
+]
+
+const METRIC_LABELS: Record<TrendMetric, string> = {
+  revenue: 'Revenue',
+  profit: 'Profit',
+  orders: 'Orders',
+}
+
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
+
+function periodRange(period: Period): { startDate: string; endDate: string; granularity: 'day' | 'week' | 'month' } {
+  const end = new Date()
+  if (period === '12m') {
+    const start = new Date(end.getFullYear(), end.getMonth() - 11, 1)
+    return { startDate: isoDate(start), endDate: isoDate(end), granularity: 'month' }
+  }
+  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
+  const start = new Date(end)
+  start.setDate(start.getDate() - (days - 1))
+  return { startDate: isoDate(start), endDate: isoDate(end), granularity: days <= 31 ? 'day' : 'week' }
+}
+
+function bucketShort(bucket: string) {
+  return new Date(`${bucket}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function relativeTime(ts: string) {
@@ -40,6 +74,7 @@ function relativeTime(ts: string) {
 
 export default function DashboardPage() {
   const { user, selectedBranch } = useAuth()
+  const { currency, formatCurrency } = useCurrency()
 
   // KPI state
   const [totalProducts, setTotalProducts] = useState<number | null>(null)
@@ -49,7 +84,10 @@ export default function DashboardPage() {
   const [profit, setProfit] = useState<number | null>(null)
 
   // Chart data
-  const [monthlyData, setMonthlyData] = useState<MonthlySalesDay[]>([])
+  const [period, setPeriod] = useState<Period>('30d')
+  const [metric, setMetric] = useState<TrendMetric>('revenue')
+  const [trend, setTrend] = useState<SalesTrendResponse | null>(null)
+  const [trendLoading, setTrendLoading] = useState(true)
 
   // Lists
   const [bestSelling, setBestSelling] = useState<BestSellingItem[]>([])
@@ -63,14 +101,10 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = now.getMonth() + 1
     const branchId = selectedBranch?.branch_id
 
     const results = await Promise.allSettled([
       getDailySales(todayISO(), branchId),
-      getMonthlySales(year, month, branchId),
       getLowStock(branchId),
       getBestSelling({ limit: 5, branchId }),
       getBranchPerformance({ startDate: monthStart(), endDate: todayISO() }),
@@ -87,61 +121,41 @@ export default function DashboardPage() {
       setTodayTransactions(ds.transactions)
     }
 
-    // Monthly chart
-    if (results[1].status === 'fulfilled') {
-      setMonthlyData(results[1].value ?? [])
-    }
-
     // Low stock
-    if (results[2].status === 'fulfilled') {
-      setLowStockCount(results[2].value?.length ?? 0)
+    if (results[1].status === 'fulfilled') {
+      setLowStockCount(results[1].value?.length ?? 0)
     }
 
     // Best selling
-    if (results[3].status === 'fulfilled') {
-      setBestSelling(results[3].value ?? [])
+    if (results[2].status === 'fulfilled') {
+      setBestSelling(results[2].value ?? [])
     }
 
     // Branch performance
-    if (results[4].status === 'fulfilled') {
-      setBranchPerf(results[4].value ?? [])
+    if (results[3].status === 'fulfilled') {
+      setBranchPerf(results[3].value ?? [])
     }
 
     // Profit
-    if (results[5].status === 'fulfilled') {
-      setProfit(results[5].value?.profit ?? 0)
+    if (results[4].status === 'fulfilled') {
+      setProfit(results[4].value?.profit ?? 0)
     }
 
     // Activity (audit logs)
-    if (results[6].status === 'fulfilled') {
-      // const logs = results[6].value
-          const { logs = [] } = results[6].value;
-
-      // console.log(Array.isArray(logs) ? logs.slice(0, 8) : logs?.rows?.slice(0, 8));
-      // console.log(Array.isArray(logs)
-      //         ? logs.slice(0, 8)
-      //         : (logs?.rows ?? []).slice(0, 8));
-      // console.log(logs);
-      // setActivity(Array.isArray(logs) ? logs.slice(0, 8) : logs?.rows?.slice(0, 8) ?? [])
-      // setActivity(
-      //     Array.isArray(logs)
-      //         ? logs.slice(0, 8)
-      //         : (logs?.rows ?? []).slice(0, 8)
-      // );
-
-          setActivity(logs.slice(0, 8));
-
+    if (results[5].status === 'fulfilled') {
+      const { logs = [] } = results[5].value
+      setActivity(logs.slice(0, 8))
     }
 
     // Alerts (notifications)
-    if (results[7].status === 'fulfilled') {
-      const notifs = results[7].value
+    if (results[6].status === 'fulfilled') {
+      const notifs = results[6].value
       setAlerts(Array.isArray(notifs) ? notifs.slice(0, 8) : notifs?.rows?.slice(0, 8) ?? [])
     }
 
     // Product count
-    if (results[8].status === 'fulfilled') {
-      const data = results[8].value?.data
+    if (results[7].status === 'fulfilled') {
+      const data = results[7].value?.data
       setTotalProducts(data?.total ?? data?.data?.length ?? 0)
     } else {
       setTotalProducts(0)
@@ -152,7 +166,32 @@ export default function DashboardPage() {
 
   useEffect(() => { load() }, [load])
 
-  const maxSales = Math.max(...monthlyData.map((d) => d.total_sales), 1)
+  const loadTrend = useCallback(async () => {
+    setTrendLoading(true)
+    const { startDate, endDate, granularity } = periodRange(period)
+    try {
+      const data = await getSalesTrend({ startDate, endDate, granularity, branchId: selectedBranch?.branch_id })
+      setTrend(data)
+    } catch {
+      setTrend(null)
+    } finally {
+      setTrendLoading(false)
+    }
+  }, [period, selectedBranch?.branch_id])
+
+  useEffect(() => { loadTrend() }, [loadTrend])
+
+  const trendPoints = trend?.points ?? []
+  const metricOf = (p: SalesTrendPoint) => (metric === 'orders' ? p.orders : metric === 'profit' ? p.profit : p.revenue)
+  const metricTotal = trend ? trend.totals[metric] : 0
+  const metricPrevious = trend ? trend.previous[metric] : 0
+  const metricAverage = trendPoints.length > 0 ? metricTotal / trendPoints.length : 0
+  const bestBucket = trendPoints.reduce<SalesTrendPoint | null>(
+    (acc, p) => (!acc || metricOf(p) > metricOf(acc) ? p : acc),
+    null,
+  )
+  const metricDelta = metricPrevious !== 0 ? ((metricTotal - metricPrevious) / Math.abs(metricPrevious)) * 100 : null
+  const fmtMetric = (v: number) => (metric === 'orders' ? String(Math.round(v)) : formatCurrency(v))
 
   const metrics = [
     { label: 'Total SKUs', value: totalProducts, icon: '📦' },
@@ -194,38 +233,70 @@ export default function DashboardPage() {
       <div className="content-grid" style={{ marginBottom: 24 }}>
         {/* Monthly sales chart */}
         <div className="panel panel--wide">
-          <div className="panel-heading">
+          <div className="panel-heading trend-heading">
             <div>
               <span className="panel-label">Sales trend</span>
-              <h2>Monthly overview</h2>
+              <h2>{METRIC_LABELS[metric]} overview</h2>
             </div>
-            {todaySales != null && (
-              <span className="status-pill status-pill--healthy">Today: {formatCurrency(todaySales)}</span>
-            )}
+            <div className="trend-controls">
+              <div className="segmented" role="group" aria-label="Metric">
+                {(Object.keys(METRIC_LABELS) as TrendMetric[]).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`segmented__btn${metric === id ? ' segmented__btn--active' : ''}`}
+                    aria-pressed={metric === id}
+                    onClick={() => setMetric(id)}
+                  >
+                    {METRIC_LABELS[id]}
+                  </button>
+                ))}
+              </div>
+              <div className="segmented" role="group" aria-label="Period">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`segmented__btn${period === p.id ? ' segmented__btn--active' : ''}`}
+                    aria-pressed={period === p.id}
+                    onClick={() => setPeriod(p.id)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          {monthlyData.length > 0 ? (
-            <div className="dashboard-hero__chart">
-              {monthlyData.slice(-12).map((d) => {
-                const label = d.day ? new Date(d.day).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '?'
-                return (
-                  <div key={d.day} className="chart-bar">
-                    <div
-                      title={`${label}: ${formatCurrency(d.total_sales)} (${d.transactions} txns)`}
-                      style={{
-                        height: `${Math.max((d.total_sales / maxSales) * 100, 4)}%`,
-                      }}
-                    />
-                    <span className="chart-bar__label">{label}</span>
-                  </div>
-                )
-              })}
+
+          <div className="trend-summary">
+            <div className="trend-stat">
+              <span>Total</span>
+              <strong>{trendLoading ? '—' : fmtMetric(metricTotal)}</strong>
             </div>
-          ) : (
-            <div className="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 3v18h18" /><path d="M7 16l4-5 4 3 5-7" /></svg>
-              <p>No sales data for this month yet.</p>
+            <div className="trend-stat">
+              <span>Avg / {trend?.granularity ?? 'day'}</span>
+              <strong>{trendLoading ? '—' : fmtMetric(metricAverage)}</strong>
             </div>
-          )}
+            <div className="trend-stat">
+              <span>Best {trend?.granularity ?? 'day'}</span>
+              <strong>{trendLoading || !bestBucket ? '—' : `${bucketShort(bestBucket.bucket)} · ${fmtMetric(metricOf(bestBucket))}`}</strong>
+            </div>
+            <div className="trend-stat">
+              <span>vs previous</span>
+              <strong className={metricDelta == null ? undefined : metricDelta >= 0 ? 'trend-up' : 'trend-down'}>
+                {trendLoading || metricDelta == null ? '—' : `${metricDelta >= 0 ? '▲' : '▼'} ${Math.abs(metricDelta).toFixed(1)}%`}
+              </strong>
+            </div>
+          </div>
+
+          <SalesTrendChart
+            points={trendPoints}
+            granularity={trend?.granularity ?? 'day'}
+            metric={metric}
+            currency={currency}
+            formatCurrency={formatCurrency}
+            loading={trendLoading}
+          />
         </div>
 
         {/* Best selling products */}

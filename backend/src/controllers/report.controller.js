@@ -405,6 +405,40 @@ async function branchPerformance(req, res, next) {
 }
 
 
+async function salesTrend(req, res, next) {
+  try {
+    const today = new Date();
+    const defaultEndDate = today.toISOString().slice(0, 10);
+    const startFrom = new Date(today);
+    startFrom.setDate(startFrom.getDate() - 29);
+
+    const startDate = req.query.startDate || startFrom.toISOString().slice(0, 10);
+    const endDate = req.query.endDate || defaultEndDate;
+
+    if (startDate > endDate) {
+      return res.status(400).json({ message: 'startDate cannot be greater than endDate.' });
+    }
+
+    const spanDays = Math.round(
+      (new Date(`${endDate}T00:00:00Z`) - new Date(`${startDate}T00:00:00Z`)) / 86400000,
+    ) + 1;
+    const granularity = req.query.granularity
+      || (spanDays <= 31 ? 'day' : spanDays <= 120 ? 'week' : 'month');
+
+    const branchId = req.query.branchId || (req.user && (req.user.branch_id || req.user.branchId)) || null;
+
+    const data = await reportService.salesTrend({ startDate, endDate, branchId, granularity });
+
+    if (req.query.format) {
+      return sendExport(res, data.points, 'sales-trend', req.query.format);
+    }
+
+    return res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function stockMovements(req, res, next) {
   try {
     const { startDate, endDate, format, groupBy = 'product' } = req.query;
@@ -578,6 +612,7 @@ module.exports = {
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  salesTrend,
   stockMovements,
   expiryReport,
   listReports,

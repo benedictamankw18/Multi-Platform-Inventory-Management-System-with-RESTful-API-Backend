@@ -281,6 +281,162 @@ async function expiryReconciliation(branchId) {
   return rows[0] || { drift_rows: 0, drift_quantity: 0 };
 }
 
+// ---------------------------------------------------------------------------
+// Sales trend
+//
+// Bucketed revenue / profit / orders across an arbitrary date range, plus the
+// totals for the immediately preceding equal-length window (so the UI can show
+// a period-over-period delta). VOID sales are excluded so the trend reflects
+// real trading. Buckets are returned as plain 'YYYY-MM-DD' text (via TO_CHAR)
+// so the caller never has to reason about the driver's timezone handling, and
+// every bucket in the range is present (gaps filled with zeroes).
+// ---------------------------------------------------------------------------
+
+function toISODate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(iso, days) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return toISODate(d);
+}
+
+function daysBetween(a, b) {
+  return Math.round((new Date(`${b}T00:00:00Z`) - new Date(`${a}T00:00:00Z`)) / 86400000);
+}
+
+// Bucket start dates (inclusive) covering the range for a granularity.
+function bucketStartDates(startDate, endDate, unit) {
+  const last = new Date(`${endDate}T00:00:00Z`);
+  const starts = [];
+
+  if (unit === 'week') {
+    const cur = new Date(`${startDate}T00:00:00Z`);
+    // DATE_TRUNC('week') starts on Monday.
+    cur.setUTCDate(cur.getUTCDate() - ((cur.getUTCDay() + 6) % 7));
+    while (cur <= last) {
+      starts.push(toISODate(cur));
+      cur.setUTCDate(cur.getUTCDate() + 7);
+    }
+    return starts;
+  }
+
+  if (unit === 'month') {
+    const cur = new Date(`${startDate}T00:00:00Z`);
+    cur.setUTCDate(1);
+    while (cur <= last) {
+      starts.push(toISODate(cur));
+      cur.setUTCMonth(cur.getUTCMonth() + 1);
+    }
+    return starts;
+  }
+
+  const cur = new Date(`${startDate}T00:00:00Z`);
+  while (cur <= last) {
+    starts.push(toISODate(cur));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return starts;
+}
+
+async function rangeSummary(startDate, endDate, branchId) {
+  const params = [startDate, endDate];
+  const branchFilter = branchId ? `AND s.branch_id = $${params.push(branchId)}` : '';
+  const salesQ = `
+    SELECT COUNT(*)::int AS orders, COALESCE(SUM(s.total_amount), 0) AS revenue
+    FROM sales s
+    WHERE s.sale_date >= $1 AND s.sale_date < ($2::date + interval '1 day')
+      AND s.status <> 'VOID'
+      ${branchFilter}
+  `;
+  const itemsQ = `
+    SELECT COALESCE(SUM(si.quantity * (si.unit_price - COALESCE(si.cost_price, p.cost_price, 0))), 0) AS profit
+    FROM sale_items si
+    JOIN sales s ON si.sale_id = s.sale_id
+    LEFT JOIN products p ON si.product_id = p.product_id
+    WHERE s.sale_date >= $1 AND s.sale_date < ($2::date + interval '1 day')
+      AND s.status <> 'VOID'
+      ${branchFilter}
+  `;
+  const [salesRes, itemsRes] = await Promise.all([
+    client.query(salesQ, params),
+    client.query(itemsQ, params),
+  ]);
+  return {
+    revenue: Number(salesRes.rows[0].revenue || 0),
+    orders: Number(salesRes.rows[0].orders || 0),
+    profit: Number(itemsRes.rows[0].profit || 0),
+  };
+}
+
+async function salesTrend({ startDate, endDate, branchId = null, granularity = 'day' } = {}) {
+  const unit = ['day', 'week', 'month'].includes(granularity) ? granularity : 'day';
+  const params = [startDate, endDate];
+  const branchFilter = branchId ? `AND s.branch_id = $${params.push(branchId)}` : '';
+
+  // Sales totals and item-level profit are aggregated in separate queries so the
+  // sale_items join cannot fan out the SUM(sales.total_amount).
+  const salesQ = `
+    SELECT TO_CHAR(DATE_TRUNC('${unit}', s.sale_date), 'YYYY-MM-DD') AS bucket,
+           COUNT(*)::int AS orders,
+           COALESCE(SUM(s.total_amount), 0) AS revenue
+    FROM sales s
+    WHERE s.sale_date >= $1 AND s.sale_date < ($2::date + interval '1 day')
+      AND s.status <> 'VOID'
+      ${branchFilter}
+    GROUP BY 1
+    ORDER BY 1
+  `;
+  const itemsQ = `
+    SELECT TO_CHAR(DATE_TRUNC('${unit}', s.sale_date), 'YYYY-MM-DD') AS bucket,
+           COALESCE(SUM(si.quantity * (si.unit_price - COALESCE(si.cost_price, p.cost_price, 0))), 0) AS profit
+    FROM sale_items si
+    JOIN sales s ON si.sale_id = s.sale_id
+    LEFT JOIN products p ON si.product_id = p.product_id
+    WHERE s.sale_date >= $1 AND s.sale_date < ($2::date + interval '1 day')
+      AND s.status <> 'VOID'
+      ${branchFilter}
+    GROUP BY 1
+    ORDER BY 1
+  `;
+
+  const [salesRes, itemsRes] = await Promise.all([
+    client.query(salesQ, params),
+    client.query(itemsQ, params),
+  ]);
+
+  const salesByBucket = new Map(salesRes.rows.map((r) => [r.bucket, r]));
+  const profitByBucket = new Map(itemsRes.rows.map((r) => [r.bucket, Number(r.profit || 0)]));
+
+  const points = bucketStartDates(startDate, endDate, unit).map((bucket) => {
+    const s = salesByBucket.get(bucket);
+    return {
+      bucket,
+      revenue: Number(s ? s.revenue : 0),
+      orders: Number(s ? s.orders : 0),
+      profit: profitByBucket.get(bucket) || 0,
+    };
+  });
+
+  const totals = points.reduce(
+    (acc, p) => ({
+      revenue: acc.revenue + p.revenue,
+      orders: acc.orders + p.orders,
+      profit: acc.profit + p.profit,
+    }),
+    { revenue: 0, orders: 0, profit: 0 },
+  );
+
+  // Previous equal-length window, ending the day before the range starts.
+  const spanDays = daysBetween(startDate, endDate) + 1;
+  const prevEnd = addDays(startDate, -1);
+  const prevStart = addDays(prevEnd, -(spanDays - 1));
+  const previous = await rangeSummary(prevStart, prevEnd, branchId);
+
+  return { granularity: unit, startDate, endDate, points, totals, previous };
+}
+
 module.exports = {
   dailySales,
   monthlySales,
@@ -295,4 +451,5 @@ module.exports = {
   stockMovements,
   expiryReport,
   expiryReconciliation,
+  salesTrend,
 };

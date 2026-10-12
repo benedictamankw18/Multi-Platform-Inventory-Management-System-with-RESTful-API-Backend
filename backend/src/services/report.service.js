@@ -111,6 +111,11 @@ async function branchPerformance(startDate, endDate) {
   return cacheWrap(key, () => reportRepo.branchPerformance(startDate, endDate), 300);
 }
 
+async function salesTrend({ startDate, endDate, branchId, granularity = 'day' } = {}) {
+  const key = `reports:salesTrend:${branchId || 'all'}:${granularity}:${startDate || 'any'}:${endDate || 'any'}`;
+  return cacheWrap(key, () => reportRepo.salesTrend({ startDate, endDate, branchId, granularity }), 60);
+}
+
 async function stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy = 'product' } = {}) {
   const key = `reports:stockMovements:${branchId || 'all'}:${productId || 'all'}:${transactionType || 'all'}:${groupBy}:${startDate || 'any'}:${endDate || 'any'}`;
   return cacheWrap(key, () => reportRepo.stockMovements({ startDate, endDate, branchId, productId, transactionType, groupBy }), 300);
@@ -136,6 +141,7 @@ module.exports = {
   purchasesReport,
   bestSellingProducts,
   branchPerformance,
+  salesTrend,
   stockMovements,
   expiryReport,
   expiryReconciliation,
