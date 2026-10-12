@@ -182,13 +182,13 @@ async function createSale(payload, actor = null) {
         }
       }
 
-      // Batch ledger for expiry-tracked products. A sale item that names a lot
+      // Batch ledger for every product. A sale item that names a lot
       // (batch_number) is a strict manual override; otherwise FEFO picks the
-      // earliest-expiring lots. The line's cost becomes the weighted average of
-      // the allocated lots because a single sale_items.cost_price cannot
-      // represent a multi-lot line.
+      // earliest-expiring lots first, then no-expiry lots. The line's cost
+      // becomes the weighted average of the allocated lots because a single
+      // sale_items.cost_price cannot represent a multi-lot line.
       let allocations = null;
-      if (product.expiry_required) {
+      if (product) {
         let overrideBatchId = null;
         if (item.batch_number) {
           const manualBatch = await productBatchRepo.findActiveBatch(
@@ -490,8 +490,6 @@ async function restoreSaleInventory(saleId, branchId, client) {
       [item.quantity, item.product_id, branchId]
     );
 
-    if (!item.expiry_required) continue;
-
     // Restore the exact lots recorded at sale time. Sales created before the
     // batch ledger existed (no sale_item_batches rows) fall back to the
     // sentinel fill batch so the aggregate and ledger stay in sync.
@@ -508,7 +506,7 @@ async function restoreSaleInventory(saleId, branchId, client) {
             product_id: item.product_id,
             product_name: item.product_name,
             cost_price: item.cost_price,
-            expiry_required: true,
+            expiry_required: false,
           },
           branch_id: branchId,
           batch_number: null,
@@ -534,7 +532,9 @@ async function voidSale(id, actor = null) {
       await client.query('COMMIT');
       return sale;
     }
-    if (sale.status === 'REFUNDED') throw new AppError('Refunded sales cannot be voided.', { status: 409 });
+    if (sale.status === 'REFUNDED' || Number(sale.refunded_amount) > 0) {
+      throw new AppError('Refunded sales cannot be voided.', { status: 409 });
+    }
 
     await restoreSaleInventory(id, sale.branch_id, client);
 
@@ -583,7 +583,11 @@ async function refundSale(id, payload = {}, actor = null) {
     const isPartial = totalRefunded < Number(sale.total_amount);
     const newStatus = isPartial ? 'PARTIALLY_REFUNDED' : 'REFUNDED';
 
-    await restoreSaleInventory(id, sale.branch_id, client);
+    // Partial refunds are money-only. Only a refund that settles the full sale
+    // returns the sold quantities to stock (and the batch ledger).
+    if (!isPartial) {
+      await restoreSaleInventory(id, sale.branch_id, client);
+    }
 
     const { rows: updatedRows } = await client.query(
       `UPDATE sales

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import QRCode from 'qrcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useCurrency } from '../contexts/BusinessSettingsContext'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -41,6 +42,7 @@ type BusinessInfo = {
 export default function SalesPage() {
   const { toast } = useToast()
   const { selectedBranch, hasPermission } = useAuth()
+  const { currency, formatCurrency } = useCurrency()
   const [sales, setSales] = useState<Sale[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -234,10 +236,10 @@ export default function SalesPage() {
     const rn = receiptData.receipt?.receipt_number || ''
     const inv = s?.invoice_number || ''
     const total = Number(s?.total_amount ?? 0)
-    const cur = businessInfo.currency || 'GHS'
+    const cur = currency
     const text = `Invoice: ${inv}\nReceipt: ${rn}\nTotal: ${cur} ${total.toFixed(2)}\nDate: ${s?.sale_date || ''}`
     QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [receiptData, businessInfo.currency])
+  }, [receiptData, currency])
 
   // ---- Export ----
 
@@ -255,15 +257,15 @@ export default function SalesPage() {
         'Cashier': s.cashier_name ?? '',
         'Date': formatDate(s.sale_date),
         'Type': s.sale_type,
-        'Subtotal': Number(s.subtotal).toFixed(2),
-        'Tax': Number(s.tax_amount).toFixed(2),
-        'Discount': Number(s.discount_amount).toFixed(2),
-        'Total': Number(s.total_amount).toFixed(2),
-        'Paid': Number(s.amount_paid).toFixed(2),
-        'Balance': Number(s.balance_due).toFixed(2),
+        [`Subtotal (${currency})`]: Number(s.subtotal).toFixed(2),
+        [`Tax (${currency})`]: Number(s.tax_amount).toFixed(2),
+        [`Discount (${currency})`]: Number(s.discount_amount).toFixed(2),
+        [`Total (${currency})`]: Number(s.total_amount).toFixed(2),
+        [`Paid (${currency})`]: Number(s.amount_paid).toFixed(2),
+        [`Balance (${currency})`]: Number(s.balance_due).toFixed(2),
         'Status': s.status,
         'Payment Status': s.payment_status,
-        'Refunded': Number(s.refunded_amount).toFixed(2),
+        [`Refunded (${currency})`]: Number(s.refunded_amount).toFixed(2),
       }))
     } catch {
       return []
@@ -390,12 +392,12 @@ export default function SalesPage() {
                   <td>{s.customer_name || 'Walk-in'}</td>
                   <td style={{ fontSize: 13 }}>{formatDate(s.sale_date)}</td>
                   <td><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.sale_type}</span></td>
-                  <td style={{ textAlign: 'right', fontWeight: 500 }}>{Number(s.total_amount).toFixed(2)}</td>
-                  <td style={{ textAlign: 'right' }}>{Number(s.amount_paid).toFixed(2)}</td>
-                  <td style={{ textAlign: 'right', color: Number(s.balance_due) > 0 ? 'var(--danger)' : undefined }}>{Number(s.balance_due).toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 500 }}>{formatCurrency(s.total_amount)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(s.amount_paid)}</td>
+                  <td style={{ textAlign: 'right', color: Number(s.balance_due) > 0 ? 'var(--danger)' : undefined }}>{formatCurrency(s.balance_due)}</td>
                   <td><span className={`badge ${statusColor(s.status)}`}>{s.status}</span></td>
                   <td><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.payment_status}</span></td>
-                  <td style={{ textAlign: 'right', color: Number(s.refunded_amount) > 0 ? '#d97706' : undefined }}>{Number(s.refunded_amount).toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', color: Number(s.refunded_amount) > 0 ? '#d97706' : undefined }}>{formatCurrency(s.refunded_amount)}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button type="button" title="View sale details" onClick={() => handleViewSale(s)}
                       style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--primary)', fontSize: 12, cursor: 'pointer', marginRight: 4 }}>
@@ -443,13 +445,13 @@ export default function SalesPage() {
             <h3 style={{ margin: '0 0 8px' }}>{actionType === 'void' ? 'Void Sale' : 'Refund Sale'}</h3>
             <p style={{ color: 'var(--text-secondary)', margin: '0 0 16px', fontSize: 14 }}>
               Invoice: <strong>{actionSale.invoice_number ?? '—'}</strong><br />
-              Total: <strong>{Number(actionSale.total_amount).toFixed(2)}</strong>
+              Total: <strong>{formatCurrency(actionSale.total_amount)}</strong>
             </p>
             {actionType === 'refund' && (
               <>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-                    Refund Amount (max: {Number(actionSale.total_amount - (actionSale.refunded_amount || 0)).toFixed(2)})
+                    Refund Amount (max: {formatCurrency(Number(actionSale.total_amount) - Number(actionSale.refunded_amount || 0))})
                   </label>
                   <input
                     type="number"
@@ -473,7 +475,9 @@ export default function SalesPage() {
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.5 }}>
               {actionType === 'void'
                 ? 'This will void the sale and restore inventory. This action cannot be undone.'
-                : 'This will refund the sale and restore inventory. This action cannot be undone.'}
+                : (refundAmount && parseFloat(refundAmount) < (Number(actionSale.total_amount) - Number(actionSale.refunded_amount || 0))
+                    ? 'This partial refund adjusts the amount only — inventory is not restored. This action cannot be undone.'
+                    : 'This will refund the sale and restore inventory. This action cannot be undone.')}
             </p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" onClick={closeAction} className="btn btn--ghost" disabled={acting}>Cancel</button>
@@ -550,24 +554,24 @@ export default function SalesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
                 <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.15)' }}>
                   <div style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>Total</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{Number(viewSale.total_amount).toFixed(2)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(viewSale.total_amount)}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    Sub {Number(viewSale.subtotal).toFixed(2)} · Tax {Number(viewSale.tax_amount).toFixed(2)}
-                    {Number(viewSale.discount_amount) > 0 && ` · Disc -${Number(viewSale.discount_amount).toFixed(2)}`}
+                    Sub {formatCurrency(viewSale.subtotal)} · Tax {formatCurrency(viewSale.tax_amount)}
+                    {Number(viewSale.discount_amount) > 0 && ` · Disc -${formatCurrency(viewSale.discount_amount)}`}
                   </div>
                 </div>
                 <div style={{ padding: '12px 14px', borderRadius: 8, background: Number(viewSale.balance_due) > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${Number(viewSale.balance_due) > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)'}` }}>
                   <div style={{ fontSize: 11, color: Number(viewSale.balance_due) > 0 ? '#d97706' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>Paid</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{Number(viewSale.amount_paid).toFixed(2)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(viewSale.amount_paid)}</div>
                 </div>
                 <div style={{ padding: '12px 14px', borderRadius: 8, background: Number(viewSale.balance_due) > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${Number(viewSale.balance_due) > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)'}` }}>
                   <div style={{ fontSize: 11, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>{Number(viewSale.balance_due) > 0 ? 'Balance Due' : 'Settled'}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a' }}>{Number(viewSale.balance_due).toFixed(2)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a' }}>{formatCurrency(viewSale.balance_due)}</div>
                 </div>
                 {Number(viewSale.refunded_amount) > 0 && (
                   <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.15)' }}>
                     <div style={{ fontSize: 11, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>Refunded</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#d97706' }}>{Number(viewSale.refunded_amount).toFixed(2)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#d97706' }}>{formatCurrency(viewSale.refunded_amount)}</div>
                   </div>
                 )}
               </div>
@@ -598,11 +602,11 @@ export default function SalesPage() {
                           <td style={{ fontWeight: 500 }}>{item.product_name}</td>
                           <td style={{ textAlign: 'right' }}>{Number(item.quantity)}</td>
                           <td>{item.symbol || item.uom_name || '—'}</td>
-                          <td style={{ textAlign: 'right' }}>{Number(item.unit_price).toFixed(2)}</td>
-                          <td style={{ textAlign: 'right' }}>{Number(item.line_discount || 0).toFixed(2)}</td>
-                          <td style={{ textAlign: 'right' }}>{Number(item.tax_amount || 0).toFixed(2)}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.unit_price)}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.line_discount || 0)}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(item.tax_amount || 0)}</td>
                           <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                            {Number(item.subtotal ?? (Number(item.quantity) * Number(item.unit_price) - Number(item.line_discount || 0) + Number(item.tax_amount || 0))).toFixed(2)}
+                            {formatCurrency(item.subtotal ?? (Number(item.quantity) * Number(item.unit_price) - Number(item.line_discount || 0) + Number(item.tax_amount || 0)))}
                           </td>
                         </tr>
                       ))}
@@ -622,7 +626,7 @@ export default function SalesPage() {
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                           <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
                         </div>
-                        <span style={{ fontWeight: 600 }}>{Number(p.amount).toFixed(2)}</span>
+                        <span style={{ fontWeight: 600 }}>{formatCurrency(p.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -707,8 +711,8 @@ export default function SalesPage() {
                   <div className="receipt-item" key={i}>
                     <div className="receipt-item-name">{item.product_name}</div>
                     <div className="receipt-item-line">
-                      <span>{Number(item.quantity)} {item.symbol || item.uom_name || ''} x {(businessInfo.currency || 'GHS') + ' ' + Number(item.unit_price).toFixed(2)}</span>
-                      <span>{(businessInfo.currency || 'GHS') + ' ' + lt.toFixed(2)}</span>
+                      <span>{Number(item.quantity)} {item.symbol || item.uom_name || ''} x {currency + ' ' + Number(item.unit_price).toFixed(2)}</span>
+                      <span>{currency + ' ' + lt.toFixed(2)}</span>
                     </div>
                   </div>
                 )
@@ -723,9 +727,9 @@ export default function SalesPage() {
                       <tr key={i}>
                         <td>{item.product_name}</td>
                         <td>{Number(item.quantity)}</td>
-                        <td>{(businessInfo.currency || 'GHS') + ' ' + Number(item.unit_price).toFixed(2)}</td>
+                        <td>{currency + ' ' + Number(item.unit_price).toFixed(2)}</td>
                         <td>{item.symbol || item.uom_name || ''}</td>
-                        <td>{(businessInfo.currency || 'GHS') + ' ' + lt.toFixed(2)}</td>
+                        <td>{currency + ' ' + lt.toFixed(2)}</td>
                       </tr>
                     )
                   })}
@@ -735,29 +739,29 @@ export default function SalesPage() {
           </div>
 
           <div className="receipt-section receipt-totals">
-            <div className="receipt-row"><span>Subtotal</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.subtotal ?? 0).toFixed(2)}</span></div>
+            <div className="receipt-row"><span>Subtotal</span><span>{currency + ' ' + Number(receiptData?.sale?.subtotal ?? 0).toFixed(2)}</span></div>
             {Number(receiptData?.sale?.discount_amount ?? 0) > 0 && (
-              <div className="receipt-row r-discount"><span>Discount</span><span>-{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.discount_amount ?? 0).toFixed(2)}</span></div>
+              <div className="receipt-row r-discount"><span>Discount</span><span>-{currency + ' ' + Number(receiptData?.sale?.discount_amount ?? 0).toFixed(2)}</span></div>
             )}
             {Number(receiptData?.sale?.tax_amount ?? 0) > 0 && (
-              <div className="receipt-row"><span>Tax</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.tax_amount ?? 0).toFixed(2)}</span></div>
+              <div className="receipt-row"><span>Tax</span><span>{currency + ' ' + Number(receiptData?.sale?.tax_amount ?? 0).toFixed(2)}</span></div>
             )}
-            <div className="receipt-row receipt-total-row"><span>TOTAL</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.total_amount ?? 0).toFixed(2)}</span></div>
+            <div className="receipt-row receipt-total-row"><span>TOTAL</span><span>{currency + ' ' + Number(receiptData?.sale?.total_amount ?? 0).toFixed(2)}</span></div>
             {Number(receiptData?.sale?.refunded_amount ?? 0) > 0 && (
-              <div className="receipt-row" style={{ color: '#000000' }}><span>Refunded</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.refunded_amount ?? 0).toFixed(2)}</span></div>
+              <div className="receipt-row" style={{ color: '#000000' }}><span>Refunded</span><span>{currency + ' ' + Number(receiptData?.sale?.refunded_amount ?? 0).toFixed(2)}</span></div>
             )}
           </div>
 
           <div className="receipt-section receipt-payment">
             {(receiptData?.sale?.payments ?? []).map((p, i) => (
-              <div className="receipt-row" key={i}><span>{p.payment_method}</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(p.amount).toFixed(2)}</span></div>
+              <div className="receipt-row" key={i}><span>{p.payment_method}</span><span>{currency + ' ' + Number(p.amount).toFixed(2)}</span></div>
             ))}
             <div className="receipt-row" style={{ fontWeight: 600, borderTop: '1px dashed #888', paddingTop: 4, marginTop: 4 }}>
               <span>Total Paid</span>
-              <span>{(businessInfo.currency || 'GHS') + ' ' + (receiptData?.sale?.payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}</span>
+              <span>{currency + ' ' + (receiptData?.sale?.payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}</span>
             </div>
             {Number(receiptData?.sale?.balance_due ?? 0) > 0 && (
-              <div className="receipt-row r-remain"><span>Balance Due</span><span>{(businessInfo.currency || 'GHS') + ' ' + Number(receiptData?.sale?.balance_due ?? 0).toFixed(2)}</span></div>
+              <div className="receipt-row r-remain"><span>Balance Due</span><span>{currency + ' ' + Number(receiptData?.sale?.balance_due ?? 0).toFixed(2)}</span></div>
             )}
           </div>
 
