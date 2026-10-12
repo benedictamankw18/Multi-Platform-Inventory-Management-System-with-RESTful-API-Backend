@@ -1,5 +1,7 @@
 const { body, param } = require('express-validator');
 
+const { isNotPastDate } = require('./common.validation');
+
 const purchaseIdParam = [
   param('purchaseId').isUUID().withMessage('Invalid purchase ID.'),
 ];
@@ -11,7 +13,7 @@ const createPurchaseItemValidation = [
   body('quantity').isFloat({ gt: 0 }).withMessage('quantity must be a number greater than 0'),
   body('unit_price').isFloat({ min: 0 }).withMessage('unit_price must be a number >= 0'),
   body('discount').optional().isFloat({ min: 0 }),
-  body('expiry_date').optional().isISO8601().toDate(),
+  body('expiry_date').optional().isISO8601().toDate().custom(isNotPastDate).withMessage('expiry_date cannot be in the past.'),
   body('batch_number').optional().isString(),
   body('serial_number').optional().isString(),
 ];
@@ -22,7 +24,7 @@ const updatePurchaseItemValidation = [
   body('quantity').optional().isFloat({ gt: 0 }),
   body('unit_price').optional().isFloat({ min: 0 }),
   body('discount').optional().isFloat({ min: 0 }),
-  body('expiry_date').optional().isISO8601().toDate(),
+  body('expiry_date').optional().isISO8601().toDate().custom(isNotPastDate).withMessage('expiry_date cannot be in the past.'),
   body('batch_number').optional().isString(),
   body('serial_number').optional().isString(),
 ];
