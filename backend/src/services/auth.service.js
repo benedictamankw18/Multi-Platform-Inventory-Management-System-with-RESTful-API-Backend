@@ -371,6 +371,15 @@ exports.listLoginHistoryForUser = async (userId, opts = {}) => {
 };
 
 exports.revokeSessionById = async (sessionId, actorId = null) => {
+  // A user may only revoke their own sessions. Look the session up first so a
+  // session_id supplied by the client can never revoke another user's session.
+  // A missing or non-owned session returns 404 (never 403) so the response does
+  // not disclose whether the id exists.
+  const session = await authRepo.getSessionById(sessionId);
+  if (!session || session.user_id !== actorId) {
+    throw new AppError('Session not found.', { code: 'SESSION_NOT_FOUND', status: 404 });
+  }
+
   await authRepo.revokeSession(sessionId);
   await auditRepo.writeLog(actorId, 'REVOKE_SESSION', 'SESSION', sessionId);
   return { sessionId };
@@ -386,7 +395,7 @@ exports.listMyBranches = async (userId) => {
   return { branches };
 };
 
-exports.selectBranch = async (userId, branchId) => {
+exports.selectBranch = async (userId, branchId, sessionId) => {
   if (!userId || !branchId) {
     throw new AppError('User ID and branch ID are required.', { status: 400 });
   }
@@ -413,42 +422,35 @@ exports.selectBranch = async (userId, branchId) => {
     throw new AppError('Failed to refresh session.', { status: 500 });
   }
 
-  // Find the existing session for this user to rotate the token
-  const sessions = await authRepo.listSessionsForUser(userId, { limit: 1 });
-  const session = sessions[0];
-
-  if (session) {
-    const newJti = crypto.randomUUID();
-    await authRepo.rotateSessionToken(session.session_id, newJti);
-
-    // Keep the same login attribution across branch re-signing.
-    const login = await authRepo.findLoginBySessionId(session.session_id);
-    const loginId = (login && login.login_id) || null;
-
-    const accessToken = signAccessToken(fullUser, session.session_id, loginId);
-    const refreshToken = signRefreshToken(userId, session.session_id, newJti, loginId);
-
-    await auditRepo.writeLog(userId, 'SELECT_BRANCH', 'USER', userId);
-
-    return {
-      accessToken,
-      refreshToken,
-      branch: assigned,
-      user: {
-        userId: updated.user_id,
-        username: updated.username,
-        fullName: updated.full_name,
-        email: updated.email,
-        role: fullUser.role_name,
-        branchId: branchId,
-        profilePhoto: updated.profile_photo,
-      },
-    };
+  // Re-sign against the caller's OWN session, identified by the sid carried in
+  // their access token. We deliberately do NOT rotate the refresh-token jti
+  // here: select-branch can fire concurrently (e.g. React StrictMode invokes
+  // the branch auto-select effect twice), and two rotations would race — the DB
+  // would keep one jti while the client stores the other, and the next refresh
+  // would then look like refresh-token reuse and revoke the whole session.
+  const session = sessionId ? await authRepo.getSessionById(sessionId) : null;
+  if (!session || session.revoked || !session.is_active) {
+    throw sessionInvalidError();
   }
 
-  // Fallback: no active session, just return the branch info
+  // select-branch no longer rotates the token, so bump activity explicitly to
+  // keep NFR-007's inactivity accounting working.
+  await authRepo.touchSession(session.session_id);
+
+  // Keep the same login attribution across branch re-signing.
+  const login = await authRepo.findLoginBySessionId(session.session_id);
+  const loginId = (login && login.login_id) || null;
+
+  const accessToken = signAccessToken(fullUser, session.session_id, loginId);
+  // Re-sign the refresh token with the session's EXISTING jti so it stays in
+  // sync with user_sessions.token_identifier (no rotation, no reuse trip).
+  const refreshToken = signRefreshToken(userId, session.session_id, session.token_identifier, loginId);
+
   await auditRepo.writeLog(userId, 'SELECT_BRANCH', 'USER', userId);
+
   return {
+    accessToken,
+    refreshToken,
     branch: assigned,
     user: {
       userId: updated.user_id,

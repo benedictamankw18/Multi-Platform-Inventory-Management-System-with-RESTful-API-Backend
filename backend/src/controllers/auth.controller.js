@@ -50,9 +50,12 @@ function extractRefreshToken(req) {
   return cookieToken || req.body.refreshToken || req.body.refresh_token || null;
 }
 
+const { describeError } = require('../utils/httpError');
+
 function handleError(res, err) {
   console.error('[auth.controller]', err);
-  return res.status(err.status || 500).json({ message: err.message || 'An unexpected error occurred.' });
+  const { status, message } = describeError(err);
+  return res.status(status).json({ message });
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +163,9 @@ exports.listMyBranches = async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/select-branch
-// Sets the user's active branch and re-issues tokens with the new branchId
+// Sets the user's active branch and re-issues an access token with the new
+// branchId. The refresh token is re-signed against the caller's EXISTING
+// session jti (not rotated) so concurrent select-branch calls can't race.
 // Body: { branchId }
 // ---------------------------------------------------------------------------
 
@@ -169,10 +174,12 @@ exports.selectBranch = async (req, res) => {
     const userId = req.user && req.user.sub;
     if (!userId) return res.status(401).json({ message: 'Authentication required.' });
 
+    const sessionId = req.user && req.user.sid;
+
     const { branchId } = req.body;
     if (!branchId) return res.status(400).json({ message: 'branchId is required.' });
 
-    const result = await authService.selectBranch(userId, branchId);
+    const result = await authService.selectBranch(userId, branchId, sessionId);
 
     if (result.refreshToken) {
       setRefreshCookie(res, result.refreshToken);

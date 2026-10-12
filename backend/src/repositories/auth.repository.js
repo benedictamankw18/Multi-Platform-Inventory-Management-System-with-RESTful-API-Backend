@@ -106,6 +106,20 @@ exports.rotateSessionToken = async (sessionId, newTokenIdentifier, client = db) 
   return rows[0];
 };
 
+// Bump last_activity_at without touching token_identifier. Used by flows that
+// keep a session alive but must NOT rotate the refresh-token jti (see
+// auth.service.js's selectBranch), so inactivity accounting still works.
+exports.touchSession = async (sessionId, client = db) => {
+  const query = `
+    UPDATE user_sessions
+    SET last_activity_at = now()
+    WHERE session_id = $1
+    RETURNING session_id;
+  `;
+  const { rows } = await client.query(query, [sessionId]);
+  return rows[0];
+};
+
 exports.revokeSession = async (sessionId, client = db) => {
   const query = `
     UPDATE user_sessions
@@ -129,6 +143,21 @@ exports.revokeAllSessionsForUser = async (userId, client = db) => {
   `;
   const { rows } = await client.query(query, [userId]);
   return rows.map(r => r.session_id);
+};
+
+// Housekeeping: delete sessions that can no longer be used — every revoked one,
+// plus any that expired more than `retentionDays` ago. Without this the table
+// grows without bound as users log in/out. login_history.session_id is a plain
+// uuid column (no foreign key), so deleting sessions does not affect history.
+exports.purgeStaleSessions = async ({ retentionDays = 30 } = {}, client = db) => {
+  const query = `
+    DELETE FROM user_sessions
+    WHERE revoked = TRUE
+       OR expires_at < now() - ($1::int * INTERVAL '1 day')
+    RETURNING session_id;
+  `;
+  const { rows } = await client.query(query, [retentionDays]);
+  return rows.length;
 };
 
 // ---------------------------------------------------------------------------
