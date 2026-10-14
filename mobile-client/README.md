@@ -161,7 +161,7 @@ mobile-client/
   .env.local                  # local override (git-ignored, no secrets)
   src/
     app/                      # Expo Router routes — every file is a screen
-      _layout.tsx             # root layout: SafeAreaProvider + AuthProvider + Stack
+      _layout.tsx             # root layout: SafeAreaProvider + Business + Auth + Stack
       +not-found.tsx
       (auth)/
         login.tsx             # /login (password visibility toggle)
@@ -189,7 +189,7 @@ mobile-client/
       permissions.ts          # permission codes (page vs data)
     components/
       PermissionGate.tsx      # route-level permission guard
-      LoadingScreen.tsx       # full-screen spinner
+      LoadingScreen.tsx       # branded splash: business logo + name + spinner
       BarcodeScanner.tsx      # expo-camera modal barcode scanner
       ProductForm.tsx         # shared product create/edit form
       TabBar.tsx              # custom 5-item bottom tab bar (raised circular POS)
@@ -200,6 +200,7 @@ mobile-client/
       useCurrency.ts          # reads currency symbol from /business/public
     contexts/
       AuthContext.tsx         # session, permissions, branch selection
+      BusinessContext.tsx     # business name + logo from /business/public (cached)
     theme/
       theme.ts                # design tokens
 ```
@@ -221,6 +222,19 @@ convention. Route groups `(auth)` and `(app)` are transparent in the URL.
 
 > **iOS SecureStore note:** values are limited to roughly 2048 bytes, which is why `accessToken` and
 > `refreshToken` are stored under separate keys rather than one JSON blob.
+
+### 3.3 Branding (login + splash)
+
+The login screen and the JS splash show the **Business Settings** logo and business name, read from the
+unauthenticated `GET /business/public` through `BusinessContext`
+(`src/contexts/BusinessContext.tsx`).
+
+- The last-seen `{ name, logo }` is cached in `expo-secure-store`, so an offline cold start still shows
+  branding. On failure (or when unset) the UI falls back to the default name `"Inventory Manager"`.
+- The logo is stored relative, so it is resolved against the API origin with `resolveImageUrl`.
+- This is a **JS** splash (`src/components/LoadingScreen.tsx`), shown while auth/session state
+  resolves. The **OS-level** splash is static (baked at build time) and cannot render runtime Business
+  Settings data, so no `expo-splash-screen` configuration is used.
 
 ---
 
@@ -249,12 +263,13 @@ npx expo install <package>
 ```
 
 Current dependencies: `expo`, `expo-router`, `expo-secure-store`, `expo-camera`, `expo-status-bar`,
-`expo-linking`, `expo-constants`, `expo-crypto`, `expo-font`, `@expo/vector-icons`, `axios`,
-`react-native-safe-area-context`, `react-native-screens`, `react-native-web`.
+`expo-linking`, `expo-constants`, `expo-crypto`, `expo-font`, `expo-image-picker`, `expo-dev-client`,
+`expo-print`, `expo-sharing`, `@expo/vector-icons`, `axios`, `react-native-safe-area-context`,
+`react-native-screens`, `react-native-web`, and `react-native-thermal-receipt-printer`
+(ESC/POS thermal printing — requires a development build; see §8.3).
 
-> `expo-sqlite`, `expo-print`, and `expo-sharing` are still declared but currently **unused**
-> (leftovers from the excluded offline layer and the deferred receipt-printing plan) and can be
-> removed.
+> `expo-sqlite` is still declared but currently **unused** (a leftover from the excluded offline
+> layer) and can be removed.
 
 ### 5.1 API base URL configuration
 
@@ -404,6 +419,26 @@ The tab bar is a custom component, `src/components/TabBar.tsx`, passed to the na
    concurrent-request queue prevents duplicate refreshes. If refresh fails, tokens are cleared and
    the app returns to `/login`.
 4. Every request sends `X-Device-Id` (a UUID persisted in SecureStore).
+
+### 8.3 Receipt printing
+
+A sale receipt is described once (`src/lib/receiptModel.ts`) and rendered to three surfaces:
+
+- **PDF / OS print dialog** — `src/lib/receipt.ts` through `expo-print`.
+- **On-screen preview** — `src/components/ReceiptCard.tsx`.
+- **ESC/POS thermal printer** — `src/lib/printing/` (public API in `index.ts`; the native library is
+  touched only in `adapters.ts`).
+
+The PDF and on-screen surfaces print a **1D CODE128 barcode** of the invoice number
+(`src/lib/code128.ts`), matching the web/desktop receipt. The thermal path prints the same blocks as
+text; adding the barcode there is pending on-device verification.
+
+> **Thermal printing requires a development build.** `react-native-thermal-receipt-printer` is a
+> native module, so Expo Go cannot load it — the app degrades to a clear "requires a development
+> build" message. Transports are Bluetooth **LE**, network and USB; Bluetooth **Classic/SPP is not
+> supported** (iOS gives apps no access to it). Pick a printer under **More → Printer settings**. The
+> library is old-architecture, and its behaviour under the New Architecture interop layer (mandatory
+> from SDK 55) is not yet verified on a device.
 
 ---
 

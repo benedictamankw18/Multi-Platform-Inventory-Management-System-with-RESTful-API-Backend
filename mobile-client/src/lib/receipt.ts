@@ -12,6 +12,7 @@
 
 import type { ReceiptView } from './receiptModel'
 import { receiptMoney } from './receiptModel'
+import { code128Bars } from './code128'
 
 function esc(value: unknown): string {
   return String(value ?? '')
@@ -24,6 +25,23 @@ function esc(value: unknown): string {
 
 function row(label: string, value: string, className = ''): string {
   return `<div class="receipt-row ${className}"><span>${esc(label)}</span><span>${esc(value)}</span></div>`
+}
+
+/**
+ * 1D CODE128 barcode for the invoice number, matching the web/desktop receipt.
+ * Each bar is a flex item sized by its module width, so the symbol stretches to
+ * fill the receipt width (which is what makes it scannable at 58 mm).
+ */
+function barcodeHtml(value: string): string {
+  const barcode = code128Bars(value)
+  if (!barcode) return ''
+  const bars = barcode.widths
+    .map((w, i) => `<span style="flex-grow:${w};background:${i % 2 === 0 ? '#000' : 'transparent'}"></span>`)
+    .join('')
+  return `<div class="receipt-barcode">
+      <div class="receipt-barcode-bars">${bars}</div>
+      <div class="receipt-barcode-value">${esc(barcode.value)}</div>
+    </div>`
 }
 
 export function renderReceiptHtml(view: ReceiptView): string {
@@ -102,7 +120,8 @@ export function renderReceiptHtml(view: ReceiptView): string {
   if (view.balanceDue > 0) payment.push(row('Balance Due', money(view.balanceDue), 'r-remain'))
   if (view.change > 0) payment.push(row('Change', money(view.change)))
 
-  // ---- Footer -------------------------------------------------------------
+  // ---- Barcode + Footer ---------------------------------------------------
+  const barcode = view.invoiceNumber ? barcodeHtml(view.invoiceNumber) : ''
   const footer = view.business.footer
     ? `<div class="receipt-footer">${esc(view.business.footer)}</div>`
     : ''
@@ -145,6 +164,10 @@ export function renderReceiptHtml(view: ReceiptView): string {
   .receipt-paid-row { font-weight: 600; border-top: 1px dashed #888; padding-top: 4px; margin-top: 4px; }
   .receipt-footer { text-align: center; font-size: 11px; border-top: 1px solid #000; padding: 4px 0; }
   .receipt-empty { font-size: 11px; }
+  .receipt-barcode { padding: 4px 0; }
+  .receipt-barcode-bars { display: flex; align-items: flex-end; height: 40px; }
+  .receipt-barcode-bars span { height: 100%; }
+  .receipt-barcode-value { text-align: center; font-size: 12px; line-height: 1.2; margin-top: 2px; }
   .receipt-58 .receipt-row { font-size: 10px; }
   .receipt-58 .receipt-meta { font-size: 9px; }
   .receipt-58 .receipt-business-name { font-size: 13px; }
@@ -161,6 +184,7 @@ export function renderReceiptHtml(view: ReceiptView): string {
     <div class="receipt-section">${items}</div>
     <div class="receipt-section receipt-totals">${totals.join('')}</div>
     <div class="receipt-section receipt-payment">${payment.join('')}</div>
+    ${barcode}
     ${footer}
   </div>
 </body>

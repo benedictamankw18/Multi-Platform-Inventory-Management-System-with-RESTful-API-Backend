@@ -5,10 +5,12 @@ import type { BarcodeScanningResult, BarcodeType } from 'expo-camera'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
 
 /**
- * Barcode types the app scans. Deliberately a focused subset of the full
- * `BarcodeType` union — the retail/goods codes we care about.
+ * Barcode symbologies the app scans. Covers every type `expo-camera` supports
+ * so both linear (1D) product codes and 2D codes resolve. Listing a symbology
+ * here only enables detection for it; it is the scanner's allow-list.
  */
 const BARCODE_TYPES: BarcodeType[] = [
+  // Linear (1D)
   'ean13',
   'ean8',
   'upc_a',
@@ -18,7 +20,11 @@ const BARCODE_TYPES: BarcodeType[] = [
   'code93',
   'itf14',
   'codabar',
+  // 2D
   'qr',
+  'datamatrix',
+  'pdf417',
+  'aztec',
 ]
 
 /**
@@ -54,7 +60,12 @@ export function BarcodeScanner({
   }, [visible, permission, requestPermission])
 
   function handleScanned(result: BarcodeScanningResult) {
-    if (handledRef.current || !result.data) return
+    if (handledRef.current) return
+    // Dev aid: logs which symbology resolved, e.g. `ean13` for a 1D product
+    // code or `qr` for a 2D code. Helps tell "never detected" apart from
+    // "detected but not matched".
+    if (__DEV__) console.log('[scanner]', result.type, JSON.stringify(result.data))
+    if (!result.data) return
     handledRef.current = true
     onScanned(result.data)
   }

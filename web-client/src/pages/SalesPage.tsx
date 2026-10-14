@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import QRCode from 'qrcode'
+import JsBarcode from 'jsbarcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useCurrency } from '../contexts/BusinessSettingsContext'
@@ -69,7 +69,7 @@ export default function SalesPage() {
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
   const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({})
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const barcodeRef = useRef<SVGSVGElement>(null)
 
   const limit = 25
 
@@ -225,20 +225,24 @@ export default function SalesPage() {
   function closeReceipt() {
     setShowReceipt(false)
     setReceiptData(null)
-    setQrDataUrl(null)
   }
 
-  // QR code from receipt data
+  // Draw the 1D barcode (CODE128) once the receipt data is ready
   useEffect(() => {
-    if (!receiptData) { setQrDataUrl(null); return }
-    const s = receiptData.sale
-    const rn = receiptData.receipt?.receipt_number || ''
-    const inv = s?.invoice_number || ''
-    const total = Number(s?.total_amount ?? 0)
-    const cur = currency
-    const text = `Invoice: ${inv}\nReceipt: ${rn}\nTotal: ${cur} ${total.toFixed(2)}\nDate: ${s?.sale_date || ''}`
-    QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [receiptData, currency])
+    if (!receiptData || !barcodeRef.current) return
+    const value = receiptData.sale?.invoice_number || receiptData.receipt?.receipt_number || ''
+    if (!value) return
+    try {
+      JsBarcode(barcodeRef.current, value, {
+        format: 'CODE128',
+        width: 1.5,
+        height: 40,
+        displayValue: true,
+        fontSize: 12,
+        margin: 2,
+      })
+    } catch { /* invalid value for barcode — skip */ }
+  }, [receiptData])
 
   // ---- Export ----
 
@@ -764,11 +768,10 @@ export default function SalesPage() {
             )}
           </div>
 
-          {qrDataUrl && (
-            <div className="receipt-barcode">
-              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
-            </div>
-          )}
+          {/* 1D barcode (CODE128) */}
+          <div className="receipt-barcode">
+            <svg ref={barcodeRef} />
+          </div>
 
           {businessInfo.receipt_footer && (
             <div className="receipt-footer">{businessInfo.receipt_footer || 'Thank you for your business!'}</div>

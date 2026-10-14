@@ -26,6 +26,11 @@ export const STORAGE_KEYS = {
   deviceId: 'deviceId',
   /** Selected receipt printer (non-secret, but kept beside the other session data). */
   printerConfig: 'printerConfig',
+  /**
+   * Last-seen branding from `GET /business/public` (business name + logo URL).
+   * Non-secret; cached so the splash/login can brand an offline cold start.
+   */
+  businessBranding: 'businessBranding',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

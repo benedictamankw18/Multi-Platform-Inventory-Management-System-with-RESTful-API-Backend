@@ -152,7 +152,8 @@ role without `MANAGE_INVENTORY`; on-device scan → submit. Camera needs a real 
 - `POST /sales` with `items`, `payments`, `branch_id`, `cashier_id/name`, `sale_type`,
   `discount_amount`, `tax_amount`, `device_id`, and a `local_transaction_id` (`expo-crypto`
   `randomUUID()`, reused across retries of the same cart). Totals are left to the server.
-- On-screen receipt summary from the `201` response (`items` + `payments`). **No printing** and no
+- On-screen receipt summary from the `201` response (`items` + `payments`). **No printing at this point** (receipt printing — PDF and ESC/POS — landed in a later milestone; see
+  README §8.3) and no
   `GET /sales/:id/receipt` (that needs `VIEW_SALES`; Business Settings is excluded).
 - New `Product` wholesale fields; `Sale` / `CreateSaleInput` types + `createSale` in
   `src/services/api.ts`.
@@ -305,13 +306,21 @@ Reports + expiry report. Gate: `VIEW_REPORTS_PAGE`.
 - **No backend automated tests:** verification is manual (`curl.exe` / `backend/postman`).
 - **`backend/.env.example`** sets `PORT=3000` while the runtime default is `8040`
   (`INSTALLATION.md`/`RUNNING.md` document 8040).
-- **Unused dependencies:** `expo-sqlite`, `expo-print`, `expo-sharing` are declared but currently
-  unused (offline is excluded and printing is deferred) and can be removed.
-- **Currency / branding source:** read display-only from the unauthenticated `GET /business/public`;
-  the Business Settings *management* page remains web/desktop-only.
+- **Unused dependencies:** `expo-sqlite` is declared but currently unused (offline is excluded) and
+  can be removed. (`expo-print` and `expo-sharing` are used by receipt printing.)
+- **Currency / branding source:** read display-only from the unauthenticated `GET /business/public`
+  (currency via `useCurrency`; logo + business name via `BusinessContext` on the login screen and the
+  JS splash). The Business Settings *management* page remains web/desktop-only.
+- **Splash is JS-only:** login/splash branding renders in JS (`components/LoadingScreen.tsx`), not the
+  OS-level splash, which is static and cannot show runtime Business Settings data. No
+  `expo-splash-screen` configuration is used.
 - **Android emulator networking:** use `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8040/api/v1`
   (not `localhost`).
-- `mobile-client/` is currently an **untracked** git directory; nothing committed.
+- **Receipt printing needs a development build:** the ESC/POS transport
+  (`react-native-thermal-receipt-printer`) is a native module, so Expo Go cannot load it — use
+  `eas build --profile development` (or `npx expo run:android`). The library is old-architecture and
+  its behaviour under the New Architecture interop layer (mandatory from SDK 55) is unverified on a
+  device; the raw-bytes path needed for a thermal 1D barcode exists only on Android.
 
 ## Permission codes (reference)
 

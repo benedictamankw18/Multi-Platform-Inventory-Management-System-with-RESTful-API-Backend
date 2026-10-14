@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,15 +13,20 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { Redirect, router } from 'expo-router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
 
 export default function LoginScreen() {
   const { login, isAuthenticated, isLoading, needsBranchSelection } = useAuth()
+  const { name, logo } = useBusiness()
   const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  // Remember which logo URL failed so a later, valid one still renders.
+  const [failedLogo, setFailedLogo] = useState<string | null>(null)
 
   async function onSubmit() {
     if (!usernameOrEmail.trim() || !password) {
@@ -40,11 +46,7 @@ export default function LoginScreen() {
   }
 
   if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    )
+    return <LoadingScreen />
   }
 
   if (isAuthenticated) {
@@ -56,8 +58,19 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <View style={styles.branding}>
+        {logo && logo !== failedLogo ? (
+          <Image
+            source={{ uri: logo }}
+            style={styles.logo}
+            resizeMode="contain"
+            onError={() => setFailedLogo(logo)}
+          />
+        ) : null}
+        <Text style={styles.brandName}>{name || 'Inventory Manager'}</Text>
+      </View>
+
       <View style={styles.card}>
-        <Text style={styles.title}>Inventory Manager</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
         <Text style={styles.label}>Username or email</Text>
@@ -125,7 +138,14 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  branding: { alignItems: 'center', marginBottom: spacing.lg },
+  logo: { width: 96, height: 96, marginBottom: spacing.sm },
+  brandName: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -139,8 +159,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
-  subtitle: { fontSize: fontSize.md, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg },
+  subtitle: { fontSize: fontSize.md, color: colors.textMuted, marginBottom: spacing.lg },
   label: { fontSize: fontSize.sm, color: colors.textMuted, marginBottom: spacing.xs, marginTop: spacing.sm },
   input: {
     borderWidth: 1,

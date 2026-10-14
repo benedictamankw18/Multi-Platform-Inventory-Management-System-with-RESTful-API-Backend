@@ -1,6 +1,7 @@
 import { Image, Platform, StyleSheet, Text, View } from 'react-native'
 import type { ReceiptView } from '@/lib/receiptModel'
 import { receiptMoney } from '@/lib/receiptModel'
+import { code128Bars } from '@/lib/code128'
 import { colors, fontSize, spacing } from '@/theme/theme'
 
 /**
@@ -34,6 +35,29 @@ function Row({
       <Text style={[styles.rowValue, muted && styles.rowMuted, emphasis && styles.rowEmphasis]}>
         {value}
       </Text>
+    </View>
+  )
+}
+
+/**
+ * 1D CODE128 barcode for the invoice number, drawn as flex-sized bars so it
+ * fills the card width. Same symbol as the PDF share and the web/desktop
+ * receipt, with the value printed beneath.
+ */
+function Barcode({ value }: { value: string }) {
+  const barcode = code128Bars(value)
+  if (!barcode) return null
+  return (
+    <View style={styles.barcode}>
+      <View style={styles.barcodeBars}>
+        {barcode.widths.map((width, index) => (
+          <View
+            key={index}
+            style={[styles.barcodeBar, { flexGrow: width }, index % 2 !== 0 && styles.barcodeSpace]}
+          />
+        ))}
+      </View>
+      <Text style={styles.barcodeValue}>{barcode.value}</Text>
     </View>
   )
 }
@@ -106,6 +130,8 @@ export function ReceiptCard({ view }: { view: ReceiptView }) {
         {view.change > 0 ? <Row label="Change" value={money(view.change)} /> : null}
       </View>
 
+      <Barcode value={view.invoiceNumber} />
+
       {view.business.footer ? (
         <View style={styles.footer}>
           <Text style={styles.footerText}>{view.business.footer}</Text>
@@ -157,4 +183,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: { fontFamily: mono, fontSize: fontSize.sm, color: colors.textMuted, textAlign: 'center' },
+  barcode: { paddingVertical: spacing.xs },
+  barcodeBars: { flexDirection: 'row', alignItems: 'flex-end', height: 40 },
+  barcodeBar: { flexBasis: 0, height: '100%', backgroundColor: '#000' },
+  barcodeSpace: { backgroundColor: 'transparent' },
+  barcodeValue: { fontFamily: mono, fontSize: 12, color: colors.text, textAlign: 'center', marginTop: 2 },
 })

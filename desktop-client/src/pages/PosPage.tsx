@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
-import QRCode from 'qrcode'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useCurrency } from '../contexts/BusinessSettingsContext'
@@ -186,7 +185,6 @@ export default function PosPage() {
   const [autoPrinting, setAutoPrinting] = useState(false)
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
   const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [savedCarts, setSavedCarts] = useState<SavedCart[]>(() => {
     try { return JSON.parse(localStorage.getItem('pos_saved_carts') || '[]') } catch { return [] }
   })
@@ -227,8 +225,9 @@ export default function PosPage() {
         format: 'CODE128',
         width: 1.5,
         height: 40,
-        displayValue: false,
-        margin: 0,
+        displayValue: true,
+        fontSize: 12,
+        margin: 2,
       })
       // Auto-print after barcode renders
       if (!autoPrinting) {
@@ -237,17 +236,6 @@ export default function PosPage() {
       }
     } catch { /* invalid value for barcode — skip */ }
   }, [receiptData, autoPrinting])
-
-  // Generate QR code from receipt data
-  useEffect(() => {
-    if (!receiptData) { setQrDataUrl(null); return }
-    const saleData = receiptData.sale
-    const receiptNum = receiptData.receipt?.receipt_number || ''
-    const invoiceNum = saleData?.invoice_number || ''
-    const total = Number(saleData?.total_amount ?? 0)
-    const text = `Invoice: ${invoiceNum}\nReceipt: ${receiptNum}\nTotal: ${currency} ${total.toFixed(2)}\nDate: ${saleData?.sale_date || ''}`
-    QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [receiptData, currency])
 
   // Default paper size comes from the printer_type system setting
   useEffect(() => {
@@ -1791,13 +1779,9 @@ export default function PosPage() {
             )}
           </div>
 
-          {/* QR Code */}
+          {/* 1D barcode (CODE128) */}
           <div className="receipt-barcode">
-            {qrDataUrl ? (
-              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
-            ) : (
-              <svg ref={barcodeRef} />
-            )}
+            <svg ref={barcodeRef} />
           </div>
 
           {/* Footer */}

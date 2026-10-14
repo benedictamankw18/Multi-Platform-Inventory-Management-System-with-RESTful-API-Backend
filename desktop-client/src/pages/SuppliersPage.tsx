@@ -3,7 +3,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrency } from '../contexts/BusinessSettingsContext'
 import ConfirmModal from '../components/ConfirmModal'
-import QRCode from 'qrcode'
+import JsBarcode from 'jsbarcode'
 import * as XLSX from 'xlsx'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -113,7 +113,7 @@ export default function SuppliersPage() {
   const [showPaymentReceipt, setShowPaymentReceipt] = useState(false)
   const [lastPayment, setLastPayment] = useState<SupplierPayment | null>(null)
   const [receiptBusinessInfo, setReceiptBusinessInfo] = useState<BusinessInfo>({})
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const barcodeRef = useRef<SVGSVGElement>(null)
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | null>(null)
   const [printerType, setPrinterType] = useState<'80mm' | '58mm'>('80mm')
 
@@ -170,12 +170,22 @@ export default function SuppliersPage() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
+  // Draw the 1D barcode (CODE128) once the payment is recorded
   useEffect(() => {
-    if (!lastPayment) { setQrDataUrl(null); return }
-    const cur = currency
-    const text = `Supplier Payment\nSupplier: ${viewing?.supplier_name ?? ''}\nAmount: ${cur} ${Number(lastPayment.amount ?? 0).toFixed(2)}\nMethod: ${lastPayment.payment_method ?? ''}\nDate: ${lastPayment.payment_date ?? ''}\nRef: ${lastPayment.reference_number ?? ''}`
-    QRCode.toDataURL(text, { width: 200, margin: 1 }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [lastPayment, currency])
+    if (!lastPayment || !barcodeRef.current) return
+    const value = lastPayment.reference_number || lastPayment.payment_id || ''
+    if (!value) return
+    try {
+      JsBarcode(barcodeRef.current, value, {
+        format: 'CODE128',
+        width: 1.5,
+        height: 40,
+        displayValue: true,
+        fontSize: 12,
+        margin: 2,
+      })
+    } catch { /* invalid value for barcode — skip */ }
+  }, [lastPayment])
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -236,7 +246,6 @@ export default function SuppliersPage() {
     setShowPaymentModal(false)
     setShowPaymentReceipt(false)
     setLastPayment(null)
-    setQrDataUrl(null)
   }
 
   async function handleRecordPayment() {
@@ -1024,7 +1033,7 @@ export default function SuppliersPage() {
 
       {/* ---- Payment Receipt Modal ---- */}
       {showPaymentReceipt && lastPayment && (
-        <div className="modal-overlay" onClick={() => { setShowPaymentReceipt(false); setLastPayment(null); setQrDataUrl(null) }}>
+        <div className="modal-overlay" onClick={() => { setShowPaymentReceipt(false); setLastPayment(null) }}>
           <div className="modal" style={{ maxWidth: 400, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" width="28" height="28"><path d="M20 6L9 17l-5-5" /></svg>
@@ -1078,7 +1087,7 @@ export default function SuppliersPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowPaymentReceipt(false); setLastPayment(null); setQrDataUrl(null) }}
+                onClick={() => { setShowPaymentReceipt(false); setLastPayment(null) }}
                 className="btn btn--primary"
                 style={{ textAlign: 'center', flex: 1, padding: '12px 0', fontSize: 15 }}
               >
@@ -1139,10 +1148,9 @@ export default function SuppliersPage() {
             </div>
           )}
 
+          {/* 1D barcode (CODE128) */}
           <div className="receipt-barcode">
-            {qrDataUrl ? (
-              <img src={qrDataUrl} style={{ width: effectivePaperSize === '58mm' ? 80 : 120, height: 'auto' }} />
-            ) : null}
+            <svg ref={barcodeRef} />
           </div>
 
           {receiptBusinessInfo.receipt_footer && (
