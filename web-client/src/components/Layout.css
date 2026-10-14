@@ -830,7 +830,9 @@
   .pos-main,
   .page-header,
   .glass-card,
-  .modal-overlay {
+  .modal-overlay,
+  .toast-container,
+  .dialog-overlay {
     display: none !important;
   }
 

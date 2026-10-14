@@ -663,7 +663,11 @@ export default function PosPage() {
       const sale = res?.data ?? res
 
       setLastSale(sale)
-      toast('Sale completed successfully', 'success')
+      // Route the POS success notice to the console instead of the on-screen toast
+      console.log('[POS] Sale completed successfully', {
+        invoice_number: sale?.invoice_number ?? null,
+        total_amount: sale?.total_amount ?? null,
+      })
 
       setCart([])
       setPayments([])

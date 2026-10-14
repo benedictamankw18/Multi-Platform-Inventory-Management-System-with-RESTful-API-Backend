@@ -150,8 +150,12 @@ export default function UserProfilePage() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to change password.'
-      setMessage({ type: 'error', text: msg })
+      const data = (err as { response?: { data?: { message?: string; errors?: { msg?: string }[] } } })?.response?.data
+      const details =
+        Array.isArray(data?.errors) && data.errors.length
+          ? data.errors.map((e) => e.msg).filter(Boolean).join(' ')
+          : null
+      setMessage({ type: 'error', text: details || data?.message || 'Failed to change password.' })
     }
     setChangingPwd(false)
   }
@@ -310,9 +314,12 @@ export default function UserProfilePage() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {label('New Password')}
             <div style={{ position: 'relative' }}>
-              <input type={showNewPwd ? 'text' : 'password'} className="input" style={{ paddingRight: 36 }} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <input type={showNewPwd ? 'text' : 'password'} className="input" style={{ paddingRight: 36 }} value={newPassword} minLength={8} autoComplete="new-password" onChange={(e) => setNewPassword(e.target.value)} />
               <EyeToggle show={showNewPwd} onToggle={() => setShowNewPwd(!showNewPwd)} />
             </div>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>
+              At least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+            </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {label('Confirm New Password')}
