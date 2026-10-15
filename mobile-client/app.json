@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile-client",
+    "name": "Inventory Manager",
     "slug": "mobile-client",
     "scheme": "mpims",
     "version": "1.0.0",

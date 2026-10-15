@@ -30,16 +30,21 @@ export function loadThermal(): ThermalModule | null {
   if (moduleLoaded) return thermalModule
   moduleLoaded = true
   try {
-    const req = (globalThis as unknown as { require?: (id: string) => unknown }).require
-    if (!req) {
-      loadFailure = DEV_BUILD_MESSAGE
-      return null
-    }
-    thermalModule = req('react-native-thermal-receipt-printer') as ThermalModule
+    // This must stay a *literal* `require` call. Metro builds its dependency
+    // graph from static string literals; resolving through an alias (eg. a
+    // `globalThis.require` lookup) is invisible to it and leaves the module out
+    // of the bundle, so the call fails in every runtime — Expo Go, dev client
+    // and release APK alike. It must also stay lazy and inside the try: the
+    // library builds a NativeEventEmitter at import time and throws when the
+    // native module is absent.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    thermalModule = require('react-native-thermal-receipt-printer') as ThermalModule
   } catch (error) {
     thermalModule = null
     loadFailure = DEV_BUILD_MESSAGE
-    if (__DEV__) console.warn('[printing] native module unavailable:', messageOf(error))
+    // Always logged, not just in __DEV__: release builds strip __DEV__ and the
+    // notice below is generic, which previously hid the real reason entirely.
+    console.warn('[printing] native module unavailable:', messageOf(error))
   }
   return thermalModule
 }
