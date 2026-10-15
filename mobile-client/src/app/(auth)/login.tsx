@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { Redirect, router } from 'expo-router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { useServerConfig } from '@/contexts/ServerConfigContext'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
 
 export default function LoginScreen() {
   const { login, isAuthenticated, isLoading, needsBranchSelection } = useAuth()
+  const { serverUrl, configured } = useServerConfig()
   const { name, logo } = useBusiness()
   const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,6 +49,11 @@ export default function LoginScreen() {
 
   if (isLoading) {
     return <LoadingScreen />
+  }
+
+  // No server chosen yet -> send the user to the Connect screen first.
+  if (!configured) {
+    return <Redirect href="/connect-server" />
   }
 
   if (isAuthenticated) {
@@ -132,6 +139,21 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>Sign in</Text>
           )}
         </Pressable>
+
+        <Pressable
+          style={styles.serverRow}
+          onPress={() => router.push('/connect-server')}
+          disabled={submitting}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Change server"
+          accessibilityHint="Choose a different server host URL"
+        >
+          <Ionicons name="server-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.serverText} numberOfLines={1}>
+            {serverUrl ?? 'No server configured'}
+          </Text>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   )
@@ -200,4 +222,12 @@ const styles = StyleSheet.create({
   },
   buttonPressed: { backgroundColor: colors.primaryDark },
   buttonText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
+  serverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  serverText: { color: colors.textMuted, fontSize: fontSize.sm, flexShrink: 1 },
 })

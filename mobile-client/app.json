@@ -34,10 +34,19 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to take product photos with the camera.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.inventorymanager.mobile",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to attach product images.",
         "NSCameraUsageDescription": "This app needs access to your camera to take product photos and scan barcodes.",
@@ -46,6 +55,7 @@
       }
     },
     "android": {
+      "package": "com.inventorymanager.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

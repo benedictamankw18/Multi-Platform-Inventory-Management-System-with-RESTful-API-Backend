@@ -23,6 +23,7 @@ import { ReceiptCard } from '@/components/ReceiptCard'
 import { printReceipt, shareReceiptPdf } from '@/lib/printReceipt'
 import { printSaleReceipt } from '@/lib/printing'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
+import { saveOfflineSale } from '@/services/offlineStore'
 
 type CartLine = {
   product: Product
@@ -188,7 +189,30 @@ function PosView() {
         setResults(list)
       }
     } catch (err) {
-      setError(toMessage(err, 'Failed to search products.'))
+      // Offline: fall back to cached catalog
+      try {
+        const cached = (await import('@/services/offlineStore')).getPulledCache('products')
+        const all = (await cached) as Product[]
+        const lower = q.toLowerCase()
+        const matches = all.filter((p) =>
+          (p.barcode && p.barcode.toLowerCase() === lower) ||
+          p.sku.toLowerCase() === lower ||
+          p.product_name.toLowerCase().includes(lower) ||
+          (p.description && p.description.toLowerCase().includes(lower)),
+        )
+        const list2 = matches.slice(0, 20)
+        const exact2 = list2.find((product) => product.barcode?.toLowerCase() === lower)
+        if (exact2) {
+          addToCart(exact2)
+        } else if (list2.length === 0) {
+          setResults([])
+          setError('No products matched that search.')
+        } else {
+          setResults(list2)
+        }
+      } catch {
+        setError(toMessage(err, 'Failed to search products.'))
+      }
     } finally {
       setSearching(false)
     }
@@ -241,7 +265,9 @@ function PosView() {
     setSubmitting(true)
     try {
       const deviceId = await getDeviceId()
-      const sale = await api.createSale({
+      const localTransactionId = txnId
+      const localInvoice = `OFFLINE-${localTransactionId.slice(0, 8).toUpperCase()}`
+      const salePayload = {
         branch_id: selectedBranch.branch_id,
         customer_name: customerName.trim() || undefined,
         cashier_id: user?.userId,
@@ -250,7 +276,7 @@ function PosView() {
         discount_amount: totalDiscount,
         tax_amount: totalTax,
         device_id: deviceId,
-        local_transaction_id: txnId,
+        local_transaction_id: localTransactionId,
         items: cart.map((item) => ({
           product_id: item.product.product_id,
           quantity: item.quantity,
@@ -266,15 +292,72 @@ function PosView() {
           tax_amount: item.tax_amount,
         })),
         payments: payments.map((p) => ({ amount: p.amount, payment_method: p.method })),
-      })
-      setLastSale(sale)
-      setCart([])
-      setPayments([])
-      setNewPaymentAmount('')
-      setCustomerName('')
-      setPendingTxnId(null)
-    } catch (err) {
-      setError(toMessage(err, 'Failed to complete the sale.'))
+      } as any
+      try {
+        const sale = await api.createSale(salePayload)
+        setLastSale(sale)
+        setCart([])
+        setPayments([])
+        setNewPaymentAmount('')
+        setCustomerName('')
+        setPendingTxnId(null)
+      } catch (err: any) {
+        const queued = !!err && (err.queuedOffline === true || (err.message && /saved to the sync queue/i.test(err.message)))
+        if (queued) {
+          const created = {
+            sale_id: null,
+            invoice_number: localInvoice,
+            sale_date: new Date().toISOString(),
+            subtotal,
+            discount_amount: totalDiscount,
+            tax_amount: totalTax,
+            total_amount: total,
+            amount_paid: paid,
+            balance_due: remaining,
+            payment_status: remaining > 0 ? 'PARTIAL' : 'PAID',
+            cashier_name: user?.fullName ?? null,
+            customer_name: customerName.trim() || null,
+            items: cart.map((item) => ({
+              product_name: item.product.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              line_discount: item.line_discount,
+              tax_amount: item.tax_amount,
+              uom_name: null,
+              symbol: null,
+            })),
+            payments: payments.map((p) => ({ payment_method: p.method, amount: p.amount })),
+          } as any
+          await saveOfflineSale({
+            local_transaction_id: localTransactionId,
+            payload: salePayload,
+            invoice_number: localInvoice,
+            items: created.items,
+            payments: created.payments,
+            subtotal,
+            discount_amount: totalDiscount,
+            tax_amount: totalTax,
+            total_amount: total,
+            amount_paid: paid,
+            balance_due: remaining,
+            customer_name: customerName.trim() || null,
+            cashier_name: user?.fullName ?? null,
+            branch_id: selectedBranch.branch_id,
+            created_at: created.sale_date,
+            status: 'pending',
+            server_sale_id: null,
+            error: null,
+          })
+          setLastSale(created)
+          setCart([])
+          setPayments([])
+          setNewPaymentAmount('')
+          setCustomerName('')
+          setPendingTxnId(null)
+          return
+        }
+        setError(toMessage(err, 'Failed to complete the sale.'))
+      }
     } finally {
       setSubmitting(false)
     }

@@ -74,33 +74,18 @@ required.**
 | GET | `/api/v1/auth/me/permissions` | → `{ permissions: string[] }` |
 | GET | `/api/v1/health` | Health check |
 
-### 2.4 Offline/sync endpoints (present in the API; not used by mobile)
-
-> These endpoints exist and are used by the web/desktop clients. The mobile client is
-> **online-only** and deliberately does not call them (see §9).
-
+### 2.4 Offline/sync
+> Mobile uses offline cache + outbox with immediate sync. GETs are cached and served offline on failure; mutations are queued and replayed on connectivity (reconnect, app foreground, boot, periodic probe).
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/v1/sync/push` | Push local mutations |
-| POST | `/api/v1/sync/pull` | Pull changes |
 | GET | `/api/v1/sync/:entity/pull` | Per-entity pull (`?since=&branchId=`) |
-| POST | `/api/v1/sync/:entity/push` | Per-entity push (`{ items }`) |
-| GET | `/api/v1/sync/logs` | Sync log listing |
+| GET | `/api/v1/health` | Health probe |
 
-### 2.5 Offline pattern in web/desktop (not ported)
-
-`web-client/src/services/offline.ts` + `offlineStore.ts` implement, for the web/desktop clients only:
-
-- a **response cache** keyed by URL (GET responses),
-- an **outbox** queue for mutations made while offline,
-- an **offline-sales ledger** (`local_transaction_id` → server `sale_id` mapping on replay),
-- **`hydrateOfflineCache()`** which pulls `PULL_ENTITIES` (products, categories, suppliers, customers,
-  branches, expenses, purchases, sales, users, roles, inventories, inventory-transfers,
-  notifications, product-batches),
-- **`drainOutbox()`** replay on reconnect.
-
-Storage is IndexedDB via `idb`. **The mobile client ports none of this** — it stores tokens in
-`expo-secure-store` and is otherwise online-only.
+### 2.5 Offline pattern (mobile)
+- Response cache (SQLite) for GETs; served on network/5xx errors.
+- Outbox queues mutations when unreachable; replayed via raw axios on reconnect/app-foreground/boot; periodic `healthCheck()` probe.
+- Offline sales ledger with `local_transaction_id` → `server_sale_id` mapping.
+- Hydration via `/sync/:entity/pull` (branch-scoped where applicable).
 
 ### 2.6 Permission codes per screen (verified in `web-client/src/App.tsx`)
 
@@ -444,15 +429,14 @@ text; adding the barcode there is pending on-device verification.
 
 ## 9. Out of scope (excluded)
 
-The mobile client is **online-only**. The following web/desktop areas are intentionally **not built**,
-even though the API supports them:
+The mobile client supports offline mode (cache + outbox + immediate sync). The following remain out of scope:
 
-- Sync & offline (outbox, response cache, `/sync/*`, sync status UI)
+- Sync & offline (outbox/cache/hydration + immediate sync via network/AppState) is implemented; UI shows pending/sync status. Some advanced queue management (bulk retry UI) is minimal by design.
 - Message queue
 - SMS balance
 - Business settings (management)
 - System settings
-- Sync logs
+- Sync logs (read-only not exposed in UI)
 - Audit logs
 
 Currency and business name are still read for display from the unauthenticated

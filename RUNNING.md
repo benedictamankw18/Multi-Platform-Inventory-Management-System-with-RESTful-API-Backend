@@ -227,12 +227,111 @@ npm run dist           # build + electron-builder (current platform)
 npm run dist:win       # Windows installer
 ```
 
+> The desktop build sets `npmRebuild: false` in `desktop-client/package.json`.
+> `node-hid` ships a prebuilt Node-API (N-API v4) binary that is ABI-stable
+> across Node and Electron, so electron-builder packages it as-is and no C++
+> toolchain (Visual Studio Build Tools) is required. If a native module ever
+> needs a build for a specific ABI, run `npm run rebuild`
+> (`electron-rebuild -f -w node-hid`) from `desktop-client` with a toolchain
+> installed.
+
 ### 3.4 Docker images
 
 ```sh
 docker compose build                 # build all images
 docker compose build backend web     # build specific images
 ```
+
+### 3.5 Android APK
+
+The mobile client links native code (`expo-dev-client`, the thermal receipt
+printer), so Expo Go cannot run it — build a real APK:
+
+```sh
+cd mobile-client
+npx expo prebuild --platform android        # clears and regenerates android/ (gitignored)
+cd android
+./gradlew assembleRelease "-PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
+# → android/app/build/outputs/apk/release/app-release.apk
+```
+
+> **`http://` APIs need an explicit cleartext opt-in.** The Android template sets
+> `android:usesCleartextTraffic="true"` only in the **debug** and `debugOptimized`
+> manifests, so a **release** build has no such attribute. Because
+> `targetSdkVersion` is 36, Android 9+ then blocks cleartext by default and every
+> request fails *immediately* — not as a timeout — with
+> `CLEARTEXT communication to <host> not permitted by network security policy`.
+> The app surfaces that as *"Could not reach the server"*, which looks exactly
+> like a dead API or a firewall problem. Allow it in `app.json` (the
+> `expo-build-properties` plugin is already a dependency for this reason):
+>
+> ```json
+> "plugins": [
+>   ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }]
+> ]
+> ```
+>
+> Always confirm it landed in the built APK:
+>
+> ```sh
+> aapt2 dump xmltree --file AndroidManifest.xml app-release.apk | grep usesCleartextTraffic
+> ```
+
+> **Choose ABIs deliberately.** `gradle.properties` defaults to all four
+> (`armeabi-v7a,arm64-v8a,x86,x86_64`) and every additional ABI is another full
+> native compile, so build only what your devices need — check a connected
+> device with `adb shell getprop ro.product.cpu.abilist`. The prebuilt
+> dependencies ship `arm64-v8a` and `armeabi-v7a`, so those two cover essentially
+> all real hardware without paying for the emulator ABIs.
+>
+> In **PowerShell** a bare comma is parsed as an array token, so the flag must be
+> quoted or Gradle fails with *"Missing argument in parameter list"*:
+>
+> ```powershell
+> .\gradlew.bat assembleRelease "-PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
+> ```
+
+> **`expo prebuild` clears `android/` first** — on Expo SDK 57 it prints
+> `- Clearing android`. That deletes `android/app/build` and `.cxx`, so the next
+> build recompiles every native module: roughly an hour instead of a few minutes
+> on a warm cache. Re-run prebuild only when native configuration really
+> changes, and when it does, note that a config-only change (like adding
+> `expo-build-properties`) alters just the generated
+> `android/app/src/main/AndroidManifest.xml` — copying that one file into the
+> build tree keeps the warm cache intact.
+
+> **Sideloading over wireless ADB.** `adb pair <ip>:<port>` uses the *pairing*
+> port, which is not the port `adb connect <ip>:<port>` needs — take the latter
+> from *Wireless debugging* on the device, or simply let mDNS auto-connect. A
+> wirelessly connected device commonly enumerates twice (its serial and its
+> `adb-<serial>-<guid>._adb-tls-connect._tcp` name), making every command fail
+> with `more than one device/emulator`; pin the serial once with
+> `$env:ANDROID_SERIAL = '<serial>'`. Then
+> `adb install -r mobile-client/release/app-release.apk`.
+
+> **Build from a short path.** Gradle configures every native module project at
+> the *real* location of `node_modules`, so CMake derives its object-file paths
+> from this repository's absolute path. Node resolves real paths, so `subst`
+> mappings, directory junctions, and `LongPathsEnabled` do not help — the long
+> path always comes back. When the object-file directory plus CMake's mangled
+> filename exceeds `CMAKE_OBJECT_PATH_MAX` (250), `react-native-screens` and
+> `react-native-worklets` fail with
+> `ninja: error: manifest 'build.ninja' still dirty after 100 tries`.
+> Work around it by building from a short root, e.g. copy `mobile-client` to
+> `D:\mc` and run Gradle there, or relocate the repository to a short path such
+> as `D:\ims`. If you copy the tree, keep `node_modules` in sync — the build
+> evaluates the Expo config, so a plugin named in `app.json` must also be
+> installed in the copy, or `:expo-constants:createExpoConfig` fails with
+> `Failed to resolve plugin for module "..."`.
+
+> `assembleRelease` signs with the prebuild-generated debug keystore
+> (`android/app/debug.keystore`, alias `androiddebugkey`, password `android`),
+> which is fine for sideloading but not for Play Store uploads. Gradle needs
+> JDK 17 — the `java` on `PATH` may be older. `EXPO_PUBLIC_API_BASE_URL` from
+> `mobile-client/.env.local` is inlined into the JS bundle when Gradle runs
+> Metro during `assembleRelease`, so set it *before* building (it is baked in,
+> not read at runtime). Copy the finished APK to `mobile-client/release/`
+> (gitignored).
 
 ---
 

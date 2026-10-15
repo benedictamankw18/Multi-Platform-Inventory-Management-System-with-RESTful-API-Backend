@@ -1,9 +1,11 @@
 import { Redirect } from 'expo-router'
 import { Tabs } from 'expo-router/js-tabs'
 import { useAuth } from '@/contexts/AuthContext'
+import { useServerConfig } from '@/contexts/ServerConfigContext'
 import { PERMISSIONS } from '@/config/permissions'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { TabBar, type TabBarItem } from '@/components/TabBar'
+import { OfflineBanner } from '@/components/OfflineBanner'
 
 /**
  * Authenticated shell. Guards every nested route:
@@ -20,8 +22,12 @@ import { TabBar, type TabBarItem } from '@/components/TabBar'
 export default function AppLayout() {
   const { isAuthenticated, isLoading, needsBranchSelection, permissionsLoaded, hasPermission } =
     useAuth()
+  const { configured } = useServerConfig()
 
   if (isLoading) return <LoadingScreen />
+
+  // No server chosen yet -> back to the Connect screen.
+  if (!configured) return <Redirect href="/connect-server" />
 
   if (!isAuthenticated) return <Redirect href="/login" />
   if (needsBranchSelection) return <Redirect href="/select-branch" />
@@ -43,10 +49,12 @@ export default function AppLayout() {
   ]
 
   return (
-    <Tabs
-      screenOptions={{ headerShown: true }}
-      tabBar={(props) => <TabBar {...props} items={items} />}
-    >
+    <>
+      <OfflineBanner />
+      <Tabs
+        screenOptions={{ headerShown: true }}
+        tabBar={(props) => <TabBar {...props} items={items} />}
+      >
       <Tabs.Screen name="index" options={{ title: 'Dashboard' }} />
       <Tabs.Screen name="pos" options={{ title: 'POS' }} />
       <Tabs.Screen name="products" options={{ title: 'Products', headerShown: false }} />
@@ -61,5 +69,6 @@ export default function AppLayout() {
       <Tabs.Screen name="stock-movements" options={{ title: 'Stock', href: null }} />
       <Tabs.Screen name="printers" options={{ title: 'Printers', href: null }} />
     </Tabs>
+    </>
   )
 }

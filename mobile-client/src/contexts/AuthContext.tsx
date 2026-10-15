@@ -11,6 +11,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import * as api from '../services/api'
 import type { AuthUser, BranchInfo } from '../services/api'
+import { onSessionReset } from '../services/authEvents'
+import { useServerConfig } from './ServerConfigContext'
 import {
   STORAGE_KEYS,
   clearTokens,
@@ -57,8 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [branchesLoading, setBranchesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Restore session on mount.
+  // The server URL must be resolved before we restore a session, otherwise the
+  // profile/permission requests would hit the default (unconfigured) base URL.
+  const { ready: serverReady } = useServerConfig()
+
+  // Restore session once the server config is ready.
   useEffect(() => {
+    if (!serverReady) return
     let cancelled = false
     ;(async () => {
       try {
@@ -98,6 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
+  }, [serverReady])
+
+  // When the user connects to a different server, drop the in-memory session.
+  // (serverConfig has already wiped the persisted tokens/branch/cache.)
+  useEffect(() => {
+    return onSessionReset(() => {
+      setUser(null)
+      setSelectedBranch(null)
+      setBranches([])
+      setPermissions([])
+      setPermissionsLoaded(false)
+    })
   }, [])
 
   const loadPermissions = useCallback(async () => {

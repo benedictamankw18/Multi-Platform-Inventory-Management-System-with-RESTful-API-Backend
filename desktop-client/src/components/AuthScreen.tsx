@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useServerConfig } from '../contexts/ServerConfigContext'
 import { getPublicBusinessSettings, resolveImageUrl } from '../services/api'
 import './auth-pages.css'
 
@@ -8,6 +10,8 @@ type AuthMode = 'login' | 'forgot' | 'reset'
 
 function AuthScreen() {
   const { login, forgotPassword, resetPassword, error: authError, clearError } = useAuth()
+  const { serverUrl } = useServerConfig()
+  const navigate = useNavigate()
 
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -277,6 +281,13 @@ function AuthScreen() {
 
               <div className="login-footer">
                 <span>Need an account? Contact your administrator.</span>
+              </div>
+
+              <div className="login-footer">
+                <span>Server: {serverUrl ?? 'not set'}</span>
+                <button type="button" className="link-button" onClick={() => navigate('/connect')}>
+                  Change
+                </button>
               </div>
             </>
           ) : authMode === 'forgot' ? (

@@ -2,10 +2,12 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { OfflineProvider } from './contexts/OfflineContext'
 import { BusinessSettingsProvider } from './contexts/BusinessSettingsContext'
+import { ServerConfigProvider, useServerConfig } from './contexts/ServerConfigContext'
 import Layout from './components/Layout'
 import AuthScreen from './components/AuthScreen'
 import SplashScreen from './components/SplashScreen'
 import BusinessBranding from './components/BusinessBranding'
+import ConnectServerScreen from './components/ConnectServerScreen'
 import { ToastProvider } from './contexts/ToastContext'
 import DashboardPage from './pages/DashboardPage'
 import SyncPage from './pages/SyncPage'
@@ -42,6 +44,21 @@ import SystemSettingsPage from './pages/SystemSettingsPage'
 import BranchSelectionPage from './pages/BranchSelectionPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './App.css'
+
+// Gate: until a server has been chosen, nothing else in the app is shown.
+function ServerGate({ children }: { children: React.ReactNode }) {
+  const { configured, ready } = useServerConfig()
+
+  if (!ready) {
+    return <SplashScreen />
+  }
+
+  if (!configured) {
+    return <ConnectServerScreen />
+  }
+
+  return <>{children}</>
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, needsBranchSelection } = useAuth()
@@ -114,6 +131,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<PublicRoute><AuthScreen /></PublicRoute>} />
       <Route path="/auth/reset-password" element={<AuthScreen />} />
+      <Route path="/connect" element={<ConnectServerScreen />} />
 
       <Route
         path="/select-branch"
@@ -169,16 +187,20 @@ function AppRoutes() {
 function App() {
   return (
     <HashRouter>
-      <BusinessSettingsProvider>
-        <OfflineProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <BusinessBranding />
-              <AppRoutes />
-            </ToastProvider>
-          </AuthProvider>
-        </OfflineProvider>
-      </BusinessSettingsProvider>
+      <ServerConfigProvider>
+        <BusinessSettingsProvider>
+          <OfflineProvider>
+            <AuthProvider>
+              <ToastProvider>
+                <ServerGate>
+                  <BusinessBranding />
+                  <AppRoutes />
+                </ServerGate>
+              </ToastProvider>
+            </AuthProvider>
+          </OfflineProvider>
+        </BusinessSettingsProvider>
+      </ServerConfigProvider>
     </HashRouter>
   )
 }

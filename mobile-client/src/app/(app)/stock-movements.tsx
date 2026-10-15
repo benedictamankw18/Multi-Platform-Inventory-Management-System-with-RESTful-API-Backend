@@ -1,13 +1,5 @@
 import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import * as api from '@/services/api'
 import type { Product } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
@@ -169,7 +161,21 @@ function StockMovementsView() {
       setExpiryDate('')
       setBatchNumber('')
       setNotes('')
-    } catch (err) {
+    } catch (err: any) {
+      const queued = !!err && (err.queuedOffline === true || (err.message && /saved to the sync queue/i.test(err.message)))
+      if (queued) {
+        Alert.alert('Saved offline', 'This stock movement will be recorded when you reconnect.')
+        setQuery('')
+        setResults([])
+        setSelected(null)
+        setAvailable(null)
+        setQuantity('')
+        setUnitCost('')
+        setExpiryDate('')
+        setBatchNumber('')
+        setNotes('')
+        return
+      }
       setError(toMessage(err, 'Failed to record the transaction.'))
     } finally {
       setSubmitting(false)

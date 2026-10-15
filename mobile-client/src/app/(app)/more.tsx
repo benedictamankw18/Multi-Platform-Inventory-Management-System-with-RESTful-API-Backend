@@ -3,11 +3,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { router } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/AuthContext'
+import { useServerConfig } from '@/contexts/ServerConfigContext'
 import { PERMISSIONS } from '@/config/permissions'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
 
 export default function MoreScreen() {
   const { user, selectedBranch, hasPermission, logout } = useAuth()
+  const { serverUrl } = useServerConfig()
   const [signingOut, setSigningOut] = useState(false)
 
   async function onSignOut() {
@@ -107,6 +109,24 @@ export default function MoreScreen() {
             <Text style={styles.linkHint}>Choose the receipt printer</Text>
           </View>
           <Feather name="chevron-right" size={20} color={colors.textMuted} />
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Server"
+          accessibilityHint="Change the server this app connects to"
+          style={({ pressed }) => [styles.linkRow, pressed && styles.pressedTint]}
+          onPress={() => router.push('/connect-server')}
+        >
+          <View style={styles.linkText}>
+            <Text style={styles.linkLabel}>Server</Text>
+            <Text style={styles.linkHint} numberOfLines={1}>
+              {serverUrl ?? 'Not configured'}
+            </Text>
+          </View>
+          <Feather name="server" size={20} color={colors.textMuted} />
         </Pressable>
       </View>
 

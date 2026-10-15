@@ -1,4 +1,5 @@
 import { router } from 'expo-router'
+import { Alert } from 'react-native'
 import * as api from '@/services/api'
 import type { ProductInput } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,10 +19,17 @@ function NewProduct() {
   const { selectedBranch } = useAuth()
 
   async function handleSubmit(input: ProductInput) {
-    // Open the product in the acting branch so the API also creates its
-    // `product_branch_inventory` row. Without it the product is saved but
-    // filtered out of the branch-scoped product list and POS search.
-    return api.createProduct({ ...input, branch_id: selectedBranch?.branch_id ?? undefined })
+    try {
+      return await api.createProduct({ ...input, branch_id: selectedBranch?.branch_id ?? undefined })
+    } catch (err: any) {
+      const queued = !!err && (err.queuedOffline === true || (err.message && /saved to the sync queue/i.test(err.message)))
+      if (queued) {
+        Alert.alert('Saved offline', 'This product will be created when you reconnect.')
+        router.back()
+        return {} as any
+      }
+      throw err
+    }
   }
 
   return (

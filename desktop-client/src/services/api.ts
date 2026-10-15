@@ -37,17 +37,51 @@ export type ApiError = {
 // Axios instance
 // ---------------------------------------------------------------------------
 
+// The API base URL is runtime-configurable: the "Connect to Your Server" screen
+// persists a chosen server and calls `setApiBaseUrl`. It is seeded from the
+// stored value first (so a restart targets the right server before *any*
+// request fires), then the build-time env var / dev-proxy default.
+export const SERVER_URL_STORAGE_KEY = 'serverUrl'
+
+function readStoredServerUrl(): string | null {
+  try {
+    return localStorage.getItem(SERVER_URL_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+const DEFAULT_BASE_URL = readStoredServerUrl() ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+
+let currentBaseUrl = DEFAULT_BASE_URL
+
+export function getApiBaseUrl(): string {
+  return currentBaseUrl
+}
+
+export function setApiBaseUrl(url: string): void {
+  currentBaseUrl = url
+  // Keep the instance default in sync too: the offline outbox replay and image
+  // origin helpers read it directly (they don't go through the interceptor).
+  api.defaults.baseURL = url
+}
+
+/** Origin (scheme + host + port) that serves static assets such as `/uploads/...`. */
+export function getApiOrigin(): string {
+  return currentBaseUrl.startsWith('http')
+    ? currentBaseUrl.replace(/\/api\/v1\/?$/, '')
+    : window.location.origin
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
+  baseURL: DEFAULT_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
 export function resolveImageUrl(url: string | null): string | null {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://')) return url
-  const base = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
-  const origin = base.startsWith('http') ? base.replace(/\/api\/v1\/?$/, '') : window.location.origin
-  return `${origin}${url}`
+  return `${getApiOrigin()}${url}`
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +166,9 @@ function redirectToLogin() {
 // ---------------------------------------------------------------------------
 
 api.interceptors.request.use((config) => {
+  // Re-read the base URL on every request so switching servers takes effect
+  // immediately, without recreating the axios instance or reloading the app.
+  config.baseURL = getApiBaseUrl()
   config.headers['X-Device-Id'] = getDeviceId()
   const token = getAccessToken()
   if (token) {
@@ -191,7 +228,7 @@ api.interceptors.response.use(
     try {
       // Use a raw axios call (not the instance) to avoid interceptor loops
       const { data } = await axios.post<RefreshResponse>(
-        `${api.defaults.baseURL}/auth/refresh`,
+        `${getApiBaseUrl()}/auth/refresh`,
         { refreshToken },
       )
 

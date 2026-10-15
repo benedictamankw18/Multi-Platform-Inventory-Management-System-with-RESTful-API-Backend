@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Inventory Manager desktop app (renderer-only; requires the API backend at localhost:8040)",
+  "author": "Benedict Amankwa Osei <benedictamankwa18@gmail.com>",
   "type": "module",
   "main": "electron/main.mjs",
   "scripts": {
@@ -48,6 +49,7 @@
   "build": {
     "appId": "com.inventorymanager.desktop",
     "productName": "Inventory Manager",
+    "npmRebuild": false,
     "directories": {
       "output": "release"
     },

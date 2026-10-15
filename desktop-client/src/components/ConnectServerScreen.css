@@ -1,0 +1,26 @@
+/* Styles specific to the "Connect to Your Server" screen. Everything else
+   (auth-shell / auth-panel / auth-hero / login-card / field / buttons) is
+   reused from App.css. */
+
+.connect-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.connect-actions .secondary-action {
+  min-height: 44px;
+  border-radius: var(--radius-button);
+  font-weight: var(--weight-semibold);
+}
+
+.connect-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+
+.connect-url code {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+}

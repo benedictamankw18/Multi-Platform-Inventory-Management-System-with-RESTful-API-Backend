@@ -24,6 +24,13 @@ export const STORAGE_KEYS = {
   authUser: 'authUser',
   selectedBranch: 'selectedBranch',
   deviceId: 'deviceId',
+  /**
+   * The chosen "Connect to Your Server" API base URL (e.g.
+   * `http://192.168.1.10:8040/api/v1`). Non-secret, but kept in the encrypted
+   * store beside the rest of the session so it survives reinstalls of the JS
+   * bundle and is never world-readable.
+   */
+  serverUrl: 'serverUrl',
   /** Selected receipt printer (non-secret, but kept beside the other session data). */
   printerConfig: 'printerConfig',
   /**

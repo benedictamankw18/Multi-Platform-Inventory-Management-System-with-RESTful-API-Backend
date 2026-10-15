@@ -31,7 +31,13 @@ export { isAxiosError }
 
 import { Platform } from 'react-native'
 
-const getBaseUrl = () => {
+/**
+ * Build the *default* base URL from the build-time env var, applying the
+ * Android-emulator localhost mapping. This is only the seed value; the running
+ * value comes from `getApiBaseUrl()` and may have been set by the
+ * "Connect to Your Server" screen (persisted in SecureStore).
+ */
+const getDefaultBaseUrl = () => {
   const env = process.env.EXPO_PUBLIC_API_BASE_URL
   if (env) {
     // Android emulator maps localhost to 10.0.2.2; iOS simulator uses localhost
@@ -44,19 +50,36 @@ const getBaseUrl = () => {
   return 'http://localhost:8040/api/v1'
 }
 
-export const API_BASE_URL = getBaseUrl()
+const DEFAULT_BASE_URL = getDefaultBaseUrl()
+
+let currentBaseUrl = DEFAULT_BASE_URL
+
+/** The base URL currently in use (runtime-configurable). */
+export function getApiBaseUrl(): string {
+  return currentBaseUrl
+}
+
+/** Repoint the API client. Called by the Connect screen once a server is chosen. */
+export function setApiBaseUrl(url: string): void {
+  currentBaseUrl = url
+  // Keep the instance default in sync too: the offline outbox replay reads it
+  // directly (it doesn't go through the request interceptor).
+  api.defaults.baseURL = url
+}
 
 /**
  * Origin that serves the API's static assets (e.g. `/uploads/...`). Product and
  * category image URLs are stored relative, so the client resolves them against
  * this origin — the same approach the web client uses.
  */
-export const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+export function getApiOrigin(): string {
+  return currentBaseUrl.replace(/\/api\/v1\/?$/, '')
+}
 
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null
   if (/^https?:\/\//i.test(url)) return url
-  return `${API_ORIGIN}${url}`
+  return `${getApiOrigin()}${url}`
 }
 
 // ---------------------------------------------------------------------------
@@ -397,10 +420,13 @@ export type PublicBusinessSettings = {
 // ---------------------------------------------------------------------------
 
 const api = create({
-  baseURL: API_BASE_URL,
+  baseURL: DEFAULT_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 })
+
+import { setupOfflineSupport } from './offline'
+setupOfflineSupport(api)
 
 // ---------------------------------------------------------------------------
 // Refresh-token logic with concurrent-request queue
@@ -432,6 +458,9 @@ async function redirectToLogin() {
 
 // Request interceptor: attach device id + bearer token.
 api.interceptors.request.use(async (config) => {
+  // Re-read the base URL per request so switching servers takes effect without
+  // recreating the client or reloading the app.
+  config.baseURL = getApiBaseUrl()
   config.headers['X-Device-Id'] = await getDeviceId()
   const token = await getAccessToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -480,7 +509,7 @@ api.interceptors.response.use(
 
     try {
       const { data } = await axios.post<RefreshResponse>(
-        `${API_BASE_URL}/auth/refresh`,
+        `${getApiBaseUrl()}/auth/refresh`,
         { refreshToken },
       )
       await storeTokens(data.accessToken, data.refreshToken)
