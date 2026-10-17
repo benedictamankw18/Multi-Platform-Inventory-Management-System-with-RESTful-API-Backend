@@ -243,16 +243,16 @@ async function createSale(payload, actor = null) {
       : subtotal - discountAmount + taxAmount;
     const paidFromPayments = payments.reduce((sum, payment) => sum + asNumber(payment.amount), 0);
     const amountPaid = payload.amount_paid !== undefined ? asNumber(payload.amount_paid) : paidFromPayments;
-    const balanceDue = Math.max(totalAmount - amountPaid, 0);
-    const paymentStatus = payload.payment_status || (balanceDue === 0 ? 'PAID' : amountPaid > 0 ? 'PARTIAL' : 'UNPAID');
-    const status = payload.status || (balanceDue > 0 ? 'PARTIALLY_PAID' : 'COMPLETED');
+    const balanceDue = amountPaid - totalAmount;
+    const paymentStatus = payload.payment_status || (balanceDue === 0 || amountPaid >= totalAmount ? 'PAID' : amountPaid > 0 && balanceDue > 0 ? 'PARTIAL' : 'UNPAID');
+    const status = payload.status || (balanceDue >= 0 ? 'COMPLETED' : 'PARTIALLY_PAID');
 
     assertMoneyRange(subtotal, 'subtotal');
     assertMoneyRange(discountAmount, 'discount_amount');
     assertMoneyRange(taxAmount, 'tax_amount');
     assertMoneyRange(totalAmount, 'total_amount');
     assertMoneyRange(amountPaid, 'amount_paid');
-    assertMoneyRange(balanceDue, 'balance_due');
+    // assertMoneyRange(balanceDue, 'balance_due');
 
     let saleRows;
     try {

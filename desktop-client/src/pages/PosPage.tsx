@@ -642,6 +642,7 @@ export default function PosPage() {
       tax_amount: totalTax,
       device_id: getDeviceId(),
       local_transaction_id: localTransactionId,
+      balance_due: remaining,
       ...(isOffline
         ? { created_offline: true, invoice_number: localInvoice }
         : {}),
@@ -667,7 +668,8 @@ export default function PosPage() {
     try {
       const res = await createSale(salePayload)
       const sale = res?.data ?? res
-
+      console.log('[POS] Creating sale with payload:', salePayload)
+      
       setLastSale(sale)
       // Route the POS success notice to the console instead of the on-screen toast
       console.log('[POS] Sale completed successfully', {
@@ -1292,7 +1294,7 @@ export default function PosPage() {
               )}
             </div>
 
-            {/* Balance Summary */}
+            {/* Change Summary */}
             {remaining > 0 ? (
               <div style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remaining</div>
@@ -1572,7 +1574,7 @@ export default function PosPage() {
               </div>
               {lastSale.balance_due > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Balance Due</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Change</span>
                   <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{Number(lastSale.balance_due).toFixed(2)}</span>
                 </div>
               )}
@@ -1767,7 +1769,7 @@ export default function PosPage() {
             </div>
             {Number(sale?.balance_due ?? 0) > 0 && (
               <div className="receipt-row r-remain">
-                <span>Balance Due</span>
+                <span>Change</span>
                 <span>{fmt(Number(sale?.balance_due ?? 0))}</span>
               </div>
             )}

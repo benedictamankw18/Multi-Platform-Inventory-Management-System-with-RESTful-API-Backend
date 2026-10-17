@@ -126,7 +126,6 @@ export function ReceiptCard({ view }: { view: ReceiptView }) {
           <Row key={`${payment.method}-${index}`} label={payment.method} value={money(payment.amount)} />
         ))}
         <Row label="Total Paid" value={money(view.totalPaid)} emphasis bordered />
-        {view.balanceDue > 0 ? <Row label="Balance Due" value={money(view.balanceDue)} /> : null}
         {view.change > 0 ? <Row label="Change" value={money(view.change)} /> : null}
       </View>
 

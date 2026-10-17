@@ -265,7 +265,7 @@ export default function SalesPage() {
         [`Discount (${currency})`]: Number(s.discount_amount).toFixed(2),
         [`Total (${currency})`]: Number(s.total_amount).toFixed(2),
         [`Paid (${currency})`]: Number(s.amount_paid).toFixed(2),
-        [`Balance (${currency})`]: Number(s.balance_due).toFixed(2),
+        [`Change (${currency})`]: Number(s.balance_due).toFixed(2),
         'Status': s.status,
         'Payment Status': s.payment_status,
         [`Refunded (${currency})`]: Number(s.refunded_amount).toFixed(2),
@@ -377,7 +377,7 @@ export default function SalesPage() {
                 <th>Type</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'right' }}>Paid</th>
-                <th style={{ textAlign: 'right' }}>Balance</th>
+                <th style={{ textAlign: 'right' }}>Change</th>
                 <th>Status</th>
                 <th>Payment</th>
                 <th style={{ textAlign: 'right' }}>Refunded</th>
@@ -568,7 +568,7 @@ export default function SalesPage() {
                   <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(viewSale.amount_paid)}</div>
                 </div>
                 <div style={{ padding: '12px 14px', borderRadius: 8, background: Number(viewSale.balance_due) > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${Number(viewSale.balance_due) > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)'}` }}>
-                  <div style={{ fontSize: 11, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>{Number(viewSale.balance_due) > 0 ? 'Balance Due' : 'Settled'}</div>
+                  <div style={{ fontSize: 11, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>{Number(viewSale.balance_due) > 0 ? 'Change' : 'Settled'}</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: Number(viewSale.balance_due) > 0 ? 'var(--danger)' : '#16a34a' }}>{formatCurrency(viewSale.balance_due)}</div>
                 </div>
                 {Number(viewSale.refunded_amount) > 0 && (
@@ -764,7 +764,7 @@ export default function SalesPage() {
               <span>{currency + ' ' + (receiptData?.sale?.payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}</span>
             </div>
             {Number(receiptData?.sale?.balance_due ?? 0) > 0 && (
-              <div className="receipt-row r-remain"><span>Balance Due</span><span>{currency + ' ' + Number(receiptData?.sale?.balance_due ?? 0).toFixed(2)}</span></div>
+              <div className="receipt-row r-remain"><span>Change</span><span>{currency + ' ' + Number(receiptData?.sale?.balance_due ?? 0).toFixed(2)}</span></div>
             )}
           </div>
 

@@ -274,7 +274,6 @@ function SaleDetail() {
         <InfoRow label="Tax" value={formatMoney(Number(sale.tax_amount))} />
         <InfoRow label="Total" value={formatMoney(Number(sale.total_amount))} emphasis />
         <InfoRow label="Paid" value={formatMoney(Number(sale.amount_paid))} />
-        <InfoRow label="Balance" value={formatMoney(Number(sale.balance_due))} />
         {change > 0 ? <InfoRow label="Change" value={formatMoney(change)} /> : null}
         {Number(sale.refunded_amount) > 0 ? (
           <InfoRow label="Refunded" value={formatMoney(Number(sale.refunded_amount))} />
