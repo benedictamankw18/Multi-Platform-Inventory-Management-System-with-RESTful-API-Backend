@@ -444,20 +444,28 @@ Currency and business name are still read for display from the unauthenticated
 
 ---
 
-## 10. Building for release (planned)
+## 10. Building for release
 
-```sh
-# one-off
-npm install -g eas-cli
-eas login
+Release instructions live in **[`RELEASING.md`](RELEASING.md)**, which covers three different
+targets with their own artifact formats:
 
-# configure native projects
-eas build:configure
+| Target | Artifact | Status |
+| ------ | -------- | ------ |
+| Sideload / internal share | `.apk` | Ready — local Gradle build, verified against this repository |
+| Google Play | `.aab` | Blocked: needs an HTTPS API endpoint, an upload keystore, and `android.versionCode` |
+| Apple App Store | `.ipa` | Blocked: needs a paid Apple Developer account; `ios/` is not generated yet |
 
-# builds
-eas build --platform android      # → .aab / .apk
-eas build --platform ios          # requires an Apple Developer account
+Quick start for an installable APK:
+
+```powershell
+cd android
+.\gradlew.bat assembleRelease "-PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
+# -> android\app\build\outputs\apk\release\app-release.apk
 ```
+
+> Do **not** run `npx expo prebuild` first. On SDK 57 it clears `android/` and forces a full native
+> rebuild (about an hour); the generated project is already configured correctly. See
+> [`RELEASING.md`](RELEASING.md) for the full procedure and the failure modes it documents.
 
 Store submission requires: unique Android package + iOS bundle id, app icons/splash, a privacy
 policy, and an **HTTPS** API endpoint.
