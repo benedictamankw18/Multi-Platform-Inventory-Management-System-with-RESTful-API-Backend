@@ -146,6 +146,8 @@ services:
       # Repo-root overview page, served read-only at /overview.html.
       # Deliberately NOT mounted as index.html, so the SPA at / is untouched.
       - ./index.html:/usr/share/nginx/html/overview.html:ro
+      # Logo and screenshot assets referenced by the overview page.
+      - ./images:/usr/share/nginx/html/images:ro
     networks: [app]
 
   # Optional local mail catcher (development aid). Not started by a plain

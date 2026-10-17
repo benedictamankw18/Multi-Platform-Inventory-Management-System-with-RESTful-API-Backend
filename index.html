@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="images/logo/favicon.svg" />
     <title>Inventory Manager — Multi-Platform Inventory Management with Cloud &amp; Offline Sync</title>
     <meta
       name="description"
@@ -111,17 +112,11 @@
         text-decoration: none;
       }
 
-      .mark {
+      .brand-logo {
         width: 30px;
         height: 30px;
-        border-radius: 8px;
-        display: grid;
-        place-items: center;
-        background: linear-gradient(135deg, #4f46e5, #0ea5e9);
-        color: #ffffff;
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
+        object-fit: contain;
+        flex: none;
       }
 
       .nav-links {
@@ -359,6 +354,61 @@
         padding: 4px 9px;
       }
 
+      /* ---------- screenshots ---------- */
+      .hero-logo {
+        display: block;
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+        margin-bottom: 18px;
+      }
+
+      .gallery-group {
+        margin-top: 26px;
+      }
+
+      .gallery-group h3 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-2);
+        margin: 0 0 10px;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+      }
+
+      .shot {
+        margin: 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .shot a {
+        display: block;
+      }
+
+      .shot img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 11 / 5;
+        object-fit: cover;
+        object-position: top center;
+        background: #f3f4f6;
+      }
+
+      .shot figcaption {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+      }
+
       /* ---------- docs ---------- */
       .docs {
         display: grid;
@@ -391,6 +441,47 @@
       .docs span {
         font-size: 0.85rem;
         color: var(--muted-2);
+      }
+
+      /* ---------- contact ---------- */
+      .contact {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .contact-link {
+        display: block;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .contact-link:hover {
+        border-color: #c7d2fe;
+        background: #f8faff;
+      }
+
+      .contact-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-2);
+        margin-bottom: 4px;
+      }
+
+      .contact-value {
+        display: block;
+        font-size: 0.98rem;
+        font-weight: 600;
+        color: var(--ink);
+        overflow-wrap: anywhere;
       }
 
       /* ---------- footer ---------- */
@@ -426,16 +517,18 @@
       <div class="wrap">
         <nav class="nav">
           <a class="brand" href="#top">
-            <span class="mark">IM</span>
+            <img class="brand-logo" src="images/logo/favicon.svg" alt="" />
             <span>Inventory Manager</span>
           </a>
           <div class="nav-links">
             <a href="#platforms">Platforms</a>
             <a href="#offline">Offline sync</a>
             <a href="#features">Features</a>
+            <a href="#screenshots">Screenshots</a>
             <a href="#matrix">Capabilities</a>
             <a href="#architecture">Architecture</a>
             <a href="#docs">Docs</a>
+            <a href="#contact">Contact</a>
           </div>
         </nav>
       </div>
@@ -444,6 +537,7 @@
     <main id="top">
       <section class="hero">
         <div class="wrap">
+          <img class="hero-logo" src="images/logo/favicon.svg" alt="Inventory Manager logo" />
           <span class="eyebrow">Cloud &amp; offline &middot; Web / Desktop / Mobile</span>
           <h1>Multi-platform inventory management that keeps working when the network does not.</h1>
           <p class="lede">
@@ -702,6 +796,346 @@
         </div>
       </section>
 
+      <section id="screenshots" class="section">
+        <div class="wrap">
+          <h2>Screenshots</h2>
+          <p class="lede">
+            Captures from the running application, grouped by area. Select any image to open it
+            full size.
+          </p>
+
+          <div class="gallery-group">
+            <h3>Dashboard &amp; reporting</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Dashboard.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Dashboard.jpeg" alt="Dashboard with sales, profit and low stock figures" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Dashboard overview</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Reports.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Reports.jpeg" alt="Sales and inventory reports" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Reports</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Expiry_Report.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Expiry_Report.jpeg" alt="Expiry report" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Expiry report</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Point of sale</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/POS.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/POS.jpeg" alt="Point of sale screen" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Point of sale</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/POS_entry.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/POS_entry.jpeg" alt="Adding items to a sale" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Adding items to a sale</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Sale_Complete.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Sale_Complete.jpeg" alt="Completed sale with receipt" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Completed sale and receipt</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Save_Cart.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Save_Cart.jpeg" alt="Saved carts list" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Saved carts</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Save_Cart_form.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Save_Cart_form.jpeg" alt="Saving the current cart" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Saving a cart</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Sales</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Sales.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Sales.jpeg" alt="Sales history" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Sales history</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Products &amp; catalogue</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Products.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Products.jpeg" alt="Product catalogue" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Product catalogue</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Add_Product.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Add_Product.jpeg" alt="Adding a product" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Adding a product</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Price_History.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Price_History.jpeg" alt="Price history for a product" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Price history</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Category.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Category.jpeg" alt="Product categories" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Categories</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Add_Category.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Add_Category.jpeg" alt="Adding a category" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Adding a category</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/UoM.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/UoM.jpeg" alt="Units of measure" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Units of measure</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Add_Unit_of_Measure.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Add_Unit_of_Measure.jpeg" alt="Adding a unit of measure" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Adding a unit of measure</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Inventory</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Inventory.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Inventory.jpeg" alt="Stock on hand" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Stock on hand</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Stock_Movements.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Stock_Movements.jpeg" alt="Recording a stock movement" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Recording stock in / out</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Inventory_History.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Inventory_History.jpeg" alt="Inventory history" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Inventory history</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Inventory_Transfers.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Inventory_Transfers.jpeg" alt="Inter-branch transfers" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Inter-branch transfers</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Low_Stock_Alerts.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Low_Stock_Alerts.jpeg" alt="Low stock alerts" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Low stock alerts</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Batches.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Batches.jpeg" alt="Product batches and expiry" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Batches and expiry</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Purchasing</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Purchase%20Orders.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Purchase%20Orders.jpeg" alt="Purchase orders" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Purchase orders</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Suppliers.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Suppliers.jpeg" alt="Suppliers" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Suppliers</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Branches &amp; settings</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Branches.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Branches.jpeg" alt="Branches" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Branches</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Select_a_Branch.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Select_a_Branch.jpeg" alt="Selecting a branch" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Selecting a branch</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Business_Settings.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Business_Settings.jpeg" alt="Business settings" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Business settings</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/System_Settings.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/System_Settings.jpeg" alt="System settings" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>System settings</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Users &amp; access control</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Users.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Users.jpeg" alt="Users" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Users</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Roles%20%26%20Permissions.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Roles%20%26%20Permissions.jpeg" alt="Roles and permissions" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Roles and permissions</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Audit_Logs.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Audit_Logs.jpeg" alt="Audit logs" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Audit logs</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/My_Profile.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/My_Profile.jpeg" alt="User profile" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>User profile</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Notifications &amp; messaging</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Notifications.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Notifications.jpeg" alt="Notifications" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Notifications</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Create_Notification.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Create_Notification.jpeg" alt="Creating a notification" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Creating a notification</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Message_Queue.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Message_Queue.jpeg" alt="Message queue" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Message queue</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/SMS_Balance.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/SMS_Balance.jpeg" alt="SMS balance" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>SMS balance</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Offline &amp; sync</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Sync_%26_Offline.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Sync_%26_Offline.jpeg" alt="Offline mode and sync status" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Offline mode and sync status</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Sync_Logs.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Sync_Logs.jpeg" alt="Synchronisation logs" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Sync logs</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Customers &amp; expenses</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/Customers.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Customers.jpeg" alt="Customers" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Customers</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Expenses.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Expenses.jpeg" alt="Expenses" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Expenses</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="gallery-group">
+            <h3>Sign in</h3>
+            <div class="gallery">
+              <figure class="shot">
+                <a href="images/Screenshot/login.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/login.jpeg" alt="Sign in screen" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Sign in</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/forget_password.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/forget_password.jpeg" alt="Forgot password screen" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Forgot password</figcaption>
+              </figure>
+              <figure class="shot">
+                <a href="images/Screenshot/Reset_password.jpeg" target="_blank" rel="noopener">
+                  <img src="images/Screenshot/Reset_password.jpeg" alt="Reset password screen" loading="lazy" decoding="async" />
+                </a>
+                <figcaption>Reset password</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="matrix" class="section">
         <div class="wrap">
           <h2>Platform capabilities</h2>
@@ -889,9 +1323,39 @@
               <strong>Security audit</strong>
               <span>Security review notes</span>
             </a>
-            <a href="docs/">
               <strong>Docs folder</strong>
               <span>Additional project documentation</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" class="section">
+        <div class="wrap">
+          <h2>Contact &amp; support</h2>
+          <p class="lede">
+            Questions, bug reports, deployment help or feature requests — get in touch.
+          </p>
+
+          <div class="contact">
+            <a class="contact-link" href="mailto:benedictamankwa18@gmail.com">
+              <span class="contact-label">Email</span>
+              <span class="contact-value">benedictamankwa18@gmail.com</span>
+            </a>
+            <a class="contact-link" href="tel:+233594500785">
+              <span class="contact-label">Phone</span>
+              <span class="contact-value">+233594500785</span>
+            </a>
+            <a class="contact-link" href="tel:+233543779868">
+              <span class="contact-label">Phone (alternate)</span>
+              <span class="contact-value">+233543779868</span>
+            </a>
+            <a
+              class="contact-link"
+              href="https://github.com/benedictamankw18"
+              rel="noopener"
+            >
+              <span class="contact-label">GitHub</span>
+              <span class="contact-value">github.com/benedictamankw18</span>
             </a>
           </div>
         </div>
