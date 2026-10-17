@@ -37,6 +37,11 @@ function resolvePoolConfig() {
   return discrete;
 }
 
-const pool = new Pool(resolvePoolConfig());
+const poolConfig = resolvePoolConfig();
 
+if (process.env.NODE_ENV === "production") {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+
+const pool = new Pool(poolConfig);
 module.exports = pool;
