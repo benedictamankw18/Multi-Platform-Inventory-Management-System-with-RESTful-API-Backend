@@ -140,11 +140,66 @@ export async function getPulledCache(entity: string): Promise<unknown[]> {
   return Array.isArray(data) ? data : []
 }
 
+/**
+ * Merge `rows` into the pulled mirror for `entity`, keyed by `idField`.
+ *
+ * Used by online reads (`/products/search`, `/categories/search`, …) so the
+ * offline mirror stays warm even before/without a `/sync/<entity>/pull`. Rows
+ * without an id are kept under a synthetic key so they are not silently lost.
+ */
+export async function mergeEntityRows(
+  entity: string,
+  rows: unknown[],
+  idField: string,
+): Promise<void> {
+  if (!Array.isArray(rows) || rows.length === 0) return
+  const key = `entity:pulled:${entity}`
+  const existing = await cacheGet(key)
+  const byId = new Map<string, unknown>()
+  const put = (row: unknown) => {
+    const obj = row as Record<string, unknown> | null
+    if (!obj || typeof obj !== 'object') return
+    const id = obj[idField]
+    if (id == null) byId.set(`__noid:${byId.size}`, obj)
+    else byId.set(String(id), obj)
+  }
+  if (Array.isArray(existing)) existing.forEach(put)
+  rows.forEach(put)
+  await cachePut(key, Array.from(byId.values()))
+}
+
+/** Replace the pulled mirror for `entity` wholesale (used by sync hydrate). */
+export async function setEntityRows(entity: string, rows: unknown[]): Promise<void> {
+  await cachePut(`entity:pulled:${entity}`, Array.isArray(rows) ? rows : [])
+}
+
+/** A recorded last-write-wins conflict (kept for the sync/conflict log). */
+export type ConflictEntry = {
+  at: number
+  entity: string
+  id: string | null
+  reason: string
+}
+
+/** Append a conflict to the capped conflict log (`meta` key `sync:conflicts`). */
+export async function logConflict(entry: ConflictEntry): Promise<void> {
+  const existing = await getMeta('sync:conflicts')
+  const list = Array.isArray(existing) ? (existing as ConflictEntry[]) : []
+  list.unshift(entry)
+  await setMeta('sync:conflicts', list.slice(0, 100))
+}
+
+export async function conflictsAll(): Promise<ConflictEntry[]> {
+  const v = await getMeta('sync:conflicts')
+  return Array.isArray(v) ? (v as ConflictEntry[]) : []
+}
+
 export async function outboxEnqueue(entry: Omit<OutboxEntry, 'id' | 'createdAt' | 'attempts' | 'status' | 'lastError'>): Promise<number> {
   const db = await getDB()
   const res = await db.runAsync(
     'INSERT INTO outbox (method, url, data, entity, createdAt, attempts, lastError, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     entry.method,
+    entry.url,
     entry.data === undefined ? null : safeStringify(entry.data),
     entry.entity,
     Date.now(),
@@ -186,6 +241,18 @@ export async function outboxMarkFailed(id: number, lastError: string): Promise<v
 export async function outboxRetry(id: number): Promise<void> {
   const db = await getDB()
   await db.runAsync('UPDATE outbox SET status = ? WHERE id = ?', 'pending', id)
+}
+
+/**
+ * Move every `failed` outbox entry back to `pending` so it is retried on the
+ * next drain. Returns how many entries were requeued.
+ */
+export async function outboxRetryFailed(): Promise<number> {
+  const db = await getDB()
+  const res = await db.runAsync(
+    "UPDATE outbox SET status = 'pending', attempts = 0, lastError = NULL WHERE status = 'failed'",
+  )
+  return res.changes ?? 0
 }
 
 export async function outboxClear(): Promise<void> {

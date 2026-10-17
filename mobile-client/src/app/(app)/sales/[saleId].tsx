@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams } from 'expo-router'
 import * as api from '@/services/api'
 import type { Sale, SaleItem, SalePayment } from '@/services/api'
+import { isQueuedOffline } from '@/services/offline'
 import { useAuth } from '@/contexts/AuthContext'
 import { PERMISSIONS } from '@/config/permissions'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -133,7 +134,11 @@ function SaleDetail() {
       setFeedback('Sale voided.')
       await load()
     } catch (err) {
-      setError(toMessage(err, 'Failed to void the sale.'))
+      if (isQueuedOffline(err)) {
+        setFeedback('Saved offline. This void will sync when you reconnect.')
+      } else {
+        setError(toMessage(err, 'Failed to void the sale.'))
+      }
     } finally {
       setActing(false)
     }
@@ -155,7 +160,14 @@ function SaleDetail() {
       setRefundReason('')
       await load()
     } catch (err) {
-      setError(toMessage(err, 'Failed to refund the sale.'))
+      if (isQueuedOffline(err)) {
+        setFeedback('Saved offline. This refund will sync when you reconnect.')
+        setRefundOpen(false)
+        setRefundAmount('')
+        setRefundReason('')
+      } else {
+        setError(toMessage(err, 'Failed to refund the sale.'))
+      }
     } finally {
       setActing(false)
     }
@@ -235,8 +247,8 @@ function SaleDetail() {
         {items.length === 0 ? (
           <Text style={styles.empty}>No items.</Text>
         ) : (
-          items.map((item) => (
-            <View key={item.sale_item_id} style={styles.itemRow}>
+          items.map((item, index) => (
+            <View key={item.sale_item_id ?? `${item.product_id}-${index}`} style={styles.itemRow}>
               <View style={styles.flex}>
                 <Text style={styles.itemName}>{item.product_name ?? item.product_id}</Text>
                 <Text style={styles.itemMeta}>

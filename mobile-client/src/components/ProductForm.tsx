@@ -16,6 +16,7 @@ import * as api from '@/services/api'
 import type { Product, ProductInput, ProductImage, UploadableImage } from '@/services/api'
 import { BarcodeScanner } from '@/components/BarcodeScanner'
 import { Ionicons } from '@expo/vector-icons'
+import { isQueuedOffline } from '@/services/offline'
 import { colors, fontSize, radius, spacing } from '@/theme/theme'
 
 type FormState = {
@@ -320,6 +321,17 @@ export function ProductForm({
       await syncImages(product)
       onSaved(product)
     } catch (err: any) {
+      if (isQueuedOffline(err)) {
+        Alert.alert('Saved offline', 'This product will be saved automatically when you reconnect.')
+        const optimistic = {
+          ...(initial ?? {}),
+          ...(input as unknown as Record<string, unknown>),
+          product_id: productId ?? (initial?.product_id ?? `local:${Date.now()}`),
+          is_active: (initial as any)?.is_active ?? true,
+        } as unknown as Product
+        onSaved(optimistic)
+        return
+      }
       const msg = api.isAxiosError(err)
         ? (err.response?.data?.errors?.[0]?.msg ??
             err.response?.data?.message ??

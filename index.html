@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inventory Manager — Multi-Platform Inventory Management with Cloud &amp; Offline Sync</title>
+    <meta
+      name="description"
+      content="A multi-platform inventory management system with a RESTful API backend. Web, desktop and mobile clients share one PostgreSQL database, keep working offline, and sync automatically when connectivity returns."
+    />
+    <style>
+      :root {
+        --ink: #111827;
+        --muted: #4b5563;
+        --muted-2: #6b7280;
+        --line: #e5e7eb;
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --accent: #4338ca;
+        --accent-soft: #eef2ff;
+        --accent-line: #e0e7ff;
+        --ok: #047857;
+        --ok-soft: #ecfdf5;
+        --ok-line: #d1fae5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, "Helvetica Neue", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h1 {
+        font-size: clamp(1.9rem, 4.5vw, 3rem);
+        margin: 18px 0 16px;
+      }
+
+      h2 {
+        font-size: clamp(1.4rem, 2.6vw, 2rem);
+        margin: 0 0 10px;
+      }
+
+      h3 {
+        font-size: 1.05rem;
+        margin: 0 0 8px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.88em;
+        background: #f3f4f6;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 1px 5px;
+      }
+
+      /* ---------- header ---------- */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(247, 248, 250, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 60px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+
+      .nav-links {
+        margin-left: auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.9rem;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .nav-links a:hover {
+        color: var(--ink);
+        text-decoration: underline;
+      }
+
+      /* ---------- hero ---------- */
+      .hero {
+        padding: 60px 0 34px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        border-radius: 999px;
+        padding: 5px 12px;
+      }
+
+      .lede {
+        font-size: clamp(1rem, 1.9vw, 1.15rem);
+        color: var(--muted);
+        max-width: 74ch;
+        margin: 0 0 24px;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 11px 18px;
+        border-radius: 10px;
+        font-size: 0.94rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #ffffff;
+      }
+
+      .btn:hover {
+        filter: brightness(1.08);
+      }
+
+      .btn.ghost {
+        background: #ffffff;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+
+      .btn.ghost:hover {
+        border-color: #c7d2fe;
+        filter: none;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .badge {
+        font-size: 0.83rem;
+        color: var(--muted);
+        background: #ffffff;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 12px;
+      }
+
+      /* ---------- sections ---------- */
+      .section {
+        padding: 34px 0;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+      }
+
+      .card p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .card ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .card li + li {
+        margin-top: 5px;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ok);
+        background: var(--ok-soft);
+        border: 1px solid var(--ok-line);
+        border-radius: 999px;
+        padding: 3px 9px;
+        margin-bottom: 10px;
+      }
+
+      /* ---------- sync steps ---------- */
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      .step {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .step .n {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .step p {
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+
+      /* ---------- table ---------- */
+      .tablewrap {
+        overflow-x: auto;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        min-width: 620px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      thead th {
+        background: #f9fafb;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted-2);
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .yes {
+        color: var(--ok);
+        font-weight: 600;
+      }
+
+      .no {
+        color: var(--muted-2);
+      }
+
+      /* ---------- stack chips ---------- */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        font-size: 0.83rem;
+        color: var(--muted);
+        background: #ffffff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 4px 9px;
+      }
+
+      /* ---------- docs ---------- */
+      .docs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .docs a {
+        display: block;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .docs a:hover {
+        border-color: #c7d2fe;
+        background: #f8faff;
+      }
+
+      .docs strong {
+        display: block;
+        font-size: 0.94rem;
+        color: var(--ink);
+      }
+
+      .docs span {
+        font-size: 0.85rem;
+        color: var(--muted-2);
+      }
+
+      /* ---------- footer ---------- */
+      .site-footer {
+        margin-top: 40px;
+        padding: 26px 0 40px;
+        border-top: 1px solid var(--line);
+        font-size: 0.88rem;
+        color: var(--muted-2);
+      }
+
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      @media (max-width: 720px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero {
+          padding: 36px 0 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <nav class="nav">
+          <a class="brand" href="#top">
+            <span class="mark">IM</span>
+            <span>Inventory Manager</span>
+          </a>
+          <div class="nav-links">
+            <a href="#platforms">Platforms</a>
+            <a href="#offline">Offline sync</a>
+            <a href="#features">Features</a>
+            <a href="#matrix">Capabilities</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#docs">Docs</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="wrap">
+          <span class="eyebrow">Cloud &amp; offline &middot; Web / Desktop / Mobile</span>
+          <h1>Multi-platform inventory management that keeps working when the network does not.</h1>
+          <p class="lede">
+            One RESTful API backend, one PostgreSQL database, and three clients — web, desktop and
+            mobile — sharing the same catalogue, stock, sales and reports. Each client keeps a local
+            store and a write queue, so work continues through an outage and syncs automatically
+            when connectivity returns.
+          </p>
+          <div class="cta-row">
+            <a class="btn" href="#offline">How offline sync works</a>
+            <a class="btn ghost" href="#docs">Documentation</a>
+          </div>
+          <div class="badges">
+            <span class="badge">Web &middot; Desktop &middot; Mobile</span>
+            <span class="badge">Local-first write queue</span>
+            <span class="badge">Multi-branch</span>
+            <span class="badge">Role-based access</span>
+            <span class="badge">Docker Compose stack</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="platforms" class="section">
+        <div class="wrap">
+          <h2>Three platforms, one system</h2>
+          <p class="lede">
+            Every client talks to the same REST API and database, so records stay consistent
+            everywhere. Each platform also keeps its own local copy and offline queue, so a dropped
+            connection never stops the counter.
+          </p>
+
+          <div class="grid">
+            <article class="card">
+              <span class="tag">Browser</span>
+              <h3>Web</h3>
+              <p>
+                A React application with no installation required. Full back-office: catalogue,
+                inventory, purchasing, point of sale, transfers and reporting.
+              </p>
+              <ul>
+                <li>Offline queue stored in IndexedDB</li>
+                <li>Dedicated sync screen with pending/failed counts and retry</li>
+                <li>XLSX, CSV and PDF exports; barcode labels</li>
+                <li>Barcode scan field that auto-adds an exact match</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <span class="tag">Windows</span>
+              <h3>Desktop</h3>
+              <p>
+                An Electron application for a till or back office, with native access to hardware
+                that a browser cannot reach.
+              </p>
+              <ul>
+                <li>Barcode scanning: keyboard-wedge (global) and optional raw-HID via <code>node-hid</code></li>
+                <li>Silent receipt printing to a selected printer</li>
+                <li>Label printing (CODE128, configurable size and copies)</li>
+                <li>Persistent local store with automatic replay and health probing</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <span class="tag">Handheld</span>
+              <h3>Mobile</h3>
+              <p>
+                An Expo / React Native app with an on-device SQLite database, for stock takes,
+                receiving and selling away from a desk.
+              </p>
+              <ul>
+                <li>Offline actions: sales, stock in/out, products, categories, units of measure</li>
+                <li>Camera barcode scanning</li>
+                <li>Secure token storage and automatic sync on reconnect or foreground</li>
+                <li>Dashboard with sales, profit and low-stock figures, cached for offline viewing</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="offline" class="section">
+        <div class="wrap">
+          <h2>Cloud plus offline: local-first, then sync</h2>
+          <p class="lede">
+            When the connection drops, the client does not fail — it serves reads from its local
+            mirror, records writes in a local outbox, and shows the user exactly what has not
+            reached the server yet. When the connection returns, that queue is replayed safely.
+          </p>
+
+          <div class="flow">
+            <article class="step">
+              <span class="n">1</span>
+              <h3>Keep working</h3>
+              <p>
+                Reads come from the local mirror (IndexedDB on web and desktop, SQLite on mobile).
+                Writes are appended to a local outbox with a client-generated operation id and
+                applied to the UI immediately.
+              </p>
+            </article>
+            <article class="step">
+              <span class="n">2</span>
+              <h3>Show the state</h3>
+              <p>
+                A banner reports pending and failed counts with the time of the last successful
+                sync, so staff always know what is still only local.
+              </p>
+            </article>
+            <article class="step">
+              <span class="n">3</span>
+              <h3>Replay safely</h3>
+              <p>
+                On reconnect, on app foreground, on a timer, or on demand via a sync control, the
+                queue is replayed in order. Each operation carries an idempotency key, so a retry
+                cannot create a duplicate record.
+              </p>
+            </article>
+            <article class="step">
+              <span class="n">4</span>
+              <h3>Converge</h3>
+              <p>
+                Incremental pull deltas are merged into the local mirror, local-only ids are
+                remapped to server ids as records are created, and failures are retained in a
+                capped conflict log.
+              </p>
+            </article>
+          </div>
+
+          <div class="grid" style="margin-top: 16px">
+            <article class="card">
+              <h3>Why the replay is safe</h3>
+              <p>
+                Two mechanisms make automatic retries safe. The server claims an idempotency key
+                per device and operation, so a repeated request is recognised and not applied
+                twice. A unique constraint on each client's local transaction id provides a second
+                line of defence at the point where stock and sales are written.
+              </p>
+              <ul>
+                <li>Offline: sales, stock in/out, product and category capture, refunds</li>
+                <li>Replay with attempt counts and stored error messages per entry</li>
+                <li>Access tokens refreshed transparently once the server is reachable again</li>
+                <li>Failed syncs raise notifications rather than failing silently</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>What this guarantees</h3>
+              <ul>
+                <li><strong>No lost work</strong> — queued operations persist until they succeed.</li>
+                <li><strong>No duplicates</strong> — idempotency keys plus unique local transaction ids.</li>
+                <li><strong>No stale reads</strong> — incremental pulls keep the local mirror current.</li>
+                <li><strong>No silent failure</strong> — pending and failed work is counted, visible and retryable.</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="wrap">
+          <h2>What it does</h2>
+          <p class="lede">
+            A single product catalogue flows through purchasing, stock movements, inter-branch
+            transfers, point of sale and reporting.
+          </p>
+
+          <div class="grid">
+            <article class="card">
+              <h3>Product catalogue</h3>
+              <ul>
+                <li>Products, categories, units of measure and suppliers</li>
+                <li>Barcodes with uniqueness checks</li>
+                <li>Cost, retail and wholesale pricing</li>
+                <li>Price history recorded on change</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Inventory</h3>
+              <ul>
+                <li>Stock-in and stock-out transactions</li>
+                <li>Current on-hand levels per branch</li>
+                <li>Low-stock alerts and reorder levels</li>
+                <li>Movement history by product, branch and date</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Purchasing</h3>
+              <ul>
+                <li>Supplier records and purchase orders</li>
+                <li>Create, submit, approve, receive</li>
+                <li>Receiving stocks goods into inventory automatically</li>
+                <li>Purchase history by supplier and status</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Sales and point of sale</h3>
+              <ul>
+                <li>Fast POS with barcode scanning</li>
+                <li>Cash, card, mobile money, bank transfer and credit</li>
+                <li>Receipts with invoice numbering</li>
+                <li>Void and refund handling</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Multi-branch</h3>
+              <ul>
+                <li>Multiple branches, each with its own stock</li>
+                <li>Inter-branch transfers with approval flow</li>
+                <li>Branch performance reporting</li>
+                <li>Branch selection per user</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Reporting</h3>
+              <ul>
+                <li>Daily, monthly and annual sales</li>
+                <li>Profit and stock movement reports</li>
+                <li>Low-stock and inventory views</li>
+                <li>Export to XLSX, CSV and PDF</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Access control</h3>
+              <ul>
+                <li>Users, roles and granular permissions</li>
+                <li>JWT sessions with refresh-token rotation</li>
+                <li>Deactivating a user revokes their sessions</li>
+                <li>Audit trail for key actions</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Notifications</h3>
+              <ul>
+                <li>Low-stock alerts with duplicate suppression</li>
+                <li>Branch shortage alerts on transfers</li>
+                <li>Failed-sync notifications to administrators</li>
+                <li>Unread badges in the interface</li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <h3>Barcodes and printing</h3>
+              <ul>
+                <li>Label printing in CODE128, configurable size and copies</li>
+                <li>Receipt printing, silent on desktop</li>
+                <li>Camera scanning on mobile</li>
+                <li>Hardware scanner support on desktop</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="matrix" class="section">
+        <div class="wrap">
+          <h2>Platform capabilities</h2>
+          <p class="lede">
+            The core system is the same everywhere; the differences follow from what each form
+            factor is used for.
+          </p>
+
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Capability</th>
+                  <th scope="col">Web</th>
+                  <th scope="col">Desktop</th>
+                  <th scope="col">Mobile</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Catalogue, inventory, sales, purchasing, transfers</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                </tr>
+                <tr>
+                  <td>Works offline with a local store</td>
+                  <td class="yes">IndexedDB</td>
+                  <td class="yes">IndexedDB</td>
+                  <td class="yes">SQLite</td>
+                </tr>
+                <tr>
+                  <td>Queued writes replayed on reconnect</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                </tr>
+                <tr>
+                  <td>Sync status and retry of queued work</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                </tr>
+                <tr>
+                  <td>Barcode scanning</td>
+                  <td class="yes">Scan field</td>
+                  <td class="yes">Hardware scanner (HID and wedge)</td>
+                  <td class="yes">Camera</td>
+                </tr>
+                <tr>
+                  <td>Receipt printing</td>
+                  <td class="no">Browser dialog</td>
+                  <td class="yes">Native and silent</td>
+                  <td class="no">System share</td>
+                </tr>
+                <tr>
+                  <td>Barcode label printing</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                  <td class="yes">Yes</td>
+                </tr>
+                <tr>
+                  <td>Installation</td>
+                  <td class="no">None (browser)</td>
+                  <td class="yes">Windows installer</td>
+                  <td class="yes">App build</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="architecture" class="section">
+        <div class="wrap">
+          <h2>Architecture</h2>
+          <p class="lede">
+            A RESTful API backend over PostgreSQL, a small worker for background jobs, and three
+            clients that each keep a local cache and write queue.
+          </p>
+
+          <div class="grid">
+            <article class="card">
+              <h3>Backend</h3>
+              <div class="chips">
+                <span class="chip">Node.js</span>
+                <span class="chip">Express</span>
+                <span class="chip">REST / JSON</span>
+                <span class="chip">JWT auth</span>
+                <span class="chip">Roles and permissions</span>
+                <span class="chip">Idempotent writes</span>
+                <span class="chip">Rate limiting</span>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Data and infrastructure</h3>
+              <div class="chips">
+                <span class="chip">PostgreSQL</span>
+                <span class="chip">Redis queue</span>
+                <span class="chip">Background worker</span>
+                <span class="chip">Docker Compose</span>
+                <span class="chip">Nginx</span>
+                <span class="chip">Migrations and seeds</span>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Web client</h3>
+              <div class="chips">
+                <span class="chip">React</span>
+                <span class="chip">Vite</span>
+                <span class="chip">IndexedDB</span>
+                <span class="chip">Axios</span>
+                <span class="chip">XLSX and PDF export</span>
+                <span class="chip">Barcodes and QR</span>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Desktop client</h3>
+              <div class="chips">
+                <span class="chip">Electron</span>
+                <span class="chip">React</span>
+                <span class="chip">IndexedDB</span>
+                <span class="chip">Native printing</span>
+                <span class="chip">HID scanner bridge</span>
+                <span class="chip">Windows installer</span>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3>Mobile client</h3>
+              <div class="chips">
+                <span class="chip">Expo / React Native</span>
+                <span class="chip">SQLite</span>
+                <span class="chip">Expo Router</span>
+                <span class="chip">Camera scanning</span>
+                <span class="chip">Secure storage</span>
+                <span class="chip">Network awareness</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="docs" class="section">
+        <div class="wrap">
+          <h2>Documentation</h2>
+          <p class="lede">
+            The repository ships with the full documentation set. Start with the README for the
+            system overview, then follow the installation and running guides.
+          </p>
+
+          <div class="docs">
+            <a href="README.md">
+              <strong>README</strong>
+              <span>System overview and requirements specification</span>
+            </a>
+            <a href="INSTALLATION.md">
+              <strong>Installation</strong>
+              <span>Setting the project up</span>
+            </a>
+            <a href="RUNNING.md">
+              <strong>Running</strong>
+              <span>Starting each platform</span>
+            </a>
+            <a href="DOCKER.md">
+              <strong>Docker</strong>
+              <span>The containerised stack</span>
+            </a>
+            <a href="USER_MANUAL.md">
+              <strong>User manual</strong>
+              <span>Day-to-day operation</span>
+            </a>
+            <a href="TECHNICAL_MANUAL.md">
+              <strong>Technical manual</strong>
+              <span>Architecture and internals</span>
+            </a>
+            <a href="AUDIT.md">
+              <strong>Feature audit</strong>
+              <span>Requirement-by-requirement status</span>
+            </a>
+            <a href="SECURITY_AUDIT.md">
+              <strong>Security audit</strong>
+              <span>Security review notes</span>
+            </a>
+            <a href="docs/">
+              <strong>Docs folder</strong>
+              <span>Additional project documentation</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="foot">
+          <div>
+            <strong>Inventory Manager</strong>
+            <div style="margin-top: 4px">
+              Multi-platform inventory management with a RESTful API backend, cloud sync and
+              offline-first operation.
+            </div>
+          </div>
+          <div>
+            <span id="year">2026</span> Benedict Osei Amankwa &middot; MIT License
+            <div style="margin-top: 4px">
+              <a href="LICENSE">LICENSE</a> &middot;
+              <a
+                href="https://github.com/benedictamankw18/Multi-Platform-Inventory-Management-System-with-RESTful-API-Backend"
+                rel="noopener"
+                >Source on GitHub</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      try {
+        document.getElementById('year').textContent = String(new Date().getFullYear())
+      } catch (e) {}
+    </script>
+  </body>
+</html>

@@ -35,6 +35,8 @@ export const PERMISSIONS = {
   createSale: 'CREATE_SALE',
   /** Void / refund a sale. */
   voidSale: 'VOID_SALE',
+  /** Dashboard KPIs + reports (data permission on `/reports/*`). */
+  viewReports: 'VIEW_REPORTS',
 } as const
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

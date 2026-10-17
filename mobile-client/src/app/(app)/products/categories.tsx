@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import * as api from '@/services/api'
 import type { Category } from '@/services/api'
+import { isQueuedOffline } from '@/services/offline'
 import { useAuth } from '@/contexts/AuthContext'
 import { PERMISSIONS } from '@/config/permissions'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -147,6 +148,16 @@ function CategoriesScreen() {
       closeForm()
       await refresh()
     } catch (err) {
+      if (isQueuedOffline(err)) {
+        setFeedback(
+          editingId
+            ? 'Category updated offline — it will sync when you reconnect.'
+            : 'Category created offline — it will sync when you reconnect.',
+        )
+        closeForm()
+        await refresh()
+        return
+      }
       setError(toMessage(err, 'Could not save the category.'))
     } finally {
       setSaving(false)
@@ -162,6 +173,11 @@ function CategoriesScreen() {
       setFeedback(category.is_active ? 'Category deactivated.' : 'Category reactivated.')
       await refresh()
     } catch (err) {
+      if (isQueuedOffline(err)) {
+        setFeedback('Category change saved offline — it will sync when you reconnect.')
+        await refresh()
+        return
+      }
       setError(toMessage(err, 'Could not update the category.'))
     }
   }

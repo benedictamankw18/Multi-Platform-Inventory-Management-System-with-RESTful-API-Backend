@@ -12,8 +12,11 @@ import * as Network from 'expo-network'
 import api, { healthCheck } from '../services/api'
 import { drainOutbox, hydrateOfflineCache } from '../services/offline'
 import { on } from '../services/offlineEvents'
-import { getMeta, outboxAll } from '../services/offlineStore'
+import { getMeta, outboxAll, outboxRetryFailed } from '../services/offlineStore'
 import { getAccessToken } from '../services/secureTokens'
+
+/** How often the app opportunistically syncs in the background. */
+const AUTO_SYNC_INTERVAL_MS = 60000
 
 type OfflineContextValue = {
   isOnline: boolean
@@ -44,18 +47,34 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [])
 
-  const syncNow = useCallback(async () => {
-    if (syncingRef.current) return
-    syncingRef.current = true
-    try {
-      const result = await drainOutbox(api)
-      setLastSyncResult(result)
-      setLastSyncAt(new Date().toISOString())
-      await refreshCounts()
-    } finally {
-      syncingRef.current = false
-    }
-  }, [refreshCounts])
+  /**
+   * Core sync: requeue previously-failed entries (only when `retryFailed`),
+   * replay the outbox, then refresh the offline read mirror. Skipped when no
+   * access token is stored (e.g. signed out), so it never marks entries failed
+   * just because there is nothing to authenticate with.
+   */
+  const runSync = useCallback(
+    async (retryFailed: boolean) => {
+      if (syncingRef.current) return
+      syncingRef.current = true
+      try {
+        const token = await getAccessToken()
+        if (!token) return
+        if (retryFailed) await outboxRetryFailed()
+        const result = await drainOutbox(api)
+        setLastSyncResult(result)
+        setLastSyncAt(new Date().toISOString())
+        await hydrateOfflineCache(api).catch(() => {})
+        await refreshCounts()
+      } finally {
+        syncingRef.current = false
+      }
+    },
+    [refreshCounts],
+  )
+
+  // User-initiated / reconnect sync retries failed entries as well.
+  const syncNow = useCallback(() => runSync(true), [runSync])
 
   useEffect(() => {
     let mounted = true
@@ -74,32 +93,28 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       const connected = !!state.isConnected
       if (connected) {
         setIsOnline(true)
+        // Reconnect is a natural retry point for entries that failed offline.
         void syncNow()
-        getAccessToken().then((t) => {
-          if (t && mounted) void hydrateOfflineCache(api).catch(() => {})
-        })
       } else {
         setIsOnline(false)
       }
     })
 
     const appStateSub = AppState.addEventListener('change', (next) => {
-      if (next === 'active' && mounted) {
-        void syncNow()
-        getAccessToken().then((t) => {
-          if (t) void hydrateOfflineCache(api).catch(() => {})
-        })
-      }
+      if (next === 'active' && mounted) void syncNow()
     })
 
     const probeId = setInterval(() => {
       healthCheck().catch(() => {})
     }, 10000)
 
+    // Auto-sync without user interaction. Runs without requeueing failed
+    // entries so a permanently-rejected mutation cannot loop every minute.
+    const autoSyncId = setInterval(() => {
+      void runSync(false)
+    }, AUTO_SYNC_INTERVAL_MS)
+
     void syncNow()
-    getAccessToken().then((t) => {
-      if (t && mounted) void hydrateOfflineCache(api).catch(() => {})
-    })
 
     return () => {
       mounted = false
@@ -107,8 +122,9 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       netUnsub.remove()
       appStateSub.remove()
       clearInterval(probeId)
+      clearInterval(autoSyncId)
     }
-  }, [refreshCounts, syncNow])
+  }, [refreshCounts, runSync, syncNow])
 
   useEffect(() => {
     void getMeta('lastSyncAt').then((v) => {

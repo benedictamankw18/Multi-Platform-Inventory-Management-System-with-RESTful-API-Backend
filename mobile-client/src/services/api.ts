@@ -13,7 +13,7 @@
  * Every request sends `X-Device-Id`.
  */
 
-import axios, { create, isAxiosError } from 'axios'
+import axios, { create, isAxiosError, type AxiosError } from 'axios'
 import { router } from 'expo-router'
 import {
   clearTokens,
@@ -22,6 +22,9 @@ import {
   getRefreshToken,
   storeTokens,
 } from './secureTokens'
+import { isBackendUnreachable, readMirrorWithPending, setupOfflineSupport } from './offline'
+import { mergeEntityRows, offlineSalesAll, type OfflineSale } from './offlineStore'
+import { Platform } from 'react-native'
 
 export { isAxiosError }
 
@@ -29,7 +32,6 @@ export { isAxiosError }
 // Configuration
 // ---------------------------------------------------------------------------
 
-import { Platform } from 'react-native'
 
 /**
  * Build the *default* base URL from the build-time env var, applying the
@@ -425,7 +427,6 @@ const api = create({
   timeout: 15000,
 })
 
-import { setupOfflineSupport } from './offline'
 setupOfflineSupport(api)
 
 // ---------------------------------------------------------------------------
@@ -577,24 +578,215 @@ export async function getMyProfile() {
 
 // ---- MVP reads ------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Offline-aware reads
+//
+// Every read tries the network first; on an unreachable backend it serves the
+// local mirror (kept warm by `/sync/<entity>/pull` and by these very reads) so
+// list/lookup screens keep working offline. Online answers always win and
+// refresh the mirror (server-authoritative).
+// ---------------------------------------------------------------------------
+
+function str(v: unknown): string {
+  return v == null ? '' : String(v)
+}
+
+function num(v: unknown): number {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function flag(v: unknown): boolean {
+  return v === true || v === 'true'
+}
+
+function filterProducts(rows: Record<string, unknown>[], body: Record<string, unknown>) {
+  const q = str(body.q).trim().toLowerCase()
+  const includeInactive = flag(body.includeInactive)
+  const page = Math.max(1, num(body.page) || 1)
+  const limit = Math.max(1, num(body.limit) || 25)
+  let list = rows as unknown as Product[]
+  if (!includeInactive) list = list.filter((p) => p.is_active !== false)
+  if (q) {
+    list = list.filter((p) =>
+      `${p.product_name ?? ''} ${p.sku ?? ''} ${p.barcode ?? ''} ${p.description ?? ''}`
+        .toLowerCase()
+        .includes(q),
+    )
+  }
+  list = list.slice().sort((a, b) => str(a.product_name).localeCompare(str(b.product_name)))
+  const total = list.length
+  const start = (page - 1) * limit
+  return { products: list.slice(start, start + limit), total }
+}
+
+function filterCategories(rows: Record<string, unknown>[], params: Record<string, unknown>) {
+  const q = str(params.q).trim().toLowerCase()
+  const includeInactive = flag(params.includeInactive)
+  const limit = Math.max(1, num(params.limit) || 200)
+  let list = rows as unknown as Category[]
+  if (!includeInactive) list = list.filter((c) => c.is_active !== false)
+  if (q) {
+    list = list.filter((c) =>
+      `${c.category_name ?? ''} ${c.description ?? ''}`.toLowerCase().includes(q),
+    )
+  }
+  list = list.slice().sort((a, b) => str(a.category_name).localeCompare(str(b.category_name)))
+  return { categories: list.slice(0, limit), total: list.length }
+}
+
+function filterUoms(rows: Record<string, unknown>[], params: Record<string, unknown>) {
+  const q = str(params.q).trim().toLowerCase()
+  const activeOnly = flag(params.isActive)
+  const limit = Math.max(1, num(params.limit) || 200)
+  let list = rows.map((r) => ({
+    ...(r as unknown as UnitOfMeasure),
+    name: (r.uom_name as string | undefined) ?? (r.name as string | undefined),
+  }))
+  if (activeOnly) list = list.filter((u) => u.is_active !== false)
+  if (q) list = list.filter((u) => `${u.uom_name ?? ''} ${u.symbol ?? ''}`.toLowerCase().includes(q))
+  list = list.slice().sort((a, b) => str(a.uom_name).localeCompare(str(b.uom_name)))
+  return { data: list.slice(0, limit), total: list.length }
+}
+
+function mapInventoryRow(
+  row: Record<string, unknown>,
+  products: Map<string, Record<string, unknown>>,
+): InventoryItem {
+  const p = products.get(str(row.product_id))
+  return {
+    inventory_id: str(row.inventory_id),
+    product_id: str(row.product_id),
+    branch_id: str(row.branch_id),
+    quantity_on_hand: num(row.quantity_on_hand),
+    reorder_level: num(row.reorder_level),
+    available_quantity:
+      row.available_quantity != null ? num(row.available_quantity) : num(row.quantity_on_hand),
+    reorder_quantity: num(row.reorder_quantity),
+    sku: str(row.sku ?? p?.sku),
+    product_name: str(row.product_name ?? p?.product_name),
+    primary_image_url:
+      (row.primary_image_url as string | null | undefined) ??
+      (p?.primary_image_url as string | null | undefined) ??
+      null,
+  }
+}
+
+function filterInventory(items: InventoryItem[], body: Record<string, unknown>) {
+  const q = str(body.q).trim().toLowerCase()
+  const productId = str(body.productId ?? body.product_id)
+  const branchId = str(body.branchId ?? body.branch_id)
+  const limit = Math.max(1, num(body.limit) || 50)
+  let list = items
+  if (productId) list = list.filter((i) => i.product_id === productId)
+  if (branchId) list = list.filter((i) => i.branch_id === branchId)
+  if (q) {
+    list = list.filter((i) =>
+      `${i.product_name ?? ''} ${i.sku ?? ''}`.toLowerCase().includes(q),
+    )
+  }
+  return { data: list.slice(0, limit), total: list.length }
+}
+
+/** Project a locally-stored (offline) sale into the `Sale` shape the UI uses. */
+function toSaleFromOffline(o: OfflineSale): Sale {
+  const sale = {
+    sale_id: o.server_sale_id ?? o.local_transaction_id,
+    branch_id: o.branch_id ?? '',
+    customer_id: null,
+    cashier_id: null,
+    sale_type: 'RETAIL',
+    sale_date: o.created_at,
+    subtotal: o.subtotal,
+    discount_amount: o.discount_amount,
+    tax_amount: o.tax_amount,
+    total_amount: o.total_amount,
+    amount_paid: o.amount_paid,
+    balance_due: o.balance_due,
+    status: o.status === 'failed' ? 'FAILED' : 'COMPLETED',
+    payment_status: o.balance_due > 0 ? 'PARTIAL' : 'PAID',
+    invoice_number: o.invoice_number,
+    cashier_name: o.cashier_name,
+    customer_name: o.customer_name,
+    remarks: null,
+    device_id: null,
+    refunded_amount: 0,
+    created_at: o.created_at,
+    updated_at: o.created_at,
+    items: Array.isArray(o.items) ? o.items : [],
+    payments: Array.isArray(o.payments) ? o.payments : [],
+  } as unknown as Sale
+  const meta = sale as Record<string, unknown>
+  meta.__offline = o.status !== 'synced'
+  meta.__offline_status = o.status
+  meta.__local_transaction_id = o.local_transaction_id
+  meta.__server_sale_id = o.server_sale_id ?? null
+  return sale
+}
+
+function matchesSaleFilters(s: Sale, params: Record<string, unknown>): boolean {
+  const branchId = str(params.branchId ?? params.branch_id)
+  if (branchId && s.branch_id && s.branch_id !== branchId) return false
+  const status = str(params.status)
+  if (status && s.status !== status) return false
+  const q = str(params.q).trim().toLowerCase()
+  if (q) {
+    const hay = `${s.invoice_number ?? ''} ${s.customer_name ?? ''} ${s.cashier_name ?? ''}`.toLowerCase()
+    if (!hay.includes(q)) return false
+  }
+  return true
+}
+
 export async function searchProducts(body: Record<string, unknown> = {}) {
-  const { data } = await api.post<{ products: Product[]; total: number }>('/products/search', body)
-  return data
+  try {
+    const { data } = await api.post<{ products: Product[]; total: number }>(
+      '/products/search',
+      body,
+    )
+    void mergeEntityRows('products', data.products ?? [], 'product_id').catch(() => {})
+    return data
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const rows = await readMirrorWithPending('products')
+    return filterProducts(rows, body)
+  }
 }
 
 export async function getInventory(body: Record<string, unknown> = {}) {
-  const { data } = await api.post<{ data: InventoryItem[]; total: number }>(
-    '/inventories/search',
-    body,
-  )
-  return data
+  try {
+    const { data } = await api.post<{ data: InventoryItem[]; total: number }>(
+      '/inventories/search',
+      body,
+    )
+    void mergeEntityRows('inventories', data.data ?? [], 'inventory_id').catch(() => {})
+    return data
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const [inv, products] = await Promise.all([
+      readMirrorWithPending('inventories'),
+      readMirrorWithPending('products'),
+    ])
+    const byId = new Map(products.map((p) => [str(p.product_id), p]))
+    const items = inv.map((row) => mapInventoryRow(row, byId))
+    return filterInventory(items, body)
+  }
 }
 
 // ---- Catalog (products CRUD, categories, UoM, price history) --------------
 
 export async function getProductById(productId: string) {
-  const { data } = await api.get<{ product: Product }>(`/products/${productId}`)
-  return data.product
+  try {
+    const { data } = await api.get<{ product: Product }>(`/products/${productId}`)
+    if (data.product) void mergeEntityRows('products', [data.product], 'product_id').catch(() => {})
+    return data.product
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const found = (await readMirrorWithPending('products')).find(
+      (p) => str(p.product_id) === productId,
+    )
+    if (found) return found as unknown as Product
+    throw err
+  }
 }
 
 /**
@@ -683,11 +875,18 @@ export async function deleteProductImage(imageId: string) {
 // ---- Categories -----------------------------------------------------------
 
 export async function getCategories(params: Record<string, unknown> = {}) {
-  const { data } = await api.post<{ categories: Category[]; total: number }>(
-    '/categories/search',
-    params,
-  )
-  return data
+  try {
+    const { data } = await api.post<{ categories: Category[]; total: number }>(
+      '/categories/search',
+      params,
+    )
+    void mergeEntityRows('categories', data.categories ?? [], 'category_id').catch(() => {})
+    return data
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const rows = await readMirrorWithPending('categories')
+    return filterCategories(rows, params)
+  }
 }
 
 export async function createCategory(body: {
@@ -720,10 +919,17 @@ export async function activateCategory(id: string) {
 // ---- Units of measure -----------------------------------------------------
 
 export async function getUnitsOfMeasure(params: Record<string, unknown> = {}) {
-  const { data } = await api.get<{ data: UnitOfMeasure[]; total: number }>('/units-of-measure', {
-    params,
-  })
-  return data
+  try {
+    const { data } = await api.get<{ data: UnitOfMeasure[]; total: number }>('/units-of-measure', {
+      params,
+    })
+    void mergeEntityRows('units-of-measure', data.data ?? [], 'uom_id').catch(() => {})
+    return data
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const rows = await readMirrorWithPending('units-of-measure')
+    return filterUoms(rows, params)
+  }
 }
 
 export async function createUnitOfMeasure(body: {
@@ -792,6 +998,72 @@ export async function getLowStock(branchId?: string) {
   return data.data
 }
 
+// ---- Dashboard metrics ----------------------------------------------------
+
+/** Sales + transaction count for a single calendar day (`YYYY-MM-DD`). */
+export async function getDailySales(date: string, branchId?: string) {
+  const params: Record<string, string> = { date }
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{
+    data: { date?: string; transactions?: number | string; total_sales?: number | string }
+  }>('/reports/daily-sales', { params })
+  const row = data.data
+  return {
+    date: row?.date ?? date,
+    transactions: Number(row?.transactions ?? 0),
+    total_sales: Number(row?.total_sales ?? 0),
+  }
+}
+
+/** Total sales for a whole calendar month (sums the per-day rows). */
+export async function getMonthSalesTotal(year: number, month: number, branchId?: string) {
+  const params: Record<string, string | number> = { year, month }
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{ data: { total_sales: number }[] }>('/reports/monthly-sales', {
+    params,
+  })
+  return (data.data ?? []).reduce((sum, r) => sum + Number(r.total_sales || 0), 0)
+}
+
+/** Total sales for a whole calendar year (sums the per-year rows). */
+export async function getYearSalesTotal(year: number, branchId?: string) {
+  const params: Record<string, string | number> = { year }
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{ data: { total_sales: number }[] }>('/reports/annual-sales', {
+    params,
+  })
+  return (data.data ?? []).reduce((sum, r) => sum + Number(r.total_sales || 0), 0)
+}
+
+/** Total sales between two inclusive dates (used for the current week). */
+export async function getSalesRangeTotal(startDate: string, endDate: string, branchId?: string) {
+  const params: Record<string, string> = { startDate, endDate, granularity: 'day' }
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{
+    data: { totals: { revenue: number | string; orders: number; profit: number } }
+  }>('/reports/sales-trend', { params })
+  return Number(data.data?.totals?.revenue ?? 0)
+}
+
+/** Profit between two inclusive dates (used for month-to-date). */
+export async function getProfitRangeTotal(startDate: string, endDate: string, branchId?: string) {
+  const params: Record<string, string> = { startDate, endDate }
+  if (branchId) params.branchId = branchId
+  const { data } = await api.get<{ data: { profit: number | string } }>('/reports/profit', {
+    params,
+  })
+  return Number(data.data?.profit ?? 0)
+}
+
+/** Number of products (SKUs) in the catalogue for the branch. */
+export async function getProductCount(branchId?: string) {
+  const { data } = await api.post<{ total: number | string }>('/products/search', {
+    limit: 1,
+    ...(branchId ? { branchId } : {}),
+  })
+  return Number(data?.total ?? 0)
+}
+
 export async function getMyNotifications(params?: Record<string, unknown>) {
   const { data } = await api.get<{ data: NotificationItem[] }>('/notifications/me', { params })
   return data
@@ -805,21 +1077,83 @@ export async function createSale(body: CreateSaleInput) {
 }
 
 export async function getSales(params: Record<string, unknown> = {}) {
-  const { data } = await api.get<{ data: Sale[]; total: number }>('/sales', { params })
-  return data
+  const page = Math.max(1, num(params.page) || 1)
+  const limit = Math.max(1, num(params.limit) || 25)
+
+  let serverData: Sale[] = []
+  let serverTotal = 0
+  let offline = false
+  try {
+    const { data } = await api.get<{ data: Sale[]; total: number }>('/sales', { params })
+    serverData = data.data ?? []
+    serverTotal = data.total ?? 0
+    void mergeEntityRows('sales', serverData, 'sale_id').catch(() => {})
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    offline = true
+    const all = (await readMirrorWithPending('sales'))
+      .map((r) => r as unknown as Sale)
+      .filter((s) => matchesSaleFilters(s, params))
+      .sort((a, b) => str(b.sale_date).localeCompare(str(a.sale_date)))
+    const start = (page - 1) * limit
+    serverData = all.slice(start, start + limit)
+    serverTotal = all.length
+  }
+
+  // Local (not-yet-synced) sales ride on page 1 so they are visible immediately;
+  // dedupe against anything the server already returned.
+  if (page === 1) {
+    const seen = new Set(serverData.map((s) => s.sale_id))
+    const extras = (await offlineSalesAll())
+      .filter((o) => o.status !== 'synced')
+      .map(toSaleFromOffline)
+      .filter((s) => matchesSaleFilters(s, params))
+      .filter((s) => {
+        const sid = (s as Record<string, unknown>).__server_sale_id as string | null
+        return !seen.has(s.sale_id) && !(sid && seen.has(sid))
+      })
+    if (extras.length) {
+      return { data: [...extras, ...serverData], total: serverTotal + extras.length, offline }
+    }
+  }
+  return { data: serverData, total: serverTotal, offline }
 }
 
 export async function getSaleById(saleId: string) {
-  const { data } = await api.get<{ data: Sale }>(`/sales/${saleId}`)
-  return data.data
+  // A sale captured offline has no server id yet: serve it from the local store.
+  const local = (await offlineSalesAll()).find(
+    (o) => o.local_transaction_id === saleId || o.server_sale_id === saleId,
+  )
+  if (local && !local.server_sale_id) return toSaleFromOffline(local)
+
+  try {
+    const { data } = await api.get<{ data: Sale }>(`/sales/${saleId}`)
+    return data.data
+  } catch (err) {
+    if (!isBackendUnreachable(err as AxiosError)) throw err
+    const found = (await readMirrorWithPending('sales')).find((s) => str(s.sale_id) === saleId)
+    if (found) return found as unknown as Sale
+    throw err
+  }
 }
 
-/**
- * Sale detail **with payments**. The receipt endpoint is the only read that
- * exposes the payment rows (web uses it the same way); it returns the existing
- * receipt or creates one on first access.
- */
 export async function getSaleReceipt(saleId: string) {
+  const local = (await offlineSalesAll()).find(
+    (o) => o.local_transaction_id === saleId || o.server_sale_id === saleId,
+  )
+  if (local && !local.server_sale_id) {
+    // Synthesize a receipt-shaped payload so the detail screen renders offline.
+    return {
+      receipt: {
+        receipt_id: local.local_transaction_id,
+        sale_id: local.local_transaction_id,
+        receipt_number: local.invoice_number,
+        printed_at: null,
+        printed_by: null,
+      } as ReceiptRecord,
+      sale: toSaleFromOffline(local),
+    }
+  }
   const { data } = await api.get<{ data: { receipt: ReceiptRecord; sale: Sale } }>(
     `/sales/${saleId}/receipt`,
   )

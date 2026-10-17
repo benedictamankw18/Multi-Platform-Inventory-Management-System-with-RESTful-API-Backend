@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import * as api from '@/services/api'
 import type { UnitOfMeasure } from '@/services/api'
+import { isQueuedOffline } from '@/services/offline'
 import { useAuth } from '@/contexts/AuthContext'
 import { PERMISSIONS } from '@/config/permissions'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -157,6 +158,16 @@ function UnitsOfMeasureScreen() {
       closeForm()
       await refresh()
     } catch (err) {
+      if (isQueuedOffline(err)) {
+        setFeedback(
+          editingId
+            ? 'Unit updated offline — it will sync when you reconnect.'
+            : 'Unit created offline — it will sync when you reconnect.',
+        )
+        closeForm()
+        await refresh()
+        return
+      }
       setError(toMessage(err, 'Could not save the unit of measure.'))
     } finally {
       setSaving(false)
@@ -188,6 +199,11 @@ function UnitsOfMeasureScreen() {
       setFeedback(unit.is_active ? 'Unit deactivated.' : 'Unit reactivated.')
       await refresh()
     } catch (err) {
+      if (isQueuedOffline(err)) {
+        setFeedback('Unit change saved offline — it will sync when you reconnect.')
+        await refresh()
+        return
+      }
       setError(toMessage(err, 'Could not update the unit of measure.'))
     }
   }

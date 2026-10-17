@@ -3,20 +3,29 @@ import { colors, radius, spacing } from '@/theme/theme'
 import { useOffline } from '@/contexts/OfflineContext'
 
 export function OfflineBanner() {
-  const { isOnline, pendingCount, syncing, syncNow } = useOffline()
-  if (isOnline && pendingCount === 0 && !syncing) return null
+  const { isOnline, pendingCount, failedCount, syncing, syncNow, lastSyncAt } = useOffline()
+  if (isOnline && pendingCount === 0 && failedCount === 0 && !syncing && !lastSyncAt) return null
+
+  const lastSyncText = lastSyncAt
+    ? ` • Last sync ${new Date(lastSyncAt).toLocaleTimeString()}`
+    : ''
+  const failedText = failedCount > 0 ? ` • ${failedCount} failed` : ''
 
   return (
     <View style={styles.wrapper}>
       <Pressable style={styles.banner} onPress={syncNow}>
         {isOnline ? (
           syncing ? (
-            <Text style={styles.text}>Syncing… ({pendingCount} pending)</Text>
+            <Text style={styles.text}>Syncing… ({pendingCount} pending){lastSyncText}</Text>
           ) : (
-            <Text style={styles.text}>{pendingCount} pending • Tap to sync</Text>
+            <Text style={styles.text}>
+              {pendingCount} pending{failedText} • Tap to sync{lastSyncText}
+            </Text>
           )
         ) : (
-          <Text style={styles.text}>Offline • {pendingCount} queued</Text>
+          <Text style={styles.text}>
+            Offline • {pendingCount} queued{failedText}{lastSyncText}
+          </Text>
         )}
       </Pressable>
     </View>

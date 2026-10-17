@@ -9,6 +9,11 @@ const TABLE = 'sync_logs';
 const ENTITY_TABLE_MAP = {
   products: 'products',
   categories: 'categories',
+  // Units of measure are global reference data (no branch_id), pulled so mobile
+  // pickers keep working offline. `units_of_measure.updated_at` exists, which
+  // is what pullChanges() orders/filters on.
+  'units-of-measure': 'units_of_measure',
+  uom: 'units_of_measure',
   suppliers: 'suppliers',
   customers: 'customers',
   branches: 'branches',

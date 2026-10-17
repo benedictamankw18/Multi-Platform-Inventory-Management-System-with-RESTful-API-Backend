@@ -22,6 +22,8 @@ import {
   storeTokens,
   writeJson,
 } from '../services/secureTokens'
+import { hydrateOfflineCache, isBackendUnreachable, isQueuedOffline } from '../services/offline'
+import apiClient from '../services/api'
 
 export type AuthContextValue = {
   user: AuthUser | null
@@ -186,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           await writeJson(STORAGE_KEYS.selectedBranch, sel.branch)
           setSelectedBranch(sel.branch)
+          void hydrateOfflineCache(apiClient).catch(() => {})
         } catch {
           // Fall through to manual selection.
         }
@@ -199,6 +202,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const selectBranch = useCallback(async (branchId: string) => {
     setError(null)
+    // Apply locally immediately by finding branch in branches list
+    const branch = branches.find((b) => b.branch_id === branchId) || null
+    if (branch) {
+      setSelectedBranch(branch)
+      try {
+        await writeJson(STORAGE_KEYS.selectedBranch, branch)
+      } catch {}
+    }
     try {
       const result = await api.selectBranch(branchId)
       if (result.accessToken) await storeTokens(result.accessToken, result.refreshToken)
@@ -208,12 +219,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await writeJson(STORAGE_KEYS.selectedBranch, result.branch)
       setSelectedBranch(result.branch)
+      // Warm the offline mirror for this branch as soon as we're online.
+      void hydrateOfflineCache(apiClient).catch(() => {})
     } catch (err) {
+      const e: any = err
+      if (isBackendUnreachable(e) || isQueuedOffline(e)) {
+        return
+      }
       const message = errorMessage(err, 'Unable to select branch.')
       setError(message)
       throw new Error(message)
     }
-  }, [])
+  }, [branches])
 
   const clearError = useCallback(() => setError(null), [])
 

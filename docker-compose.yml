@@ -142,6 +142,10 @@ services:
       - backend
     ports:
       - "${WEB_PORT:-80}:80"
+    volumes:
+      # Repo-root overview page, served read-only at /overview.html.
+      # Deliberately NOT mounted as index.html, so the SPA at / is untouched.
+      - ./index.html:/usr/share/nginx/html/overview.html:ro
     networks: [app]
 
   # Optional local mail catcher (development aid). Not started by a plain
